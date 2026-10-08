@@ -2,10 +2,13 @@ import { Chip } from "./Chip";
 import { Container } from "./Container";
 import { cn } from "./cn";
 
-type Tone = "yellow" | "white" | "ink";
+type Tone = "yellow" | "white" | "ink" | "lilac" | "pink" | "blue";
 const tones: Record<Tone, string> = {
   yellow: "bg-booth-yellow",
   white: "bg-white",
+  lilac: "bg-booth-lilac",
+  pink: "bg-booth-pink",
+  blue: "bg-booth-blue",
   ink: "bg-ink text-booth-yellow",
 };
 
