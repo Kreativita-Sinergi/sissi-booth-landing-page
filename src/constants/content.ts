@@ -12,7 +12,7 @@ export const site = {
   description:
     "Aplikasi photobooth untuk usaha photobox & vendor event. Tamu foto, hias, dan bayar QRIS sendiri; softcopy lewat QR, tetap jalan walau internet putus.",
   email: "sissikreatifteknologi@gmail.com",
-  phone: "0851-6146-2806",
+  phone: "085161462806",
   whatsapp: "https://wa.me/6285161462806",
 } as const;
 

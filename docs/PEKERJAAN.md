@@ -56,6 +56,9 @@ _Tidak ada._
 - **2026-10-08** · Claude Opus 5.5 · Figma "Sissi Booth Landing Page" disinkronkan dengan kode (skrip
   `../desain/figma/landing.js`). Bila mengubah tampilan/teks di kode, perbarui skrip itu juga lalu `./run.sh landing.js`.
 
+- **2026-10-08** · Claude Opus 5.5 · Teks Hias tanpa klaim "kulit halus" (mempercantik dihapus di aplikasi); nomor
+  telepon ditulis `085161462806` (kode, Figma landing & slide promosi).
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.
