@@ -60,7 +60,7 @@ _Tidak ada._
   telepon ditulis `085161462806` (kode, Figma landing & slide promosi).
 
 - **2026-10-09** · Claude Opus 5.5 · **Galeri QR di `booth.sissi.id/s/KODE`** (keputusan pemilik): `next.config.ts`
-  meneruskan `/s/*` ke server galeri (`GALLERY_ORIGIN`, bawaan `https://api.sissi.id`). Diuji lokal dengan server
+  meneruskan `/s/*` ke server galeri (`GALLERY_ORIGIN`, bawaan `https://apibooth.sissi.id`). Diuji lokal dengan server
   tiruan. Atur `GALLERY_ORIGIN` di Vercel saat server online. Catatan: Vercel Hobby = non-komersial → Pro untuk bisnis.
 
 ## Berikutnya

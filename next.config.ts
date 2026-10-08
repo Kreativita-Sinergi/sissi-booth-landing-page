@@ -5,7 +5,7 @@ import type { NextConfig } from "next";
  * `booth.sissi.id/s/KODE` → diteruskan ke server ini (tamu tetap melihat
  * booth.sissi.id). Atur `GALLERY_ORIGIN` di Vercel bila alamat server berbeda.
  */
-const galleryOrigin = (process.env.GALLERY_ORIGIN ?? "https://api.sissi.id").replace(/\/+$/, "");
+const galleryOrigin = (process.env.GALLERY_ORIGIN ?? "https://apibooth.sissi.id").replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
