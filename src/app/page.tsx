@@ -24,8 +24,8 @@ export default function Home() {
         <Marquee />
         <ProblemSolution />
         <HowItWorks />
-        <Features />
         <Modes />
+        <Features />
         <Offline />
         <AdminPanel />
         <Comparison />

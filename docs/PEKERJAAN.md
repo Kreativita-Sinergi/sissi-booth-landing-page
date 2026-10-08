@@ -33,6 +33,13 @@ _Tidak ada._
   (tamu, EO, venue, operator) + balasan hijau "Pakai Sissi Booth". Balasan QRIS tidak menyebut rekap pembayaran karena
   panel admin aplikasi belum punya rekap. `CrossMark` dihapus (tak terpakai). Figma belum diperbarui.
 
+- **2026-10-08** · Claude Opus 5.5 · **Kurangi pengulangan ("satu topik satu rumah")**: Dua mode dipindah sebelum
+  Fitur; Fitur jadi bento (kartu besar layar Hias + 5 kartu berwarna: kamera, layout, cetak, GIF boomerang, bingkai);
+  "Softcopy via QR" & "Galeri sesi" keluar dari Fitur; Panel admin 4 aksi konkret; "Anti-offline" → "Tanpa internet";
+  FAQ internet & bayar diganti "Bisa coba dulu?" (demo bertanda DEMO) & "Foto disimpan berapa lama?" (30 hari).
+  **Bug diperbaiki:** `StickerBox` selalu `bg-white` sehingga warna latar via className kalah → prop `fill`
+  (kartu kuning "Sissi Booth" di bagian Tanpa internet kini tampil sesuai Figma).
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.
@@ -49,6 +56,9 @@ _Tidak ada._
 - [ ] Tangkapan layar di `public/screens/` dari Figma — perbarui bila desain aplikasi berubah.
 
 ## Keputusan terbuka
+
+- Retensi galeri 30 hari disebut di FAQ & bagian Tanpa internet — konfirmasi (sama dengan keputusan terbuka di fotobox-service).
+- FAQ menawarkan demo (versi demo bertanda "DEMO") — pastikan alur pemberian demo ke calon klien.
 
 - Domain landing page (sementara `https://booth.sissi.id` di metadata).
 - Harga paket — tidak ditampilkan sampai diputuskan.

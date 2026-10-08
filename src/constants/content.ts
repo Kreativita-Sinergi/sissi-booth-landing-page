@@ -33,11 +33,11 @@ export const hero = {
   secondary: { label: "Lihat fitur", href: "#fitur" },
   badges: [
     { label: "QRIS otomatis", dot: "green" },
-    { label: "Anti-offline", dot: "orange" },
+    { label: "Tanpa internet", dot: "orange" },
   ] satisfies { label: string; dot: Accent }[],
 };
 
-export const marquee = ["QRIS otomatis", "Anti-offline", "Cetak + QR + GIF", "Bingkai acara", "Softcopy lewat QR"];
+export const marquee = ["QRIS otomatis", "Tanpa internet", "Cetak + QR + GIF", "Bingkai acara", "Softcopy lewat QR"];
 
 export const problems = {
   kicker: "KENAL MASALAH INI?",
@@ -87,17 +87,25 @@ export const steps = {
   ],
 };
 
+/** Ikon kartu fitur (dipetakan ke lucide di komponen). */
+export type FeatureIcon = "camera" | "layout" | "printer" | "gif" | "frame";
+
 export const features = {
   kicker: "FITUR",
   title: "Fitur yang bikin tamu ketagihan",
+  hero: {
+    title: "Hias sepuasnya",
+    body: "Filter, kulit halus yang tetap natural, dan stiker lucu. Tamu dandan dulu sebelum fotonya dicetak.",
+    image: "/screens/hias.png",
+    alt: "Layar Hias Sissi Booth: filter, mempercantik, dan stiker",
+  },
   items: [
-    { title: "Kamera bebas", body: "Webcam, capture card, sampai kamera DSLR.", accent: "pink" },
-    { title: "Cetak strip kilat", body: "Strip 2×6 & kartu 4×6 langsung dari printer foto.", accent: "blue" },
-    { title: "Softcopy via QR", body: "Foto, strip & GIF boomerang langsung ke HP tamu.", accent: "green" },
-    { title: "Hias sepuasnya", body: "Filter, mempercantik kulit halus & stiker lucu.", accent: "orange" },
-    { title: "Bingkai acara", body: "Nama & logo acara tercetak di setiap strip.", accent: "lilac" },
-    { title: "Galeri sesi", body: "Semua sesi tersimpan — cetak ulang & QR lagi.", accent: "white" },
-  ] satisfies { title: string; body: string; accent: Accent }[],
+    { title: "Kamera bebas", body: "Webcam, capture card, sampai kamera DSLR.", icon: "camera", accent: "pink" },
+    { title: "Pilih layout", body: "Strip Klasik, Strip Trio, Grid Bestie, atau Solo Besar.", icon: "layout", accent: "blue" },
+    { title: "Cetak kilat", body: "Strip 2×6 dan kartu 4×6 langsung dari printer foto.", icon: "printer", accent: "white" },
+    { title: "GIF boomerang", body: "Animasi lucu dari pose-pose tamu, ikut terkirim ke HP.", icon: "gif", accent: "lilac" },
+    { title: "Bingkai acara", body: "Nama & logo acara tercetak di setiap strip.", icon: "frame", accent: "green" },
+  ] satisfies { title: string; body: string; icon: FeatureIcon; accent: Accent }[],
 };
 
 export const modes = {
@@ -122,11 +130,11 @@ export const modes = {
 };
 
 export const offline = {
-  kicker: "ANTI-OFFLINE",
+  kicker: "TANPA INTERNET",
   title: "Internet putus? Tetap jalan.",
   items: [
-    { title: "Ada sinyal", body: "Foto dikirim ke cloud. Tamu scan 1 QR dan bisa unduh kapan aja — sampai 30 hari.", highlight: false },
-    { title: "Sissi Booth", body: "Otomatis memilih jalur terbaik. Cetak tetap jalan 100% offline.", highlight: true },
+    { title: "Ada sinyal", body: "Foto dikirim ke cloud. Tamu scan 1 QR dan bisa unduh kapan aja, sampai 30 hari.", highlight: false },
+    { title: "Sissi Booth", body: "Otomatis memilih jalur terbaik. Cetak tidak butuh internet sama sekali.", highlight: true },
     { title: "Tanpa sinyal", body: "Booth bikin Wi-Fi sendiri. Tamu sambung lalu unduh langsung di tempat.", highlight: false },
   ],
 };
@@ -136,13 +144,10 @@ export const admin = {
   title: "Semua bisa kamu atur",
   image: "/screens/admin.png",
   points: [
-    "Mode kiosk atau event",
-    "Waktu otomatis tiap langkah",
-    "Template bingkai & logo acara",
-    "Kamera & printer",
-    "Pengiriman & harga paket foto",
-    "Galeri sesi & cetak ulang",
-    "Panel admin dikunci PIN",
+    "Ganti bingkai & logo untuk tiap acara",
+    "Atur harga, mode, dan waktu tiap langkah",
+    "Lihat galeri sesi, cetak ulang, tampilkan QR lagi",
+    "Terkunci PIN, tamu tidak bisa masuk",
   ],
 };
 
@@ -188,7 +193,7 @@ export const comparison = {
 export const plans = {
   kicker: "PAKET LANGGANAN",
   title: "Pilih paket sesukamu",
-  subtitle: "Langganan fleksibel — sesuaikan dengan ramainya usahamu.",
+  subtitle: "Langganan fleksibel, sesuaikan dengan ramainya usahamu.",
   cta: "Tanya harga",
   items: [
     { name: "HARIAN", body: "Pas untuk satu acara atau coba-coba dulu.", accent: "pink", badge: "COCOK BUAT EVENT" },
@@ -215,10 +220,10 @@ export const faq = {
   title: "Yang sering ditanya",
   items: [
     ["Perangkat apa yang dibutuhkan?", "Laptop/PC atau tablet, kamera, dan printer foto. Kameranya bebas: webcam, capture card, sampai DSLR."],
-    ["Perlu internet nggak?", "Nggak wajib. Foto, cetak, dan softcopy lewat Wi-Fi booth tetap jalan tanpa internet. Kalau ada internet, softcopy dikirim lewat cloud dan bisa diunduh sampai 30 hari."],
+    ["Bisa coba dulu sebelum langganan?", "Bisa. Hubungi tim Sissi untuk demo. Di versi demo kamu bisa foto, hias, dan cetak seperti biasa; hasilnya diberi tanda \"DEMO\"."],
+    ["Foto tamu disimpan berapa lama?", "Softcopy di galeri online bisa diunduh selama 30 hari, lalu dihapus permanen. Salinannya juga tersimpan di galeri sesi pada perangkat booth."],
     ["Printer apa yang bisa dipakai?", "Printer foto yang terpasang di perangkatmu, termasuk printer dye-sub untuk strip 2×6 dan kartu 4×6."],
     ["Bisa pakai bingkai sendiri?", "Bisa. Unggah bingkai PNG berisi nama & logo acaramu dari panel admin, lalu atur posisi fotonya."],
-    ["Gimana tamu bayar?", "Di mode kiosk, tamu bayar sendiri lewat QRIS — status lunas otomatis dan sesi langsung mulai."],
     ["Ada paket apa saja?", "Harian, bulanan, dan tahunan. Hubungi tim Sissi untuk info harga."],
   ] as const,
 };
