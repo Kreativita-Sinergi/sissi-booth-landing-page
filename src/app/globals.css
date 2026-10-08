@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* Token desain Sissi Booth (gaya "Sticker Bomb") — sama dengan Figma & aplikasi. */
+@theme {
+  --color-booth-yellow: #ffe24a;
+  --color-ink: #111111;
+  --color-booth-pink: #ff5fa2;
+  --color-booth-blue: #3d7bff;
+  --color-booth-green: #3ddc84;
+  --color-booth-orange: #ff8a3d;
+  --color-booth-lilac: #b69cff;
+  --color-paper: #faf7ec;
+  --color-muted: #4a4a4a;
+  --color-line: #e4dfcc;
+
+  --font-display: var(--font-bagel), system-ui, sans-serif;
+  --font-label: var(--font-archivo), system-ui, sans-serif;
+  --font-sans: var(--font-grotesk), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+
+  /* Bayangan keras tanpa blur. */
+  --shadow-hard-sm: 3px 3px 0 0 var(--color-ink);
+  --shadow-hard: 6px 6px 0 0 var(--color-ink);
+  --shadow-hard-lg: 10px 10px 0 0 var(--color-ink);
+
+  --animate-marquee: marquee 28s linear infinite;
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-booth-yellow);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+button, a, summary, [role="button"] {
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .animate-marquee { animation: none; }
+}
