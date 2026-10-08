@@ -121,20 +121,43 @@ export const admin = {
   ],
 };
 
+/** Sel perbandingan: `ok` = memang bisa (diberi centang). */
+export type CompareCell = { text: string; ok?: boolean };
+
 export const comparison = {
   kicker: "BANDINGKAN",
-  title: "Sissi Booth vs cara lama",
-  columns: ["Yang kamu dapat", "Cara lama", "Sissi Booth"],
+  title: "Sissi Booth vs booth manual",
+  columns: { manual: "Booth manual", ours: "Sissi Booth" },
   rows: [
-    "Tampilan kekinian & lucu",
-    "Tetap jalan tanpa internet",
-    "Softcopy otomatis lewat QR",
-    "Bayar QRIS otomatis",
-    "Booth jalan tanpa operator",
-    "Waktu otomatis tiap langkah",
-    "Bahasa Indonesia & tim lokal",
-  ],
-  note: "“Cara lama” = operator manual + software photobooth umum.",
+    { label: "Cetak strip", manual: { text: "Bisa", ok: true }, ours: { text: "Bisa", ok: true } },
+    {
+      label: "Tamu bayar",
+      manual: { text: "Operator terima tunai/transfer, cek manual" },
+      ours: { text: "QRIS, lunas terdeteksi otomatis", ok: true },
+    },
+    {
+      label: "Kirim softcopy",
+      manual: { text: "Operator kirim satu per satu (AirDrop/WA)" },
+      ours: { text: "Tamu scan QR sendiri", ok: true },
+    },
+    {
+      label: "Internet venue putus",
+      manual: { text: "Softcopy tertunda" },
+      ours: { text: "Tetap jalan lewat Wi-Fi booth", ok: true },
+    },
+    {
+      label: "Tamu kelamaan",
+      manual: { text: "Operator harus menegur" },
+      ours: { text: "Hitung mundur otomatis tiap langkah", ok: true },
+    },
+    { label: "Butuh operator", manual: { text: "Selalu" }, ours: { text: "Opsional (mode kiosk)", ok: true } },
+    {
+      label: "Ganti bingkai per acara",
+      manual: { text: "Edit manual di software" },
+      ours: { text: "Unggah PNG dari panel admin", ok: true },
+    },
+  ] satisfies { label: string; manual: CompareCell; ours: CompareCell }[],
+  note: "Booth manual = operator + laptop + aplikasi kamera biasa.",
 };
 
 export const plans = {

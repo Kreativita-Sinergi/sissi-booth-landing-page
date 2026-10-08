@@ -25,6 +25,10 @@ _Tidak ada._
 - **2026-10-08** · Claude Opus 5.5 · FAQ jadi akordeon beranimasi (grid-rows 0fr→1fr, satu terbuka, aria +
   `inert`, hormati reduced-motion); teks "Windows & Android" dihapus dari hero, pita, FAQ, footer, metadata.
 
+- **2026-10-08** · Claude Opus 5.5 · Perbandingan diganti jadi **"Sissi Booth vs booth manual"**: lawan konkret,
+  sel berisi teks (centang hanya bila memang bisa, titik abu-abu bila tidak), satu baris seri (cetak strip), baris
+  "Bahasa Indonesia & tim lokal" dibuang; mobile jadi kartu per baris. Figma belum diperbarui.
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.
