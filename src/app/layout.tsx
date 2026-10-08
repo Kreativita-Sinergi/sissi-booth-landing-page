@@ -20,8 +20,9 @@ export const metadata: Metadata = {
     url: "/",
     title: site.title,
     description: site.description,
-    images: [{ url: "/screens/tunggu-l.png", width: 1440, height: 900, alt: site.title }],
+    // Gambar pratinjau dibuat otomatis oleh src/app/opengraph-image.tsx.
   },
+  twitter: { card: "summary_large_image", title: site.title, description: site.description },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

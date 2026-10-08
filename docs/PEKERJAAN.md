@@ -50,17 +50,18 @@ _Tidak ada._
 
 - **2026-10-08** · Claude Opus 5.5 · Kartu "Cocok untuk" berwarna (pink/kuning/hijau/biru/oranye/lilac) dengan pil putih; latar section tetap putih. `Section` kini punya tone `lilac/pink/blue` (belum dipakai).
 
+- **2026-10-08** · Claude Opus 5.5 · (ukuran S) **Favicon** monogram "sb", **ikon iOS** 180, **pratinjau tautan**
+  1200×630 bergaya Sticker Bomb (judul hero + chip + layar kiosk) lewat `next/og`, statis; meta `twitter:card`.
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.
-2. Deploy (Vercel / hosting statis) + domain — tergantung keputusan hosting (`../fotobox-service/docs/PEKERJAAN.md`).
-3. Gambar OG khusus 1200×630 (sekarang memakai `tunggu-l.png`).
+2. Deploy ke **Vercel** dengan domain **booth.sissi.id** (diputuskan pemilik 2026-10-08; pemilik yang mengonlinekan).
 
 ## Backlog
 
 - [ ] Bila admin aplikasi punya rekap pembayaran, tambahkan "rekap ada di admin" ke balasan chat QRIS.
 
-- [ ] Favicon/ikon aplikasi Sissi Booth (sekarang belum ada).
 - [ ] Analitik (opsional, butuh keputusan pemilik soal privasi).
 - [ ] Halaman kebijakan privasi (galeri QR menyimpan foto 30 hari).
 - [ ] Tangkapan layar di `public/screens/` dari Figma — perbarui bila desain aplikasi berubah.
@@ -72,5 +73,4 @@ _Tidak ada._
 - Retensi galeri 30 hari disebut di FAQ & bagian Tanpa internet — konfirmasi (sama dengan keputusan terbuka di fotobox-service).
 - FAQ menawarkan demo (versi demo bertanda "DEMO") — pastikan alur pemberian demo ke calon klien.
 
-- Domain landing page (sementara `https://booth.sissi.id` di metadata).
 - Harga paket — tidak ditampilkan sampai diputuskan.

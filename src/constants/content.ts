@@ -16,6 +16,12 @@ export const site = {
   whatsapp: "https://wa.me/6285161462806",
 } as const;
 
+/** Gambar pratinjau tautan (src/app/opengraph-image.tsx). */
+export const og = {
+  alt: "Sissi Booth: aplikasi photobooth untuk usaha photobox & vendor event",
+  chips: ["QRIS OTOMATIS", "TANPA INTERNET", "CETAK + QR + GIF"],
+};
+
 export const nav = [
   { label: "Fitur", href: "#fitur" },
   { label: "Cara kerja", href: "#cara-kerja" },

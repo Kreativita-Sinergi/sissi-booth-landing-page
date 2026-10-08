@@ -37,6 +37,9 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
 - `src/components/sections/` — satu berkas per section; section baru = berkas baru + data di `content.ts` +
   pasang di `page.tsx`.
 - `public/screens/` — tangkapan layar aplikasi dari Figma.
+- `src/app/icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx` — favicon, ikon iOS, pratinjau tautan (1200×630),
+  dirender saat build lewat `next/og` (`"use cache"` → statis). Bahan bersama di `src/lib/` (`og.ts`, `BrandMark.tsx`);
+  warna di `src/lib/brand.ts` **harus sama** dengan `@theme` globals.css. Font OFL di `src/assets/fonts/`.
 
 ## 3. Selesai = hijau
 
