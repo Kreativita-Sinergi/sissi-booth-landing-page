@@ -27,11 +27,11 @@ _Tidak ada._
 
 - **2026-10-08** · Claude Opus 5.5 · Perbandingan diganti jadi **"Sissi Booth vs booth manual"**: lawan konkret,
   sel berisi teks (centang hanya bila memang bisa, titik abu-abu bila tidak), satu baris seri (cetak strip), baris
-  "Bahasa Indonesia & tim lokal" dibuang; mobile jadi kartu per baris. Figma belum diperbarui.
+  "Bahasa Indonesia & tim lokal" dibuang; mobile jadi kartu per baris. 
 
 - **2026-10-08** · Claude Opus 5.5 · Bagian masalah diganti jadi **"Pernah dapet chat kayak gini?"**: 4 bubble chat
   (tamu, EO, venue, operator) + balasan hijau "Pakai Sissi Booth". Balasan QRIS tidak menyebut rekap pembayaran karena
-  panel admin aplikasi belum punya rekap. `CrossMark` dihapus (tak terpakai). Figma belum diperbarui.
+  panel admin aplikasi belum punya rekap. `CrossMark` dihapus (tak terpakai). 
 
 - **2026-10-08** · Claude Opus 5.5 · **Kurangi pengulangan ("satu topik satu rumah")**: Dua mode dipindah sebelum
   Fitur; Fitur jadi bento (kartu besar layar Hias + 5 kartu berwarna: kamera, layout, cetak, GIF boomerang, bingkai);
@@ -52,6 +52,9 @@ _Tidak ada._
 
 - **2026-10-08** · Claude Opus 5.5 · (ukuran S) **Favicon** monogram "sb", **ikon iOS** 180, **pratinjau tautan**
   1200×630 bergaya Sticker Bomb (judul hero + chip + layar kiosk) lewat `next/og`, statis; meta `twitter:card`.
+
+- **2026-10-08** · Claude Opus 5.5 · Figma "Sissi Booth Landing Page" disinkronkan dengan kode (skrip
+  `../desain/figma/landing.js`). Bila mengubah tampilan/teks di kode, perbarui skrip itu juga lalu `./run.sh landing.js`.
 
 ## Berikutnya
 
