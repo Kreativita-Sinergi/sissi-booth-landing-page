@@ -48,7 +48,7 @@ _Tidak ada._
   Mode & Paket). Baris segmen di kartu Dua mode dibuang (rumahnya kini di sini). Rekomendasi paket per segmen =
   usulan, belum data.
 
-- **2026-10-08** · Claude Opus 5.5 · Latar "Cocok untuk" jadi ungu lilac; `Section` kini punya tone `lilac/pink/blue`.
+- **2026-10-08** · Claude Opus 5.5 · Kartu "Cocok untuk" berwarna (pink/kuning/hijau/biru/oranye/lilac) dengan pil putih; latar section tetap putih. `Section` kini punya tone `lilac/pink/blue` (belum dipakai).
 
 ## Berikutnya
 
