@@ -10,7 +10,7 @@ export const site = {
   company: "Sissi Kreatif Teknologi",
   title: "Sissi Booth · Aplikasi Photobooth untuk Bisnis",
   description:
-    "Aplikasi photobooth siap pakai untuk usaha photobox & vendor event: tampilan Gen Z, pembayaran QRIS otomatis, cetak strip, softcopy lewat QR, dan tetap jalan tanpa internet.",
+    "Aplikasi photobooth untuk usaha photobox & vendor event. Tamu foto, hias, dan bayar QRIS sendiri; softcopy lewat QR, tetap jalan walau internet putus.",
   email: "sissikreatifteknologi@gmail.com",
   phone: "0851-6146-2806",
   whatsapp: "https://wa.me/6285161462806",
@@ -28,7 +28,7 @@ export const hero = {
   kicker: "APLIKASI PHOTOBOOTH UNTUK BISNIS",
   title: "Photobox-mu,",
   highlight: "makin cuan!",
-  body: "Aplikasi photobooth siap pakai untuk usaha photobox & vendor event. Tampilan ceria yang bikin tamu betah, pembayaran QRIS otomatis, dan tetap jalan tanpa internet.",
+  body: "Aplikasi photobooth untuk usaha photobox & vendor event. Tamu bisa foto, hias, sampai bayar sendiri. Kamu tinggal isi ulang kertas printer.",
   primary: { label: "Minta demo", href: "#kontak" },
   secondary: { label: "Lihat fitur", href: "#fitur" },
   badges: [
@@ -92,7 +92,7 @@ export type FeatureIcon = "camera" | "layout" | "printer" | "gif" | "frame";
 
 export const features = {
   kicker: "FITUR",
-  title: "Fitur yang bikin tamu ketagihan",
+  title: "Bukan cuma jepret",
   hero: {
     title: "Hias sepuasnya",
     body: "Filter, kulit halus yang tetap natural, dan stiker lucu. Tamu dandan dulu sebelum fotonya dicetak.",
@@ -110,7 +110,7 @@ export const features = {
 
 export const modes = {
   kicker: "DUA MODE",
-  title: "Satu aplikasi, dua cara cuan",
+  title: "Disewa per acara, atau jalan sendiri?",
   items: [
     {
       title: "MODE KIOSK",
@@ -134,20 +134,20 @@ export const offline = {
   title: "Internet putus? Tetap jalan.",
   items: [
     { title: "Ada sinyal", body: "Foto dikirim ke cloud. Tamu scan 1 QR dan bisa unduh kapan aja, sampai 30 hari.", highlight: false },
-    { title: "Sissi Booth", body: "Otomatis memilih jalur terbaik. Cetak tidak butuh internet sama sekali.", highlight: true },
+    { title: "Sissi Booth", body: "Ada sinyal atau nggak, aplikasi pilih sendiri cara kirimnya. Cetak nggak butuh internet.", highlight: true },
     { title: "Tanpa sinyal", body: "Booth bikin Wi-Fi sendiri. Tamu sambung lalu unduh langsung di tempat.", highlight: false },
   ],
 };
 
 export const admin = {
   kicker: "PANEL ADMIN",
-  title: "Semua bisa kamu atur",
+  title: "Ganti acara? Atur dari satu layar.",
   image: "/screens/admin.png",
   points: [
     "Ganti bingkai & logo untuk tiap acara",
     "Atur harga, mode, dan waktu tiap langkah",
     "Lihat galeri sesi, cetak ulang, tampilkan QR lagi",
-    "Terkunci PIN, tamu tidak bisa masuk",
+    "Terkunci PIN, tamu nggak bisa masuk",
   ],
 };
 
@@ -192,8 +192,8 @@ export const comparison = {
 
 export const plans = {
   kicker: "PAKET LANGGANAN",
-  title: "Pilih paket sesukamu",
-  subtitle: "Langganan fleksibel, sesuaikan dengan ramainya usahamu.",
+  title: "Bayar sesuai ramainya booth",
+  subtitle: "Harian buat sekali acara. Bulanan atau tahunan buat booth yang jalan terus.",
   cta: "Tanya harga",
   items: [
     { name: "HARIAN", body: "Pas untuk satu acara atau coba-coba dulu.", accent: "pink", badge: "COCOK BUAT EVENT" },
@@ -229,9 +229,9 @@ export const faq = {
 };
 
 export const contact = {
-  title: "Yuk, bikin booth-mu",
-  highlight: "makin seru!",
-  body: "Mau demo, tanya fitur, atau info harga paket harian, bulanan & tahunan? Hubungi tim Sissi.",
+  title: "Penasaran?",
+  highlight: "Coba demonya!",
+  body: "Tim Sissi tunjukkan cara kerjanya langsung, sekalian kasih info harga paket harian, bulanan, dan tahunan.",
   email: "Email kami",
   whatsapp: "Chat WhatsApp",
 };

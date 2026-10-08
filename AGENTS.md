@@ -33,7 +33,7 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
 - `src/components/shared/` — komponen bersama: `Button`, `Chip`, `StickerBox`, `Section`, `Container`,
   `Stickers` (Star/Burst/Pill/Highlight), `Marks`, `Devices` (mockup laptop/kiosk/layar), `Logo`, `PhotoStrip`,
   `accent.ts` (peta warna aksen), `cn.ts`.
-- `src/components/layout/` — `Navbar` (satu-satunya client component), `Footer`.
+- `src/components/layout/` — `Navbar`, `Footer`. Client component hanya `Navbar` & `sections/Faq` (akordeon).
 - `src/components/sections/` — satu berkas per section; section baru = berkas baru + data di `content.ts` +
   pasang di `page.tsx`.
 - `public/screens/` — tangkapan layar aplikasi dari Figma.

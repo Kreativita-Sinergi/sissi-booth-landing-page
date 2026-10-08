@@ -39,7 +39,7 @@ export function Button({
       href={href}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
       className={cn(
-        "inline-flex items-center justify-center gap-2 border-ink font-label uppercase transition-all duration-100",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap border-ink font-label uppercase transition-all duration-100",
         "hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none",
         "focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-booth-blue",
         variants[variant],
@@ -48,7 +48,7 @@ export function Button({
       )}
     >
       {children}
-      {arrow && <ArrowRight aria-hidden className="size-5" strokeWidth={3} />}
+      {arrow && <ArrowRight aria-hidden className="size-5 shrink-0" strokeWidth={3} />}
     </a>
   );
 }

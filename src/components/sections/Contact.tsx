@@ -10,8 +10,8 @@ export function Contact() {
     <section id="kontak" className="scroll-mt-20 border-t-[3px] border-ink bg-white py-16 md:py-24">
       <Container>
         <div className="relative grid gap-10 overflow-hidden rounded-[28px] border-[5px] border-ink bg-booth-pink p-6 shadow-hard-lg md:grid-cols-[1.3fr_0.7fr] md:p-14">
-          <div className="flex flex-col items-start gap-6">
-            <h2 className="font-display text-4xl leading-none md:text-6xl">
+          <div className="flex min-w-0 flex-col items-start gap-6">
+            <h2 className="font-display text-[clamp(30px,9vw,36px)] leading-none md:text-6xl">
               {contact.title}
               <br />
               <Highlight rotate={-2} className="mt-3">{contact.highlight}</Highlight>
@@ -19,11 +19,11 @@ export function Contact() {
             <p className="max-w-[560px] text-lg font-bold">{contact.body}</p>
             <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row">
               <Button href={`mailto:${site.email}`} variant="secondary" size="lg">
-                <Mail aria-hidden className="size-5" strokeWidth={3} />
+                <Mail aria-hidden className="size-5 shrink-0" strokeWidth={3} />
                 {contact.email}
               </Button>
               <Button href={site.whatsapp} external variant="success" size="lg">
-                <MessageCircle aria-hidden className="size-5" strokeWidth={3} />
+                <MessageCircle aria-hidden className="size-5 shrink-0" strokeWidth={3} />
                 {contact.whatsapp}
               </Button>
             </div>

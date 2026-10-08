@@ -40,6 +40,10 @@ _Tidak ada._
   **Bug diperbaiki:** `StickerBox` selalu `bg-white` sehingga warna latar via className kalah → prop `fill`
   (kartu kuning "Sissi Booth" di bagian Tanpa internet kini tampil sesuai Figma).
 
+- **2026-10-08** · Claude Opus 5.5 · **Gaya tulisan**: judul/teks yang terdengar template ditulis ulang (hero,
+  Fitur "Bukan cuma jepret", Dua mode, Panel admin, Paket, Kontak "Penasaran? Coba demonya!", metadata); bahasa santai
+  konsisten ("nggak"). Kontak & tombol dirapikan untuk layar 360 px (judul fluid, tombol tidak patah baris).
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.
