@@ -101,9 +101,9 @@ export const features = {
   title: "Bukan cuma jepret",
   hero: {
     title: "Hias sepuasnya",
-    body: "Filter, kulit halus yang tetap natural, dan stiker lucu. Tamu dandan dulu sebelum fotonya dicetak.",
+    body: "Sembilan filter, dari B&W sampai Dreamy yang lembut berkilau, plus stiker lucu. Tamu bebas gaya sebelum fotonya dicetak.",
     image: "/screens/hias.png",
-    alt: "Layar Hias Sissi Booth: filter, mempercantik, dan stiker",
+    alt: "Layar Hias Sissi Booth: pilihan filter dan stiker",
   },
   items: [
     { title: "Kamera bebas", body: "Webcam, capture card, sampai kamera DSLR.", icon: "camera", accent: "pink" },
