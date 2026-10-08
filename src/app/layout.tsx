@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://booth.sissi.id"),
   title: site.title,
   description: site.description,
-  keywords: ["photobooth", "photobox", "aplikasi photobooth", "Sissi Booth", "QRIS", "photobox Windows", "photobox Android"],
+  keywords: ["photobooth", "photobox", "aplikasi photobooth", "Sissi Booth", "QRIS"],
   authors: [{ name: site.company }],
   openGraph: {
     type: "website",

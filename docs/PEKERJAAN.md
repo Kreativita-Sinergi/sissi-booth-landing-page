@@ -22,6 +22,9 @@ _Tidak ada._
   FAQ (`<details>`), kontak (email & WhatsApp), footer. Statis, lint + typecheck + build hijau; dicek visual
   desktop 1440 & mobile 390 (tanpa luapan horizontal).
 
+- **2026-10-08** · Claude Opus 5.5 · FAQ jadi akordeon beranimasi (grid-rows 0fr→1fr, satu terbuka, aria +
+  `inert`, hormati reduced-motion); teks "Windows & Android" dihapus dari hero, pita, FAQ, footer, metadata.
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.

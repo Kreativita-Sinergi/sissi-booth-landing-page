@@ -10,7 +10,7 @@ export const site = {
   company: "Sissi Kreatif Teknologi",
   title: "Sissi Booth · Aplikasi Photobooth untuk Bisnis",
   description:
-    "Aplikasi photobooth siap pakai untuk usaha photobox & vendor event: tampilan Gen Z, pembayaran QRIS otomatis, cetak strip, softcopy lewat QR, dan tetap jalan tanpa internet. Untuk Windows & Android.",
+    "Aplikasi photobooth siap pakai untuk usaha photobox & vendor event: tampilan Gen Z, pembayaran QRIS otomatis, cetak strip, softcopy lewat QR, dan tetap jalan tanpa internet.",
   email: "sissikreatifteknologi@gmail.com",
   phone: "0851-6146-2806",
   whatsapp: "https://wa.me/6285161462806",
@@ -32,13 +32,12 @@ export const hero = {
   primary: { label: "Minta demo", href: "#kontak" },
   secondary: { label: "Lihat fitur", href: "#fitur" },
   badges: [
-    { label: "Windows & Android", dot: "blue" },
     { label: "QRIS otomatis", dot: "green" },
     { label: "Anti-offline", dot: "orange" },
   ] satisfies { label: string; dot: Accent }[],
 };
 
-export const marquee = ["Windows & Android", "QRIS otomatis", "Anti-offline", "Cetak + QR + GIF", "Bingkai acara"];
+export const marquee = ["QRIS otomatis", "Anti-offline", "Cetak + QR + GIF", "Bingkai acara", "Softcopy lewat QR"];
 
 export const problems = {
   kicker: "KENAL MASALAH INI?",
@@ -167,7 +166,7 @@ export const faq = {
   kicker: "FAQ",
   title: "Yang sering ditanya",
   items: [
-    ["Perangkat apa yang dibutuhkan?", "Laptop/PC Windows atau tablet Android, kamera, dan printer foto. Kameranya bebas: webcam, capture card, sampai DSLR."],
+    ["Perangkat apa yang dibutuhkan?", "Laptop/PC atau tablet, kamera, dan printer foto. Kameranya bebas: webcam, capture card, sampai DSLR."],
     ["Perlu internet nggak?", "Nggak wajib. Foto, cetak, dan softcopy lewat Wi-Fi booth tetap jalan tanpa internet. Kalau ada internet, softcopy dikirim lewat cloud dan bisa diunduh sampai 30 hari."],
     ["Printer apa yang bisa dipakai?", "Printer foto yang terpasang di perangkatmu, termasuk printer dye-sub untuk strip 2×6 dan kartu 4×6."],
     ["Bisa pakai bingkai sendiri?", "Bisa. Unggah bingkai PNG berisi nama & logo acaramu dari panel admin, lalu atur posisi fotonya."],
@@ -185,7 +184,7 @@ export const contact = {
 };
 
 export const footer = {
-  tagline: "Aplikasi photobooth untuk Windows & Android",
+  tagline: "Aplikasi photobooth untuk usaha photobox & vendor event",
   // Konstan (bukan new Date()): halaman diprerender statis.
   year: 2026,
 };
