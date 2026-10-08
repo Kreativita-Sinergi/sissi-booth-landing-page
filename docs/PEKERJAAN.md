@@ -44,6 +44,10 @@ _Tidak ada._
   Fitur "Bukan cuma jepret", Dua mode, Panel admin, Paket, Kontak "Penasaran? Coba demonya!", metadata); bahasa santai
   konsisten ("nggak"). Kontak & tombol dirapikan untuk layar 360 px (judul fluid, tombol tidak patah baris).
 
+- **2026-10-08** · Claude Opus 5.5 · "Cocok buat siapa aja?" jadi 6 kartu skenario (pil miring + cara pakai + chip
+  Mode & Paket). Baris segmen di kartu Dua mode dibuang (rumahnya kini di sini). Rekomendasi paket per segmen =
+  usulan, belum data.
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.
@@ -60,6 +64,8 @@ _Tidak ada._
 - [ ] Tangkapan layar di `public/screens/` dari Figma — perbarui bila desain aplikasi berubah.
 
 ## Keputusan terbuka
+
+- Rekomendasi paket per segmen di "Cocok buat siapa aja?" masih usulan Claude — konfirmasi pemilik.
 
 - Retensi galeri 30 hari disebut di FAQ & bagian Tanpa internet — konfirmasi (sama dengan keputusan terbuka di fotobox-service).
 - FAQ menawarkan demo (versi demo bertanda "DEMO") — pastikan alur pemberian demo ke calon klien.

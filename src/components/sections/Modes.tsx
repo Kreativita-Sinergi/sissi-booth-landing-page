@@ -1,5 +1,4 @@
 import { modes } from "@/constants/content";
-import { Chip } from "../shared/Chip";
 import { accentBg, accentText } from "../shared/accent";
 import { cn } from "../shared/cn";
 import { CheckMark } from "../shared/Marks";
@@ -24,7 +23,6 @@ export function Modes() {
                 </li>
               ))}
             </ul>
-            <Chip accent="yellow" className="mx-2 self-start normal-case">{m.fit}</Chip>
           </StickerBox>
         ))}
       </div>

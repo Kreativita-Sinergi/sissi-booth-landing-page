@@ -116,17 +116,15 @@ export const modes = {
       title: "MODE KIOSK",
       subtitle: "Tamu bayar sendiri, langsung foto.",
       points: ["Pembayaran QRIS otomatis", "Booth jalan tanpa operator", "Harga per layout bisa diatur"],
-      fit: "Kafe · mal · tempat wisata",
       accent: "pink",
     },
     {
       title: "MODE EVENT",
       subtitle: "Disewa untuk acara, tamu foto gratis.",
       points: ["Bingkai & nama acara", "Batas cetak per acara", "Operator pegang kendali"],
-      fit: "Nikahan · ulang tahun · gathering",
       accent: "blue",
     },
-  ] satisfies { title: string; subtitle: string; points: string[]; fit: string; accent: Accent }[],
+  ] satisfies { title: string; subtitle: string; points: string[]; accent: Accent }[],
 };
 
 export const offline = {
@@ -206,13 +204,15 @@ export const audience = {
   kicker: "COCOK UNTUK",
   title: "Cocok buat siapa aja?",
   items: [
-    { label: "Usaha photobox", accent: "pink", tilt: -4 },
-    { label: "Vendor wedding & event", accent: "white", tilt: 3 },
-    { label: "Kafe & restoran", accent: "green", tilt: -2 },
-    { label: "Mal & tempat wisata", accent: "blue", tilt: 4 },
-    { label: "Brand activation", accent: "orange", tilt: -3 },
-    { label: "Sekolah & kampus", accent: "lilac", tilt: 2 },
-  ] satisfies { label: string; accent: Accent; tilt: number }[],
+    { label: "Usaha photobox", accent: "pink", tilt: -4, use: "Bawa satu booth ke banyak acara, ganti bingkai tiap klien.", mode: "Event", plan: "Bulanan/Tahunan" },
+    { label: "Vendor wedding & event", accent: "white", tilt: 3, use: "Nama pengantin dan tanggal tercetak di setiap strip.", mode: "Event", plan: "Harian/Bulanan" },
+    { label: "Kafe & restoran", accent: "green", tilt: -2, use: "Booth di pojok kafe, tamu bayar QRIS sendiri, jadi pemasukan tambahan.", mode: "Kiosk", plan: "Bulanan" },
+    { label: "Mal & tempat wisata", accent: "blue", tilt: 4, use: "Jalan seharian tanpa operator yang jaga.", mode: "Kiosk", plan: "Tahunan" },
+    { label: "Brand activation", accent: "orange", tilt: -3, use: "Logo brand di strip, softcopy-nya ikut dibagikan tamu.", mode: "Event", plan: "Harian" },
+    { label: "Sekolah & kampus", accent: "lilac", tilt: 2, use: "Pensi, wisuda, sampai dies natalis.", mode: "Event", plan: "Harian" },
+  ] satisfies { label: string; accent: Accent; tilt: number; use: string; mode: string; plan: string }[],
+  modeLabel: "Mode",
+  planLabel: "Paket",
 };
 
 export const faq = {
