@@ -41,13 +41,38 @@ export const marquee = ["QRIS otomatis", "Anti-offline", "Cetak + QR + GIF", "Bi
 
 export const problems = {
   kicker: "KENAL MASALAH INI?",
-  title: "Booth ramai itu seru — kalau semuanya lancar.",
-  pairs: [
-    ["Internet venue lemot, softcopy nggak kekirim.", "Softcopy tetap sampai — lewat cloud atau Wi-Fi booth."],
-    ["Tampilan software kaku & jadul.", "Desain Gen Z yang bikin tamu pengin foto lagi."],
-    ["Operator harus jaga terus.", "Mode kiosk + QRIS otomatis, booth jalan sendiri."],
-    ["Tamu kelamaan, antrean macet.", "Hitung mundur otomatis di tiap langkah."],
-  ] as const,
+  title: "Pernah dapet chat kayak gini?",
+  replyLabel: "Pakai Sissi Booth",
+  chats: [
+    {
+      from: "Tamu",
+      time: "23.41",
+      accent: "pink",
+      text: "Kak, softcopy aku belum masuk ya? 🥲",
+      reply: "Tamu scan QR dan unduh sendiri, nggak perlu nunggu operator.",
+    },
+    {
+      from: "EO acara",
+      time: "19.05",
+      accent: "blue",
+      text: "Antrean booth udah panjang banget, bisa dipercepat?",
+      reply: "Hitung mundur otomatis di tiap langkah, tamu nggak kelamaan.",
+    },
+    {
+      from: "Tim venue",
+      time: "14.20",
+      accent: "orange",
+      text: "Wi-Fi gedung lagi down ya kak, maaf 🙏",
+      reply: "Booth tetap jalan. Softcopy dikirim lewat Wi-Fi booth sendiri.",
+    },
+    {
+      from: "Operator",
+      time: "22.10",
+      accent: "lilac",
+      text: "Kak, uang tunai kurang 20rb pas tutup...",
+      reply: "Tamu bayar QRIS sendiri, lunas terdeteksi otomatis. Nggak ada uang tunai yang dihitung.",
+    },
+  ] satisfies { from: string; time: string; accent: Accent; text: string; reply: string }[],
 };
 
 export const steps = {

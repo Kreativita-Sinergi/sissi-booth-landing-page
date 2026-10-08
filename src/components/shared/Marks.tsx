@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import type { Accent } from "@/constants/content";
 import { accentBg } from "./accent";
 import { cn } from "./cn";
@@ -8,15 +8,6 @@ export function CheckMark({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex size-9 shrink-0 items-center justify-center rounded-full border-[3px] border-ink bg-booth-green shadow-hard-sm", className)}>
       <Check aria-hidden className="size-5" strokeWidth={3.5} />
-    </span>
-  );
-}
-
-/** Lingkaran silang merah muda. */
-export function CrossMark({ className }: { className?: string }) {
-  return (
-    <span className={cn("inline-flex size-9 shrink-0 items-center justify-center rounded-full border-[3px] border-ink bg-booth-pink shadow-hard-sm", className)}>
-      <X aria-hidden className="size-5" strokeWidth={3.5} />
     </span>
   );
 }

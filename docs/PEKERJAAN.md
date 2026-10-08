@@ -29,6 +29,10 @@ _Tidak ada._
   sel berisi teks (centang hanya bila memang bisa, titik abu-abu bila tidak), satu baris seri (cetak strip), baris
   "Bahasa Indonesia & tim lokal" dibuang; mobile jadi kartu per baris. Figma belum diperbarui.
 
+- **2026-10-08** · Claude Opus 5.5 · Bagian masalah diganti jadi **"Pernah dapet chat kayak gini?"**: 4 bubble chat
+  (tamu, EO, venue, operator) + balasan hijau "Pakai Sissi Booth". Balasan QRIS tidak menyebut rekap pembayaran karena
+  panel admin aplikasi belum punya rekap. `CrossMark` dihapus (tak terpakai). Figma belum diperbarui.
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.
@@ -36,6 +40,8 @@ _Tidak ada._
 3. Gambar OG khusus 1200×630 (sekarang memakai `tunggu-l.png`).
 
 ## Backlog
+
+- [ ] Bila admin aplikasi punya rekap pembayaran, tambahkan "rekap ada di admin" ke balasan chat QRIS.
 
 - [ ] Favicon/ikon aplikasi Sissi Booth (sekarang belum ada).
 - [ ] Analitik (opsional, butuh keputusan pemilik soal privasi).
