@@ -59,6 +59,10 @@ _Tidak ada._
 - **2026-10-08** · Claude Opus 5.5 · Teks Hias tanpa klaim "kulit halus" (mempercantik dihapus di aplikasi); nomor
   telepon ditulis `085161462806` (kode, Figma landing & slide promosi).
 
+- **2026-10-09** · Claude Opus 5.5 · **Galeri QR di `booth.sissi.id/s/KODE`** (keputusan pemilik): `next.config.ts`
+  meneruskan `/s/*` ke server galeri (`GALLERY_ORIGIN`, bawaan `https://api.sissi.id`). Diuji lokal dengan server
+  tiruan. Atur `GALLERY_ORIGIN` di Vercel saat server online. Catatan: Vercel Hobby = non-komersial → Pro untuk bisnis.
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.
