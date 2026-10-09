@@ -86,7 +86,7 @@ export const guideGroups = [
     title: "Atur acara & jualan",
     body: "Sesuaikan booth untuk tiap acara atau lokasi.",
     accent: "green",
-    slugs: ["sesi-mode", "template-bingkai", "softcopy-harga"],
+    slugs: ["sesi-mode", "desain-template", "template-bingkai", "softcopy-harga"],
   },
   { id: "setelah-acara", title: "Setelah acara", body: "Urus foto-foto yang sudah diambil.", accent: "orange", slugs: ["galeri-sesi"] },
 ] satisfies { id: string; title: string; body: string; accent: Accent; slugs: string[] }[];
@@ -461,10 +461,10 @@ export const guides: Guide[] = [
     slug: "template-bingkai",
     no: "05",
     audience: "Pemilik booth",
-    title: "Bikin bingkai sendiri",
-    summary: "Unduh panduan layout, desain di aplikasi desain, lalu impor sampai muncul di layar tamu.",
+    title: "Impor bingkai dari Canva/Photoshop",
+    summary: "Unduh panduan layout, desain di Canva atau Photoshop, lalu impor sampai muncul di layar tamu.",
     overview:
-      "Mau bingkai dengan nama pengantin atau logo brand? Sissi Booth menyediakan file panduan untuk tiap layout. Desain di atasnya pakai Canva atau Photoshop, lalu impor. Ukurannya dicek otomatis.",
+      "Untuk desain yang benar-benar bebas, Sissi Booth menyediakan file panduan untuk tiap layout. Desain di atasnya pakai Canva atau Photoshop, lalu impor. Ukurannya dicek otomatis. Cukup ganti tulisan, latar, atau tambah logo? Lebih cepat lewat panduan \"Buat template di aplikasi\", tanpa aplikasi lain.",
     readTime: "5 menit baca",
     video: { id: "zhZWEo1rwRE", duration: "1:02", uploaded: "2026-10-08T19:43:38-07:00" },
     prerequisites: ["Aplikasi desain (misalnya Canva atau Photoshop), atau desainer langganan", "Akses menu admin"],
@@ -509,7 +509,7 @@ export const guides: Guide[] = [
       {
         id: "atur-tampil",
         title: "Atur bingkai yang ditawarkan",
-        body: "Template baru langsung aktif (sakelar hijau = muncul di layar tamu). Matikan sakelar bingkai bawaan yang tidak mau ditawarkan. Ketuk ikon pensil untuk mengubah template.",
+        body: "Template baru langsung aktif (sakelar hijau = muncul di layar tamu). Matikan sakelar bingkai bawaan yang tidak mau ditawarkan. Ketuk ikon pensil untuk mengubah template, termasuk memberi label di layar tamu (EVENT, BARU, SPESIAL, FAVORIT, atau tanpa label).",
         shots: [img("template-bingkai", "sembunyikan.jpg", "Daftar template dengan sakelar tampil/sembunyi")],
       },
       {
@@ -522,8 +522,75 @@ export const guides: Guide[] = [
     faqs: [
       ["Format file apa yang diterima?", "PNG atau JPG. Pakai PNG transparan kalau foto mau tampil di balik bingkai."],
       ["Bisa beda bingkai untuk tiap acara?", "Bisa. Impor bingkai baru, lalu matikan sakelar bingkai acara sebelumnya."],
+      ["Tidak punya aplikasi desain?", "Pakai BUAT DESAIN di menu Template: pilih latar, tulis nama acara, tambah logo, langsung jadi. Lihat panduan \"Buat template di aplikasi\"."],
     ],
-    related: ["sesi-mode", "cara-foto", "kamera-printer"],
+    related: ["desain-template", "sesi-mode", "cara-foto"],
+  },
+  {
+    slug: "desain-template",
+    no: "11",
+    audience: "Pemilik booth",
+    title: "Buat template di aplikasi",
+    summary: "Ganti tulisan di bawah foto, atau buat bingkai sendiri: pilih latar, tulis nama acara, tambah logo. Tanpa Canva.",
+    overview:
+      "Bingkai dengan nama pengantin, tanggal acara, atau logo brand bisa dibuat langsung di Sissi Booth. Pilih latar dari bingkai bawaan, warna polos, atau gambar apa pun. Tambah tulisan dengan 12 pilihan font, lalu logo. Kotak foto selalu aman: tulisan dan logo tidak bisa menutupinya.",
+    readTime: "4 menit baca",
+    prerequisites: ["Akses menu admin", "Logo atau gambar latar dalam PNG/JPG (opsional, ukuran bebas)"],
+    steps: [
+      {
+        id: "teks-bawah",
+        title: "Cara cepat: ganti tulisan di bawah foto",
+        body: "Buka menu Template. Di kartu \"Teks di bawah foto\", ketik tulisanmu, misalnya nama pengantin. Tekan Enter untuk baris kedua seperti tanggal acara. Pilih rata kiri, tengah, atau kanan, lalu font dan warnanya. Pratinjau di kanan langsung berubah.",
+        shots: [img("desain-template", "teks-bawah.jpg", "Kartu Teks di bawah foto dengan pilihan rata, font, dan warna")],
+        points: ["Berlaku di semua bingkai bawaan", "Maksimal 2 baris", "Kosongkan untuk kembali ke tulisan bawaan"],
+      },
+      {
+        id: "buat-desain",
+        title: "Ketuk BUAT DESAIN",
+        body: "Mau bingkai yang benar-benar milikmu? Ketuk BUAT DESAIN di kanan atas menu Template. Pilih layout: Strip Klasik, Strip Trio, Grid Bestie, atau Solo Besar. Kotak bertuliskan FOTO adalah tempat foto tamu nanti.",
+        shots: [img("desain-template", "buat-desain.jpg", "Editor Buat template sendiri dengan pilihan layout dan latar")],
+      },
+      {
+        id: "latar",
+        title: "Pilih latar",
+        body: "Di kartu Latar, pilih BINGKAI (warna dan motif bawaan), WARNA (warna polos), atau GAMBAR (foto atau desain apa pun, ukuran bebas). Gambar otomatis memenuhi kertas. Seret area kosong di desain untuk memilih bagian gambar yang tampil, dan perbesar dengan tombol + kalau perlu.",
+        shots: [img("desain-template", "latar.jpg", "Latar gambar dengan tombol PILIH GAMBAR dan Perbesar latar")],
+        points: ["POSISI AWAL mengembalikan gambar ke tengah", "Garis tepi hitam bisa dimatikan"],
+      },
+      {
+        id: "tulisan-logo",
+        title: "Tambah tulisan & logo",
+        body: "Ketuk TULISAN untuk menambah teks, atau LOGO / GAMBAR untuk memasang logo PNG. Ketuk elemen di desain untuk memilihnya, lalu geser untuk memindah. Tulisan bisa diatur isinya (sampai 3 baris), rata, font, warna, dan ukuran.",
+        shots: [img("desain-template", "tulisan.jpg", "Tulisan terpilih dengan pilihan rata, font, warna, dan ukuran")],
+        callout: {
+          type: "info",
+          title: "Foto tamu selalu aman",
+          text: "Tulisan atau logo yang digeser ke kotak foto otomatis didorong keluar ke tempat kosong terdekat. Kalau tidak muat, ukurannya diperkecil.",
+        },
+      },
+      {
+        id: "label-simpan",
+        title: "Pilih label, lalu SIMPAN",
+        body: "Beri nama template, lalu pilih \"Label di layar tamu\": tanpa label, EVENT, BARU, SPESIAL, atau FAVORIT. Ketuk SIMPAN. Template tersimpan dengan tanda DESAIN dan bisa diubah lagi kapan saja lewat ikon pensil.",
+        shots: [
+          img("desain-template", "label.jpg", "Pilihan Label di layar tamu"),
+          img("desain-template", "tersimpan.jpg", "Template DESAIN di daftar template"),
+        ],
+      },
+      {
+        id: "di-booth",
+        title: "Muncul di layar tamu",
+        body: "Template aktif langsung ada di pilihan bingkai tamu, lengkap dengan label pilihanmu. Matikan sakelarnya kalau acara sudah selesai.",
+        shots: [img("desain-template", "di-booth.jpg", "Template buatan sendiri berlabel SPESIAL di layar pilih bingkai")],
+      },
+    ],
+    faqs: [
+      ["Gambar latar harus ukuran berapa?", "Bebas. Gambar otomatis memenuhi kertas; geser dan perbesar untuk memilih bagian yang tampil. Gambar sangat besar diperkecil otomatis supaya aplikasi tetap ringan."],
+      ["Fontnya bisa dipakai tanpa internet?", "Bisa. Ke-12 font sudah tertanam di aplikasi."],
+      ["Bisa mengubah posisi kotak foto?", "Di template buatan aplikasi, posisi foto mengikuti layout. Untuk posisi foto bebas, pakai impor dari Canva/Photoshop."],
+      ["Template lama saya masih ada?", "Masih. Template impor tetap bisa dipakai dan diberi label."],
+    ],
+    related: ["template-bingkai", "sesi-mode", "cara-foto"],
   },
   {
     slug: "softcopy-harga",

@@ -16,6 +16,11 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · **Panduan baru `/panduan/desain-template`** (#11 "Buat template di aplikasi", tanpa video):
+  teks di bawah foto (Enter, rata, font, warna), BUAT DESAIN, latar (bingkai/warna/gambar, geser & perbesar), tulisan & logo
+  (aman dari kotak foto), label di layar tamu, simpan, tampil di booth; gambar asli dari aplikasi (capture `11` di
+  `fotobox-app/tool/guide_capture_test.dart`) + sampul. Panduan 05 jadi "Impor bingkai dari Canva/Photoshop" (video lama
+  tetap) + label & FAQ ke panduan baru; FAQ beranda "bingkai sendiri" diperbarui + tautan panduan.
 - **2026-10-09** · Claude Opus 5.5 · **Video YouTube berhenti saat halaman ditinggalkan**: Next 16 menyimpan halaman lama
   tersembunyi (back instan) sehingga iframe tetap memutar suara; `shared/YouTube.tsx` kini mengosongkan iframe saat
   disembunyikan/dilepas lalu kembali ke sampul. Diuji: putar → pindah ke /panduan → back = tanpa iframe, sampul tampil.

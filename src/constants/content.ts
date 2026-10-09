@@ -237,12 +237,13 @@ export const faq = {
     ["Bisa coba dulu sebelum langganan?", "Bisa. Hubungi tim Sissi untuk demo. Di versi demo kamu bisa foto, hias, dan cetak seperti biasa; hasilnya diberi tanda \"DEMO\"."],
     ["Foto tamu disimpan berapa lama?", "Softcopy di galeri online bisa diunduh selama 30 hari, lalu dihapus permanen. Salinannya juga tersimpan di galeri sesi pada perangkat booth."],
     ["Printer apa yang bisa dipakai?", "Printer foto yang terpasang di perangkatmu, termasuk printer dye-sub untuk strip 2×6 dan kartu 4×6."],
-    ["Bisa pakai bingkai sendiri?", "Bisa. Unggah bingkai PNG berisi nama & logo acaramu dari panel admin, lalu atur posisi fotonya."],
+    ["Bisa pakai bingkai sendiri?", "Bisa. Buat langsung di aplikasi: pilih latar (warna, motif, atau gambar apa pun), tulis nama acara dengan 12 pilihan font, dan pasang logo. Atau impor desain dari Canva/Photoshop."],
     ["Ada paket apa saja?", "Harian, bulanan, dan tahunan. Hubungi tim Sissi untuk info harga."],
   ] as const,
   /** Tautan lanjutan di bawah jawaban tertentu (kunci = pertanyaan). */
   links: {
     "Bisa pakai kamera mirrorless/DSLR?": { label: "Lihat panduan setelan kamera", href: "/panduan/kamera" },
+    "Bisa pakai bingkai sendiri?": { label: "Lihat panduan buat template", href: "/panduan/desain-template" },
   } as Record<string, { label: string; href: string }>,
 };
 
