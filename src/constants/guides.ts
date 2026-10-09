@@ -540,9 +540,9 @@ export const guides: Guide[] = [
       {
         id: "teks-bawah",
         title: "Cara cepat: ganti tulisan di bawah foto",
-        body: "Buka menu Template. Di kartu \"Teks di bawah foto\", ketik tulisanmu, misalnya nama pengantin. Tekan Enter untuk baris kedua seperti tanggal acara. Pilih rata kiri, tengah, atau kanan, lalu font dan warnanya. Pratinjau di kanan langsung berubah.",
+        body: "Buka menu Template, lalu ketuk UBAH di kartu \"Teks di bawah foto\". Ketik tulisanmu, misalnya nama pengantin. Tekan Enter untuk baris kedua seperti tanggal acara. Pilih rata kiri, tengah, atau kanan, lalu font dan warnanya. Pratinjau di kanan langsung berubah.",
         shots: [img("desain-template", "teks-bawah.jpg", "Kartu Teks di bawah foto dengan pilihan rata, font, dan warna")],
-        points: ["Berlaku di semua bingkai bawaan", "Maksimal 2 baris", "Kosongkan untuk kembali ke tulisan bawaan"],
+        points: ["Hanya untuk bingkai bawaan; template buatan sendiri & impor memakai tulisannya sendiri", "Maksimal 2 baris", "Kosongkan untuk kembali ke tulisan bawaan"],
       },
       {
         id: "buat-desain",

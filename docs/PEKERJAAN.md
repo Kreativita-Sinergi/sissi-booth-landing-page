@@ -16,6 +16,8 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · Panduan `/panduan/desain-template`: gambar ditangkap ulang (kartu teks bawah kini
+  terlipat → "ketuk UBAH", kotak "Impor dari Canva / PNG"), poin teks bawah hanya untuk bingkai bawaan.
 - **2026-10-09** · Claude Opus 5.5 · **Panduan baru `/panduan/desain-template`** (#11 "Buat template di aplikasi", tanpa video):
   teks di bawah foto (Enter, rata, font, warna), BUAT DESAIN, latar (bingkai/warna/gambar, geser & perbesar), tulisan & logo
   (aman dari kotak foto), label di layar tamu, simpan, tampil di booth; gambar asli dari aplikasi (capture `11` di
