@@ -74,7 +74,9 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
 `scripts/exclusive.sh bash -c 'npx eslint src && npx tsc --noEmit && npx next build'` lolos, lalu cek visual
 desktop (1440) & mobile (390, tanpa luapan horizontal). **Halaman dinamis (dashboard): buka juga di `next dev`** —
 mode dev memeriksa aturan cacheComponents lebih ketat (mis. `Date.now()` tanpa `await connection()`) daripada build;
-pastikan panel issue Next = 0 dan `.next/dev/logs/next-development.log` tanpa ERROR.
+pastikan panel issue Next = 0 dan `.next/dev/logs/next-development.log` tanpa ERROR. Otomatis:
+`DEV_CHECK_ADMIN="email:sandi" DEV_CHECK_OWNER="email:sandi" npm run check:dev -- http://localhost:PORT` (semua halaman
+`/admin` & `/dashboard` di 1440 & 390: issue Next, error konsol, luapan, log dev; keluar 1 bila ada masalah).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowLeft, ChevronRight, CirclePlay, Clock, HelpCircle, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { GuideCard, guideAccent } from "@/components/guide/GuideCard";
 import { GuideStep } from "@/components/guide/GuideStep";
@@ -38,7 +39,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /** Satu panduan: langkah bergambar, video YouTube yang cocok, tanya jawab, panduan terkait. */
-export default async function PanduanDetail({ params }: Props) {
+/** `params` dibaca di dalam `<Suspense>` (Next 16: data URL di luar Suspense menghambat navigasi instan). */
+export default function PanduanDetail({ params }: Props) {
+  return (
+    <Suspense fallback={<Navbar />}>
+      <Detail params={params} />
+    </Suspense>
+  );
+}
+
+async function Detail({ params }: Props) {
   const guide = guideBySlug((await params).slug);
   if (!guide) notFound();
   const accent = guideAccent(guideGroups, guide.slug);

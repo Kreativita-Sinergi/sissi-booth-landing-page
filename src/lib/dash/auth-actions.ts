@@ -24,11 +24,16 @@ async function login(role: Role, form: FormData): Promise<ActionState> {
     if (e instanceof ApiError) return { ok: false, message: e.status === 429 ? "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi." : e.message };
     throw e;
   }
-  (await cookies()).set(COOKIE[role], token, {
+  const jar = await cookies();
+  // Token hanya dikirim ke area perannya (/admin atau /dashboard), tidak ke landing & galeri publik.
+  // Cookie lama berjalur "/" (sebelum 2026-10-09) dihapus agar tidak ada dua token.
+  jar.delete({ name: COOKIE[role], path: "/" });
+  jar.set(COOKIE[role], token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    path: "/",
+    path: HOME[role],
+    priority: "high",
     expires: new Date(expires),
   });
   const next = str(form, "next");
@@ -44,7 +49,9 @@ export async function loginOwner(_: ActionState, form: FormData) {
 }
 
 export async function logout(role: Role) {
-  (await cookies()).delete(COOKIE[role]);
+  const jar = await cookies();
+  jar.delete({ name: COOKIE[role], path: HOME[role] });
+  jar.delete({ name: COOKIE[role], path: "/" });
   redirect(LOGIN_PATH[role]);
 }
 

@@ -6,6 +6,7 @@ import { Suspense, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
+  BookOpen,
   CalendarHeart,
   CreditCard,
   Images,
@@ -34,6 +35,7 @@ const NAV: Record<"admin" | "owner", NavItem[]> = {
     { href: "/admin/booth", label: "Booth", icon: MonitorSmartphone },
     { href: "/admin/aktivitas", label: "Log aktivitas", icon: Activity },
     { href: "/admin/pengaturan", label: "Pengaturan", icon: Settings },
+    { href: "/admin/panduan", label: "Panduan admin", icon: BookOpen },
   ],
   owner: [
     { href: "/dashboard", label: "Ringkasan", icon: LayoutDashboard },

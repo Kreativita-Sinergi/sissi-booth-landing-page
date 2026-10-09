@@ -16,6 +16,12 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · **Cek dashboard otomatis** `npm run check:dev` (`scripts/dev-check.mjs`: Chrome headless,
+  semua halaman /admin & /dashboard di 1440 & 390 — issue Next, error konsol, luapan, log dev; kredensial dari env).
+  **Keamanan web**: header global di `next.config.ts` (CSP tanpa nonce agar halaman tetap statis, frame-ancestors none,
+  nosniff, Referrer/Permissions-Policy, HSTS di produksi, tanpa `x-powered-by`); cookie `sb_admin`/`sb_owner` kini berjalur
+  `/admin` / `/dashboard` (+`priority: high`; cookie lama jalur `/` dihapus saat masuk/keluar). `/panduan/[slug]` membaca
+  `params` di dalam `<Suspense>` (peringatan navigasi instan Next 16). **Panduan admin** `/admin/panduan` (menu baru).
 - **2026-10-09** · Claude Opus 5.5 · Ringkasan pemilik: **Jam ramai** (`HourChart`, batang HTML 24 jam, jam tersibuk pink),
   **Bingkai terlaris** & **Filter terlaris** (`FRAME_LABEL`/`FILTER_LABEL` di `format.ts` = teks aplikasi). Galeri online:
   **Unduh semua (zip)** per periode (`/dashboard/unduh/foto` → `/owner/photos.zip`). Dicek 1440/390 + `next dev` 0 issue.
