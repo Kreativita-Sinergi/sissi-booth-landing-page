@@ -16,6 +16,7 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · Panduan cara foto: cara stiker dengan mouse (scroll / Shift+scroll).
 - **2026-10-09** · Claude Opus 5.5 · Panduan softcopy-harga: langkah harga → "Harga & pembayaran QRIS (segera hadir)"
   (gambar `qris-segera.jpg`; `harga-*.jpg` dihapus), FAQ harga diperbarui. Gambar galeri-sesi & aktifkan-lisensi diperbarui
   (status "Belum selesai", QR menunggu unggah, form aktivasi dilipat, tanpa kolom server); teks langkah lisensi disesuaikan.

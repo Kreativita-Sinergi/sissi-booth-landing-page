@@ -162,7 +162,7 @@ export const guides: Guide[] = [
         points: [
           "Ketuk stiker untuk menempel, muncul di tengah foto",
           "Tahan lalu seret untuk memindahkan",
-          "Cubit dengan dua jari untuk memperbesar atau memutar",
+          "Cubit dengan dua jari untuk memperbesar atau memutar (pakai mouse: scroll untuk ukuran, Shift + scroll untuk memutar)",
           "Salah tempel? Ketuk × pada stiker",
         ],
       },
