@@ -15,6 +15,7 @@ import { StickerBox } from "@/components/shared/StickerBox";
 import { YouTube } from "@/components/shared/YouTube";
 import { site } from "@/constants/content";
 import { guideBySlug, guideGroups, guides, guideUi } from "@/constants/guides";
+import { guideJsonLd, JsonLd } from "@/lib/seo";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -45,6 +46,7 @@ export default async function PanduanDetail({ params }: Props) {
 
   return (
     <>
+      <JsonLd data={guideJsonLd(guide)} />
       <Navbar />
       <main>
         <section className="py-10 md:py-16">

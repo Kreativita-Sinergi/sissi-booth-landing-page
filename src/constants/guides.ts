@@ -30,7 +30,8 @@ export type Guide = {
   summary: string;
   overview: string;
   readTime: string;
-  video: { id: string; duration: string };
+  /** `uploaded` = tanggal tayang di YouTube (untuk data terstruktur VideoObject). */
+  video: { id: string; duration: string; uploaded: string };
   prerequisites: string[];
   steps: GuideStep[];
   faqs: [question: string, answer: string][];
@@ -106,7 +107,7 @@ export const guides: Guide[] = [
     overview:
       "Semua langkah di booth dilakukan sendiri lewat layar sentuh. Ikuti urutan di bawah, dalam beberapa menit strip fotomu sudah tercetak dan softcopy-nya bisa diunduh ke HP.",
     readTime: "4 menit baca",
-    video: { id: "d6_SFKFSWqA", duration: "1:23" },
+    video: { id: "d6_SFKFSWqA", duration: "1:23", uploaded: "2026-10-08T19:27:52-07:00" },
     prerequisites: ["HP dengan kamera untuk scan QR di akhir", "E-wallet atau m-banking untuk bayar QRIS (hanya di booth mode kiosk)"],
     steps: [
       {
@@ -188,7 +189,7 @@ export const guides: Guide[] = [
     overview:
       "Softcopy fotomu nggak perlu dikirim operator. Cukup scan QR di layar hasil pakai kamera HP biasa, tanpa aplikasi tambahan. Caranya sedikit berbeda kalau booth sedang tanpa internet.",
     readTime: "3 menit baca",
-    video: { id: "t9EQI55_rZs", duration: "0:47" },
+    video: { id: "t9EQI55_rZs", duration: "0:47", uploaded: "2026-10-08T19:36:25-07:00" },
     prerequisites: ["HP dengan kamera (aplikasi kamera bawaan sudah bisa scan QR)"],
     steps: [
       {
@@ -235,7 +236,7 @@ export const guides: Guide[] = [
     overview:
       "Sebelum diaktifkan, Sissi Booth berjalan dalam MODE DEMO: bisa dicoba penuh, tapi hasil cetak bertanda DEMO dan foto tidak diunggah. Aktivasi cukup sekali dengan kunci lisensi dari tim Sissi.",
     readTime: "2 menit baca",
-    video: { id: "JKX6ZMRAhqI", duration: "0:36" },
+    video: { id: "JKX6ZMRAhqI", duration: "0:36", uploaded: "2026-10-08T19:51:25-07:00" },
     prerequisites: ["Kunci lisensi dari tim Sissi (diberikan saat berlangganan)", "Koneksi internet saat aktivasi", "Akses menu admin (lihat panduan Masuk menu admin)"],
     steps: [
       {
@@ -281,7 +282,7 @@ export const guides: Guide[] = [
     overview:
       "Semua pengaturan booth ada di menu admin. Pintunya sengaja disembunyikan dan dikunci PIN supaya tamu nggak bisa iseng. Halaman pertamanya, Ringkasan, menunjukkan kondisi booth dalam satu layar.",
     readTime: "3 menit baca",
-    video: { id: "68q4QZrZT7k", duration: "0:54" },
+    video: { id: "68q4QZrZT7k", duration: "0:54", uploaded: "2026-10-08T19:38:55-07:00" },
     prerequisites: ["PIN admin 6 angka milik pemilik booth"],
     steps: [
       {
@@ -336,7 +337,7 @@ export const guides: Guide[] = [
     overview:
       "Sambungkan kamera dan printer, lalu atur semuanya dari menu Kamera & printer. Selalu coba TES JEPRET dan TES CETAK sebelum acara mulai.",
     readTime: "4 menit baca",
-    video: { id: "negXnauPTeg", duration: "1:10" },
+    video: { id: "negXnauPTeg", duration: "1:10", uploaded: "2026-10-08T19:44:57-07:00" },
     prerequisites: ["Kamera (webcam, capture card, HP, atau kamera pro) & printer foto yang sudah dicolok", "Driver printer sudah terpasang di komputer", "Akses menu admin"],
     steps: [
       {
@@ -404,7 +405,7 @@ export const guides: Guide[] = [
     overview:
       "Menu Sesi & mode menentukan cara kerja booth: tamu bayar sendiri atau foto gratis, berapa lama hitung mundur, berapa strip yang dicetak, dan kapan booth lanjut sendiri. Perubahan langsung dipakai di sesi berikutnya.",
     readTime: "4 menit baca",
-    video: { id: "INZb4ObhGKY", duration: "1:02" },
+    video: { id: "INZb4ObhGKY", duration: "1:02", uploaded: "2026-10-08T19:42:20-07:00" },
     prerequisites: ["Akses menu admin"],
     steps: [
       {
@@ -465,7 +466,7 @@ export const guides: Guide[] = [
     overview:
       "Mau bingkai dengan nama pengantin atau logo brand? Sissi Booth menyediakan file panduan untuk tiap layout. Desain di atasnya pakai Canva atau Photoshop, lalu impor. Ukurannya dicek otomatis.",
     readTime: "5 menit baca",
-    video: { id: "zhZWEo1rwRE", duration: "1:02" },
+    video: { id: "zhZWEo1rwRE", duration: "1:02", uploaded: "2026-10-08T19:43:38-07:00" },
     prerequisites: ["Aplikasi desain (misalnya Canva atau Photoshop), atau desainer langganan", "Akses menu admin"],
     steps: [
       {
@@ -533,7 +534,7 @@ export const guides: Guide[] = [
     overview:
       "Menu Pengiriman & bayar mengatur dua hal: bagaimana softcopy sampai ke HP tamu (lewat internet atau Wi-Fi booth) dan berapa harga tiap sesi di mode kiosk.",
     readTime: "3 menit baca",
-    video: { id: "s3GxQdAnV08", duration: "0:48" },
+    video: { id: "s3GxQdAnV08", duration: "0:48", uploaded: "2026-10-08T19:46:47-07:00" },
     prerequisites: ["Nama & sandi Wi-Fi yang dipakai laptop booth (Wi-Fi venue atau hotspot HP)", "Akses menu admin"],
     steps: [
       {
@@ -582,7 +583,7 @@ export const guides: Guide[] = [
     overview:
       "Tamu minta cetak lagi atau belum sempat scan QR? Semua sesi foto di laptop ini tersimpan di Galeri sesi, terbaru dulu.",
     readTime: "3 menit baca",
-    video: { id: "Oq8GensNUow", duration: "1:11" },
+    video: { id: "Oq8GensNUow", duration: "1:11", uploaded: "2026-10-08T19:47:52-07:00" },
     prerequisites: ["Akses menu admin", "Kode sesi tamu (ada di bawah QR) kalau mau mencari cepat"],
     steps: [
       {

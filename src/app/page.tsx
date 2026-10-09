@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { AdminPanel } from "@/components/sections/AdminPanel";
@@ -13,11 +14,15 @@ import { Modes } from "@/components/sections/Modes";
 import { Offline } from "@/components/sections/Offline";
 import { Plans } from "@/components/sections/Plans";
 import { ProblemSolution } from "@/components/sections/ProblemSolution";
+import { homeJsonLd, JsonLd } from "@/lib/seo";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 /** Landing page Sissi Booth — urutan bagian sama dengan desain Figma. */
 export default function Home() {
   return (
     <>
+      <JsonLd data={homeJsonLd()} />
       <Navbar />
       <main>
         <Hero />

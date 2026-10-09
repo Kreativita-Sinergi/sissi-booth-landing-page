@@ -46,6 +46,14 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
   dirender saat build lewat `next/og` (`"use cache"` → statis). Bahan bersama di `src/lib/` (`og.ts`, `BrandMark.tsx`);
   warna di `src/lib/brand.ts` **harus sama** dengan `@theme` globals.css. Font OFL di `src/assets/fonts/`.
 
+## 2a. SEO
+
+- `src/lib/seo.tsx` — `siteUrl` (env `NEXT_PUBLIC_SITE_URL`), `contentUpdated` (tanggal di sitemap — **ubah saat isi
+  berubah**), JSON-LD: beranda (Organization, WebSite, SoftwareApplication, FAQPage dari `faq`), tiap panduan
+  (HowTo + VideoObject, BreadcrumbList, FAQPage). Halaman publik baru → tambahkan ke `src/app/sitemap.ts`.
+- `src/app/robots.ts` melarang `/admin`, `/dashboard`, `/s/`; halaman privat juga `robots: { index: false }`.
+- Tiap halaman publik punya `alternates.canonical` sendiri (jangan pasang canonical di root layout).
+
 ## 2b. Dashboard & galeri (2026-10-09)
 
 - `/admin/*` (admin Sissi) & `/dashboard/*` (pemilik booth): Server Component memanggil fotobox-service lewat

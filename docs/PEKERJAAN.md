@@ -84,6 +84,12 @@ _Tidak ada._
   "Yah, fotonya nggak ketemu!", tombol Ke beranda & Buka panduan, strip foto + stiker 404); teks di `notFoundPage`
   (`content.ts`). Menggantikan 404 bawaan Next untuk semua alamat & slug panduan yang tidak ada. Build hijau; cek 1440 & 390.
 
+- **2026-10-09** · Claude Opus 5.5 · (ukuran S) **SEO**: `sitemap.xml` (beranda, /panduan, 9 panduan), `robots.txt`
+  (larang /admin, /dashboard, /s/ + tautan sitemap), canonical beranda, JSON-LD (beranda: Organization, WebSite,
+  SoftwareApplication, FAQPage; panduan: HowTo + VideoObject dengan tanggal tayang YouTube, BreadcrumbList, FAQPage).
+  Build hijau; output diverifikasi (JSON-LD ter-parse). **Pemilik:** verifikasi domain di Google Search Console lalu
+  kirim `https://booth.sissi.id/sitemap.xml`.
+
 ## Berikutnya
 
 1. Reviu pemilik atas teks (terutama jawaban FAQ) & tampilan.
