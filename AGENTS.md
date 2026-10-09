@@ -15,7 +15,8 @@ page **Sissi Booth Landing Page** (gaya Sticker Bomb; Figma = referensi). Bahasa
 3. **Estimasi sebelum kerja:** ukuran XS–XL; **M ke atas → minta persetujuan pemilik**.
 4. **Perintah berat lewat `scripts/exclusive.sh`** (build, lint penuh). Server dev/preview **bukan port 8080**
    (milik sissi-service); hentikan setelah dipakai.
-5. **Semua teks di `src/constants/content.ts`** — komponen tidak berisi copy. **Jangan menulis harga paket**
+5. **Semua teks landing di `src/constants/content.ts`** — komponen landing tidak berisi copy. (Dashboard
+   `/admin` & `/dashboard` dan galeri `/s/KODE` = UI aplikasi: teksnya di halaman masing-masing.) **Jangan menulis harga paket**
    (CTA "Tanya harga" → WhatsApp) sampai pemilik menentukan.
 6. **Token desain di `src/app/globals.css` (`@theme`)** — jangan hex mentah di komponen (kecuali detail mockup).
 7. **Halaman statis:** `cacheComponents` aktif → jangan `new Date()`/data dinamis saat prerender.
@@ -40,6 +41,21 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
 - `src/app/icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx` — favicon, ikon iOS, pratinjau tautan (1200×630),
   dirender saat build lewat `next/og` (`"use cache"` → statis). Bahan bersama di `src/lib/` (`og.ts`, `BrandMark.tsx`);
   warna di `src/lib/brand.ts` **harus sama** dengan `@theme` globals.css. Font OFL di `src/assets/fonts/`.
+
+## 2b. Dashboard & galeri (2026-10-09)
+
+- `/admin/*` (admin Sissi) & `/dashboard/*` (pemilik booth): Server Component memanggil fotobox-service lewat
+  `src/lib/dash/api.ts` (`API_BASE_URL`, mis. `https://apibooth.sissi.id/api/v1`). Token login di **cookie
+  httpOnly** (`sb_admin`/`sb_owner`), tidak pernah ke browser; mutasi = Server Action (`admin-actions.ts`,
+  `owner-actions.ts`); unduhan CSV/zip lewat Route Handler proxy (`download.ts`). Halaman masuk: `…/masuk`.
+- `cacheComponents` aktif → bagian yang membaca cookie/searchParams **wajib** di dalam `<Suspense>` (pola
+  `Page → <Suspense><Content/></Suspense>`). Jangan `catch` tanpa meneruskan error non-`ApiError` (redirect Next).
+- Komponen: `src/components/dash/` — `ui.tsx` (server-safe: Card, Stat, Table, BarChart SVG, Bars, Badge…),
+  `client.tsx` (dialog kustom, ActionForm, Field, ConfirmAction, PeriodPicker, FilterSelect), `pickers.tsx`
+  (**dropdown & kalender kustom — dilarang `<select>`/`<input type=date>` bawaan**), `shell.tsx` (sidebar),
+  `admin-forms.tsx`, `owner-forms.tsx`. Tipe API: `src/lib/dash/types.ts`.
+- Galeri QR `/s/[code]` dirender Next (data `GET /public/sessions/{code}`, gambar langsung dari server file);
+  CSS `src/app/s/[code]/galeri.css` turunan `fotobox-service/internal/gallery/web/gallery.css` (dibatasi `.g`).
 
 ## 3. Selesai = hijau
 

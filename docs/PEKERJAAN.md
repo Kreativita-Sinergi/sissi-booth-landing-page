@@ -2,7 +2,7 @@
 
 > Dokumen hidup: baca di awal sesi, perbarui di akhir sesi (AGENTS.md §0.2). Hanya lokal.
 
-Terakhir diperbarui: **2026-10-08** · oleh: Claude Opus 5.5
+Terakhir diperbarui: **2026-10-09** · oleh: Claude Opus 5.5
 
 ## Menunggu reviu sebelum merge
 
@@ -15,6 +15,15 @@ Terakhir diperbarui: **2026-10-08** · oleh: Claude Opus 5.5
 _Tidak ada._
 
 ## Selesai
+
+- **2026-10-09** · Claude Opus 5.5 · **Dashboard admin Sissi (`/admin`) & pemilik booth (`/dashboard`)** + galeri QR
+  `/s/[code]` dipindah dari server Go. Login email+sandi (cookie httpOnly), Server Actions, proxy unduhan CSV/zip,
+  grafik SVG tanpa pustaka, dropdown & kalender kustom. Admin: ringkasan, pelanggan (+detail: lisensi, kunci tampil
+  sekali + kirim WA, perpanjang/tangguhkan/kunci baru, lepas booth, catat/batal pembayaran), lisensi, pembayaran,
+  transaksi, booth, log aktivitas, pengaturan admin. Pemilik: ringkasan (pendapatan, keuntungan & rinciannya, vs periode
+  lalu, harian, layout, booth), transaksi, acara (+zip foto), galeri, booth, langganan, pengaturan. Lint + tsc + build
+  hijau; uji menyeluruh lokal (API :8090 + data contoh, login form, buat pemilik → lisensi, kalender, CSV/zip) dan cek
+  visual 1440 & 390 tanpa luapan. Env Vercel baru: `API_BASE_URL` (…/api/v1).
 
 - **2026-10-08** · Claude Opus 5.5 · **Landing page v1** sesuai Figma "Sissi Booth Landing Page": navbar (menu
   mobile), hero (mockup laptop + kiosk), pita berjalan, masalah→solusi, cara kerja 5 langkah, fitur, dua mode,
