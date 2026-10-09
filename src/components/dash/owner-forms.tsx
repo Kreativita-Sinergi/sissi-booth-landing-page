@@ -10,7 +10,7 @@ function EventFields({ e, booths, fields }: { e?: BoothEvent; booths: { id: stri
   return (
     <>
       <Field label="Nama acara" name="name" defaultValue={e?.name} required placeholder="Nikahan Rara & Dimas" error={fields?.name} />
-      <Field label="Nama klien" name="client_name" defaultValue={e?.client_name} error={fields?.client_name} />
+      <Field label="Nama klien" name="client_name" placeholder="mis. Rara & Dimas" defaultValue={e?.client_name} error={fields?.client_name} />
       <div className="grid gap-3 sm:grid-cols-2">
         <DateField label="Tanggal mulai" name="starts_on" defaultValue={e?.starts_on ?? todayYmd()} error={fields?.starts_on} />
         <DateField label="Tanggal selesai" name="ends_on" defaultValue={e?.ends_on ?? todayYmd()} error={fields?.ends_on} />
@@ -28,7 +28,7 @@ function EventFields({ e, booths, fields }: { e?: BoothEvent; booths: { id: stri
           error={fields?.device_id}
         />
       )}
-      <TextArea label="Catatan" name="note" defaultValue={e?.note} error={fields?.note} />
+      <TextArea label="Catatan" name="note" placeholder="mis. Gedung Serbaguna, 300 tamu, 2 kru" defaultValue={e?.note} error={fields?.note} />
       <p className="text-xs text-muted">Transaksi booth pada tanggal acara otomatis terhitung ke acara ini.</p>
     </>
   );
@@ -81,8 +81,8 @@ export function ProfileForm({ me }: { me: OwnerProfile }) {
       {(s) => (
         <>
           {s.ok && <p className="rounded-xl border-2 border-ink bg-booth-green px-3 py-2 text-sm font-bold">{s.message}</p>}
-          <Field label="Nama usaha / pemilik" name="name" defaultValue={me.name} required error={s.fields?.name} />
-          <Field label="No. WhatsApp" name="phone" defaultValue={me.phone} error={s.fields?.phone} />
+          <Field label="Nama usaha / pemilik" name="name" placeholder="mis. Rani Photobooth" defaultValue={me.name} required error={s.fields?.name} />
+          <Field label="No. WhatsApp" name="phone" placeholder="mis. 081234567890" defaultValue={me.phone} error={s.fields?.phone} />
           <Field
             label="Biaya kertas per lembar (Rp)"
             name="paper_cost"
@@ -107,8 +107,8 @@ export function OwnerPasswordForm() {
       {(s) => (
         <>
           {s.ok && <p className="rounded-xl border-2 border-ink bg-booth-green px-3 py-2 text-sm font-bold">{s.message}</p>}
-          <Field label="Kata sandi sekarang" name="current_password" type="password" autoComplete="current-password" required error={s.fields?.current_password} />
-          <Field label="Kata sandi baru" name="new_password" type="password" autoComplete="new-password" required error={s.fields?.new_password} hint="Min. 8 karakter, huruf & angka." />
+          <Field label="Kata sandi sekarang" name="current_password" placeholder="Kata sandi yang dipakai sekarang" type="password" autoComplete="current-password" required error={s.fields?.current_password} />
+          <Field label="Kata sandi baru" name="new_password" placeholder="Min. 8 karakter, huruf & angka" type="password" autoComplete="new-password" required error={s.fields?.new_password} hint="Min. 8 karakter, huruf & angka." />
           <div>
             <SubmitButton>Ganti sandi</SubmitButton>
           </div>

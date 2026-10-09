@@ -39,11 +39,11 @@ export function LoginForm({
           <input type="hidden" name="next" value={next ?? ""} />
           <label className="flex flex-col gap-1.5 text-sm font-bold">
             Email
-            <input name="email" type="email" autoComplete="email" required className="h-12 rounded-xl border-2 border-ink px-3 text-base outline-none focus:ring-3 focus:ring-booth-blue/30" />
+            <input name="email" placeholder="nama@email.com" type="email" autoComplete="email" required className="h-12 rounded-xl border-2 border-ink px-3 text-base outline-none focus:ring-3 focus:ring-booth-blue/30" />
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-bold">
             Kata sandi
-            <input name="password" type="password" autoComplete="current-password" required className="h-12 rounded-xl border-2 border-ink px-3 text-base outline-none focus:ring-3 focus:ring-booth-blue/30" />
+            <input name="password" placeholder="Kata sandi" type="password" autoComplete="current-password" required className="h-12 rounded-xl border-2 border-ink px-3 text-base outline-none focus:ring-3 focus:ring-booth-blue/30" />
           </label>
           <button
             type="submit"

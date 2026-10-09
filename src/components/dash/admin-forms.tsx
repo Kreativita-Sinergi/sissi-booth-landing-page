@@ -37,10 +37,10 @@ export function NewOwnerButton() {
         <ActionForm action={createOwner}>
           {(s) => (
             <>
-              <Field label="Nama" name="name" required error={s.fields?.name} />
-              <Field label="Email (untuk masuk dashboard)" name="email" type="email" required error={s.fields?.email} />
+              <Field label="Nama" name="name" placeholder="mis. Rani Photobooth" required error={s.fields?.name} />
+              <Field label="Email (untuk masuk dashboard)" name="email" placeholder="mis. rani@email.com" type="email" required error={s.fields?.email} />
               <Field label="No. WhatsApp" name="phone" inputMode="tel" placeholder="0812…" error={s.fields?.phone} />
-              <Field label="Kata sandi awal" name="password" required error={s.fields?.password} hint="Min. 8 karakter, berisi huruf & angka. Berikan ke pemilik lewat WA." />
+              <Field label="Kata sandi awal" name="password" placeholder="mis. booth2026" required error={s.fields?.password} hint="Min. 8 karakter, berisi huruf & angka. Berikan ke pemilik lewat WA." />
               <Actions>
                 <Button type="button" onClick={close}>Batal</Button>
                 <SubmitButton>Simpan</SubmitButton>
@@ -61,9 +61,9 @@ export function EditOwnerButton({ owner }: { owner: OwnerProfile }) {
           {(s) => (
             <>
               <input type="hidden" name="id" value={owner.id} />
-              <Field label="Nama" name="name" defaultValue={owner.name} required error={s.fields?.name} />
-              <Field label="Email" name="email" type="email" defaultValue={owner.email} required error={s.fields?.email} />
-              <Field label="No. WhatsApp" name="phone" defaultValue={owner.phone} error={s.fields?.phone} />
+              <Field label="Nama" name="name" placeholder="mis. Rani Photobooth" defaultValue={owner.name} required error={s.fields?.name} />
+              <Field label="Email" name="email" placeholder="mis. rani@email.com" type="email" defaultValue={owner.email} required error={s.fields?.email} />
+              <Field label="No. WhatsApp" name="phone" placeholder="mis. 081234567890" defaultValue={owner.phone} error={s.fields?.phone} />
               <Actions>
                 <Button type="button" onClick={close}>Batal</Button>
                 <SubmitButton>Simpan</SubmitButton>
@@ -84,7 +84,7 @@ export function ResetPasswordButton({ ownerId }: { ownerId: string }) {
           {(s) => (
             <>
               <input type="hidden" name="id" value={ownerId} />
-              <Field label="Kata sandi baru" name="password" required error={s.fields?.password} hint="Min. 8 karakter, huruf & angka." />
+              <Field label="Kata sandi baru" name="password" placeholder="mis. sandibaru1" required error={s.fields?.password} hint="Min. 8 karakter, huruf & angka." />
               <Actions>
                 <Button type="button" onClick={close}>Batal</Button>
                 <SubmitButton>Ganti sandi</SubmitButton>
@@ -148,8 +148,8 @@ export function NewLicenseButton({ owner }: { owner: OwnerProfile }) {
                 <input type="hidden" name="owner_id" value={owner.id} />
                 <SelectField label="Paket" name="plan" options={PLANS} error={s.fields?.plan} />
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Jumlah periode" name="periods" type="number" min={1} max={36} defaultValue={1} error={s.fields?.periods} />
-                  <Field label="Maks. booth" name="max_devices" type="number" min={1} max={100} defaultValue={1} error={s.fields?.max_devices} />
+                  <Field label="Jumlah periode" name="periods" placeholder="1" type="number" min={1} max={36} defaultValue={1} error={s.fields?.periods} />
+                  <Field label="Maks. booth" name="max_devices" placeholder="1" type="number" min={1} max={100} defaultValue={1} error={s.fields?.max_devices} />
                 </div>
                 <p className="text-xs text-muted">Belum ada pembayaran? Catat lewat tombol “Catat pembayaran” setelah transfer masuk.</p>
                 <Actions>
@@ -209,7 +209,7 @@ export function ExtendLicenseButton({ license }: { license: License }) {
               <input type="hidden" name="id" value={license.id} />
               <p className="text-sm text-muted">Untuk perpanjangan berbayar, pakai “Catat pembayaran” agar masuk laporan pendapatan.</p>
               <SelectField label="Paket" name="plan" options={PLANS} defaultValue={license.plan} />
-              <Field label="Jumlah periode" name="periods" type="number" min={1} max={36} defaultValue={1} error={s.fields?.periods} />
+              <Field label="Jumlah periode" name="periods" placeholder="1" type="number" min={1} max={36} defaultValue={1} error={s.fields?.periods} />
               <Actions>
                 <Button type="button" onClick={close}>Batal</Button>
                 <SubmitButton>Perpanjang</SubmitButton>
@@ -239,7 +239,7 @@ export function LicenseSettingsButton({ license }: { license: License }) {
                   { value: "suspended", label: "Ditangguhkan (booth berhenti)" },
                 ]}
               />
-              <Field label="Maks. booth" name="max_devices" type="number" min={1} max={100} defaultValue={license.max_devices} error={s.fields?.max_devices} />
+              <Field label="Maks. booth" name="max_devices" placeholder="1" type="number" min={1} max={100} defaultValue={license.max_devices} error={s.fields?.max_devices} />
               <Actions>
                 <Button type="button" onClick={close}>Batal</Button>
                 <SubmitButton>Simpan</SubmitButton>
@@ -297,7 +297,7 @@ export function RecordPaymentButton({
               {licenses && licenses.length > 0 && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <SelectField label="Perpanjang lisensi" name="license_id" options={licOptions} error={s.fields?.license_id} />
-                  <Field label="Periode" name="periods" type="number" min={0} max={36} defaultValue={1} error={s.fields?.periods} hint="0 = hanya catat bayar" />
+                  <Field label="Periode" name="periods" placeholder="1" type="number" min={0} max={36} defaultValue={1} error={s.fields?.periods} hint="0 = hanya catat bayar" />
                 </div>
               )}
               <TextArea label="Catatan" name="note" placeholder="mis. BCA a.n. Rani, 9 Okt" error={s.fields?.note} />
@@ -320,9 +320,9 @@ export function NewAdminButton() {
         <ActionForm action={createAdmin} onDone={close}>
           {(s) => (
             <>
-              <Field label="Nama" name="name" required error={s.fields?.name} />
-              <Field label="Email" name="email" type="email" required error={s.fields?.email} />
-              <Field label="Kata sandi" name="password" required error={s.fields?.password} hint="Min. 8 karakter, huruf & angka." />
+              <Field label="Nama" name="name" placeholder="mis. Budi Santoso" required error={s.fields?.name} />
+              <Field label="Email" name="email" placeholder="mis. budi@sissi.id" type="email" required error={s.fields?.email} />
+              <Field label="Kata sandi" name="password" placeholder="Min. 8 karakter, huruf & angka" required error={s.fields?.password} hint="Min. 8 karakter, huruf & angka." />
               <Actions>
                 <Button type="button" onClick={close}>Batal</Button>
                 <SubmitButton>Simpan</SubmitButton>
@@ -341,8 +341,8 @@ export function ChangePasswordForm({ action = changeAdminPassword }: { action?: 
       {(s) => (
         <>
           {s.ok && <p className="rounded-xl border-2 border-ink bg-booth-green px-3 py-2 text-sm font-bold">{s.message}</p>}
-          <Field label="Kata sandi sekarang" name="current_password" type="password" autoComplete="current-password" required error={s.fields?.current_password} />
-          <Field label="Kata sandi baru" name="new_password" type="password" autoComplete="new-password" required error={s.fields?.new_password} hint="Min. 8 karakter, huruf & angka." />
+          <Field label="Kata sandi sekarang" name="current_password" placeholder="Kata sandi yang dipakai sekarang" type="password" autoComplete="current-password" required error={s.fields?.current_password} />
+          <Field label="Kata sandi baru" name="new_password" placeholder="Min. 8 karakter, huruf & angka" type="password" autoComplete="new-password" required error={s.fields?.new_password} hint="Min. 8 karakter, huruf & angka." />
           <div>
             <SubmitButton>Ganti sandi</SubmitButton>
           </div>
