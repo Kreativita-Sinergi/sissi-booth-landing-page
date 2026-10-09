@@ -249,13 +249,13 @@ export const guides: Guide[] = [
       {
         id: "isi-kunci",
         title: "Isi kunci lisensi & nama booth",
-        body: "Cek alamat server (biasanya sudah terisi), ketik kunci lisensi, lalu beri nama booth supaya gampang dikenali, misalnya \"Booth Mall A\".",
-        shots: [img("aktifkan-lisensi", "nama.jpg", "Isian alamat server, kunci lisensi, dan nama booth")],
+        body: "Ketik kunci lisensi, lalu beri nama booth supaya gampang dikenali, misalnya \"Booth Mall A\". Alamat server sudah terisi otomatis.",
+        shots: [img("aktifkan-lisensi", "nama.jpg", "Isian kunci lisensi dan nama booth")],
       },
       {
         id: "aktifkan",
         title: "Ketuk AKTIFKAN",
-        body: "Ketuk AKTIFKAN. Setelah berhasil, status berubah jadi AKTIF dan terlihat paket, tanggal berlaku sampai, serta batas boleh offline.",
+        body: "Ketuk AKTIFKAN. Setelah berhasil, status berubah jadi AKTIF dan terlihat paket, tanggal berlaku sampai, serta batas boleh offline. Kartu aktivasi otomatis dilipat; buka lewat UBAH hanya bila ingin mengganti kunci atau nama booth.",
         shots: [img("aktifkan-lisensi", "aktif.jpg", "Status lisensi AKTIF dengan paket dan masa berlaku")],
         callout: { type: "info", title: "Butuh internet sekali", text: "Internet hanya diperlukan saat aktivasi. Setelah itu booth tetap bisa jalan tanpa internet." },
       },
@@ -453,7 +453,7 @@ export const guides: Guide[] = [
       },
     ],
     faqs: [
-      ["Harga di mode kiosk diatur di mana?", "Di menu Pengiriman & bayar. Lihat panduan Kirim softcopy & atur harga."],
+      ["Harga di mode kiosk diatur di mana?", "Di menu Pengiriman & bayar, begitu pembayaran QRIS siap. Sementara itu booth memakai mode event (tamu foto gratis)."],
       ["Perlu mulai ulang aplikasi setelah mengubah?", "Tidak. Perubahan langsung dipakai di sesi berikutnya."],
     ],
     related: ["softcopy-harga", "template-bingkai", "masuk-admin"],
@@ -598,9 +598,9 @@ export const guides: Guide[] = [
     no: "07",
     audience: "Pemilik booth",
     title: "Kirim softcopy & atur harga",
-    summary: "Pilih cara softcopy sampai ke HP tamu, atur Wi-Fi, lama simpan file, dan harga mode kiosk.",
+    summary: "Pilih cara softcopy sampai ke HP tamu, atur Wi-Fi dan lama simpan file. Harga mode kiosk segera hadir.",
     overview:
-      "Menu Pengiriman & bayar mengatur dua hal: bagaimana softcopy sampai ke HP tamu (lewat internet atau Wi-Fi booth) dan berapa harga tiap sesi di mode kiosk.",
+      "Menu Pengiriman & bayar mengatur bagaimana softcopy sampai ke HP tamu: lewat internet atau Wi-Fi booth. Pembayaran QRIS (mode kiosk) sedang disiapkan.",
     readTime: "3 menit baca",
     video: { id: "s3GxQdAnV08", duration: "0:48", uploaded: "2026-10-08T19:46:47-07:00" },
     prerequisites: ["Nama & sandi Wi-Fi yang dipakai laptop booth (Wi-Fi venue atau hotspot HP)", "Akses menu admin"],
@@ -630,10 +630,10 @@ export const guides: Guide[] = [
       },
       {
         id: "harga",
-        title: "Atur harga (mode kiosk)",
-        body: "Ketuk + atau − pada tiap layout; harga naik/turun Rp5.000 tiap ketukan dan langsung dipakai. Atur juga harga tambahan GIF untuk tamu yang memilih GIF Boomerang.",
-        shots: [img("softcopy-harga", "harga-klasik.jpg", "Harga per layout"), img("softcopy-harga", "harga-gif.jpg", "Harga tambahan GIF Boomerang")],
-        callout: { type: "info", title: "Mode event", text: "Di mode event tamu foto gratis, jadi harga tidak dipakai. Harga mulai berlaku setelah pembayaran QRIS (mode kiosk) siap." },
+        title: "Harga & pembayaran QRIS (segera hadir)",
+        body: "Mode kiosk, tempat tamu bayar sendiri lewat QRIS, sedang disiapkan. Sementara itu booth memakai mode event (tamu foto gratis), dan pengaturan harga per sesi muncul di kartu Pembayaran QRIS begitu fitur ini siap.",
+        shots: [img("softcopy-harga", "qris-segera.jpg", "Kartu Pembayaran QRIS bertanda segera hadir")],
+        callout: { type: "info", title: "Acara berbayar sekarang?", text: "Untuk sementara, catat nilai kontrak acaramu di dashboard pemilik (menu Acara) supaya keuntungan tetap terhitung." },
       },
     ],
     faqs: [

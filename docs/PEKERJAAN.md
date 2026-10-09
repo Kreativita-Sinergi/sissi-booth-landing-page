@@ -16,6 +16,9 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · Panduan softcopy-harga: langkah harga → "Harga & pembayaran QRIS (segera hadir)"
+  (gambar `qris-segera.jpg`; `harga-*.jpg` dihapus), FAQ harga diperbarui. Gambar galeri-sesi & aktifkan-lisensi diperbarui
+  (status "Belum selesai", QR menunggu unggah, form aktivasi dilipat, tanpa kolom server); teks langkah lisensi disesuaikan.
 - **2026-10-09** · Claude Opus 5.5 · Gambar `cara-foto/terima-kasih.jpg` diperbarui (layar terima kasih kini satu tombol).
 - **2026-10-09** · Claude Opus 5.5 · Panduan disesuaikan perubahan aplikasi: hias (tab STIKER, LANJUT CETAK; gambar
   `cara-foto/hias-filter.jpg` & `stiker-cubit.jpg` baru), mode kiosk "segera hadir" (sesi-mode & harga), petunjuk masuk admin.
