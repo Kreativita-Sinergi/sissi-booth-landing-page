@@ -72,11 +72,17 @@ _Tidak ada._
   meneruskan `/s/*` ke server galeri (`GALLERY_ORIGIN`, bawaan `https://apibooth.sissi.id`). Diuji lokal dengan server
   tiruan. Atur `GALLERY_ORIGIN` di Vercel saat server online. Catatan: Vercel Hobby = non-komersial → Pro untuk bisnis.
 
-- **2026-10-09** · Claude Opus 5.5 · (ukuran S) **Halaman `/panduan`**: 9 video playlist YouTube "Panduan Sissi Booth"
-  dikelompokkan jadi Buat tamu (#01, #02), Persiapan awal (#09 lisensi, #03 admin, #06 kamera & printer), Atur acara &
-  jualan (#04, #05, #07), Setelah acara (#08). Pemutar ringan (sampul dulu, iframe youtube-nocookie saat diklik). Nav
-  dapat menu "Panduan"; semua tautan nav kini `/#…` agar jalan dari halaman lain. Lint + tsc + build hijau; cek visual
-  1440 & 390 tanpa luapan. Figma landing belum disinkronkan (menu "Panduan" & halaman baru).
+- **2026-10-09** · Claude Opus 5.5 · (ukuran M, disetujui) **Panduan pengguna `/panduan`** bergaya pusat panduan Loka
+  Kasir: 9 panduan tertulis (`/panduan/<slug>`), tiap panduan berisi prasyarat, langkah bernomor dengan tangkapan
+  layar aplikasi asli, poin & catatan (tips/info/perhatian), tanya jawab, panduan terkait, daftar langkah lengket
+  (desktop), dan video YouTube yang cocok (sampul lokal, iframe youtube-nocookie saat diklik). Teks dari naskah video
+  Remotion + deskripsi YouTube. Nav dapat menu "Panduan"; tautan nav kini `/#…`. Lint + tsc + build hijau (semua
+  panduan statis); cek visual 1440 & 390. Catatan: slug asing menampilkan halaman 404 tapi status HTTP 200
+  (`dynamicParams` tidak boleh dengan `cacheComponents`). Figma landing belum disinkronkan.
+
+- **2026-10-09** · Claude Opus 5.5 · (ukuran XS) **Halaman 404 kustom** `src/app/not-found.tsx` (gaya Sticker Bomb:
+  "Yah, fotonya nggak ketemu!", tombol Ke beranda & Buka panduan, strip foto + stiker 404); teks di `notFoundPage`
+  (`content.ts`). Menggantikan 404 bawaan Next untuk semua alamat & slug panduan yang tidak ada. Build hijau; cek 1440 & 390.
 
 ## Berikutnya
 

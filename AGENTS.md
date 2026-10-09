@@ -37,8 +37,10 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
 - `src/components/layout/` — `Navbar`, `Footer`. Client component hanya `Navbar`, `sections/Faq` (akordeon) & `shared/YouTube` (sampul → iframe saat diklik).
 - `src/components/sections/` — satu berkas per section; section baru = berkas baru + data di `content.ts` +
   pasang di `page.tsx`.
-- `src/app/panduan/` — halaman **Panduan pengguna**: video YouTube (playlist "Panduan Sissi Booth") dikelompokkan
-  per kebutuhan; data di `guide` (`content.ts`). Video baru = tambah entri di grup yang cocok. Tautan nav diawali `/`.
+- `src/app/panduan/` — **Panduan pengguna**: daftar (`page.tsx`) + detail `[slug]` (langkah bergambar, video YouTube
+  yang cocok, tanya jawab, panduan terkait). Data & teks di **`src/constants/guides.ts`** (pengecualian dari
+  `content.ts` karena panjang); komponen di `src/components/guide/`; gambar di `public/panduan/<slug>/` (tangkapan layar
+  asli dari `../fotobox-app/build/guide`, `sampul.jpg` = thumbnail YouTube). Tautan nav diawali `/`.
 - `public/screens/` — tangkapan layar aplikasi dari Figma.
 - `src/app/icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx` — favicon, ikon iOS, pratinjau tautan (1200×630),
   dirender saat build lewat `next/og` (`"use cache"` → statis). Bahan bersama di `src/lib/` (`og.ts`, `BrandMark.tsx`);
