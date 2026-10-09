@@ -2,12 +2,16 @@
 
 import { Play } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "./cn";
 
 /**
  * Video YouTube ringan: tampilkan sampul lokal dulu, iframe (youtube-nocookie) baru dimuat
  * saat diklik — halaman tetap cepat dan tidak memuat skrip YouTube sebelum dibutuhkan.
+ *
+ * Next 16 menyimpan halaman yang ditinggalkan dalam keadaan tersembunyi (agar "back" instan), jadi
+ * iframe tetap hidup dan suaranya terus terdengar. Saat komponen disembunyikan/dilepas, iframe
+ * dikosongkan seketika dan kembali ke sampul.
  */
 export function YouTube({
   id,
@@ -24,10 +28,21 @@ export function YouTube({
   className?: string;
 }) {
   const [playing, setPlaying] = useState(false);
+  const frame = useRef<HTMLIFrameElement>(null);
+  useEffect(() => {
+    const el = frame.current;
+    if (!el) return;
+    return () => {
+      // Langsung hentikan (render ulang halaman tersembunyi bisa tertunda), lalu tampilkan sampul lagi.
+      el.src = "about:blank";
+      setPlaying(false);
+    };
+  }, [playing]);
   return (
     <div className={cn("relative aspect-video overflow-hidden bg-ink", className)}>
       {playing ? (
         <iframe
+          ref={frame}
           src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`}
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

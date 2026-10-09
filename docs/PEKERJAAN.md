@@ -16,6 +16,10 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · **Video YouTube berhenti saat halaman ditinggalkan**: Next 16 menyimpan halaman lama
+  tersembunyi (back instan) sehingga iframe tetap memutar suara; `shared/YouTube.tsx` kini mengosongkan iframe saat
+  disembunyikan/dilepas lalu kembali ke sampul. Diuji: putar → pindah ke /panduan → back = tanpa iframe, sampul tampil.
+  (Pause otomatis saat di-scroll: tidak dikerjakan, keputusan pemilik.)
 - **2026-10-09** · Claude Opus 5.5 · **Cek dashboard otomatis** `npm run check:dev` (`scripts/dev-check.mjs`: Chrome headless,
   semua halaman /admin & /dashboard di 1440 & 390 — issue Next, error konsol, luapan, log dev; kredensial dari env).
   **Keamanan web**: header global di `next.config.ts` (CSP tanpa nonce agar halaman tetap statis, frame-ancestors none,
