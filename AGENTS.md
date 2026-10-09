@@ -34,9 +34,11 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
 - `src/components/shared/` — komponen bersama: `Button`, `Chip`, `StickerBox`, `Section`, `Container`,
   `Stickers` (Star/Burst/Pill/Highlight), `Marks`, `Devices` (mockup laptop/kiosk/layar), `Logo`, `PhotoStrip`,
   `accent.ts` (peta warna aksen), `cn.ts`.
-- `src/components/layout/` — `Navbar`, `Footer`. Client component hanya `Navbar` & `sections/Faq` (akordeon).
+- `src/components/layout/` — `Navbar`, `Footer`. Client component hanya `Navbar`, `sections/Faq` (akordeon) & `shared/YouTube` (sampul → iframe saat diklik).
 - `src/components/sections/` — satu berkas per section; section baru = berkas baru + data di `content.ts` +
   pasang di `page.tsx`.
+- `src/app/panduan/` — halaman **Panduan pengguna**: video YouTube (playlist "Panduan Sissi Booth") dikelompokkan
+  per kebutuhan; data di `guide` (`content.ts`). Video baru = tambah entri di grup yang cocok. Tautan nav diawali `/`.
 - `public/screens/` — tangkapan layar aplikasi dari Figma.
 - `src/app/icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx` — favicon, ikon iOS, pratinjau tautan (1200×630),
   dirender saat build lewat `next/og` (`"use cache"` → statis). Bahan bersama di `src/lib/` (`og.ts`, `BrandMark.tsx`);
@@ -60,4 +62,6 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
 ## 3. Selesai = hijau
 
 `scripts/exclusive.sh bash -c 'npx eslint src && npx tsc --noEmit && npx next build'` lolos, lalu cek visual
-desktop (1440) & mobile (390, tanpa luapan horizontal).
+desktop (1440) & mobile (390, tanpa luapan horizontal). **Halaman dinamis (dashboard): buka juga di `next dev`** —
+mode dev memeriksa aturan cacheComponents lebih ketat (mis. `Date.now()` tanpa `await connection()`) daripada build;
+pastikan panel issue Next = 0 dan `.next/dev/logs/next-development.log` tanpa ERROR.

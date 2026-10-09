@@ -1,8 +1,9 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
-import { nav, site } from "@/constants/content";
+import { nav, navCta, site } from "@/constants/content";
 import { Button } from "../shared/Button";
 import { Container } from "../shared/Container";
 import { Logo } from "../shared/Logo";
@@ -13,9 +14,9 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b-[3px] border-ink bg-booth-yellow">
       <Container className="flex h-[72px] items-center justify-between gap-6 md:h-24">
-        <a href="#" aria-label={site.name}>
+        <Link href="/" aria-label={site.name}>
           <Logo />
-        </a>
+        </Link>
         <nav aria-label="Utama" className="hidden items-center gap-9 lg:flex">
           {nav.map((n) => (
             <a key={n.href} href={n.href} className="font-label text-[15px] hover:underline hover:decoration-[3px] hover:underline-offset-4">
@@ -24,7 +25,7 @@ export function Navbar() {
           ))}
         </nav>
         <div className="hidden lg:block">
-          <Button href="#kontak">Hubungi kami</Button>
+          <Button href={navCta.href}>{navCta.label}</Button>
         </div>
         <button
           type="button"
@@ -45,8 +46,8 @@ export function Navbar() {
                 {n.label}
               </a>
             ))}
-            <Button href="#kontak" className="mt-2">
-              Hubungi kami
+            <Button href={navCta.href} className="mt-2">
+              {navCta.label}
             </Button>
           </Container>
         </nav>

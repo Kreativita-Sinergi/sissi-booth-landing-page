@@ -9,7 +9,7 @@ import type { Booth, Totals, Transaction } from "@/lib/dash/types";
 
 async function Content({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const per = periodFrom(sp);
+  const per = await periodFrom(sp);
   const filter = { ...per, device_id: sp.device_id, status: sp.status, mode: sp.mode };
   let res, booths: Booth[];
   try {

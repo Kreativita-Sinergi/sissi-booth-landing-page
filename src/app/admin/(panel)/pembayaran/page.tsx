@@ -12,7 +12,7 @@ import type { Customer, Payment } from "@/lib/dash/types";
 
 async function Content({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const per = periodFrom(sp);
+  const per = await periodFrom(sp);
   let res, owners: Customer[];
   try {
     const [pr, or] = await Promise.all([

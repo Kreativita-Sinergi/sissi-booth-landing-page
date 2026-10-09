@@ -26,7 +26,7 @@ function Line({ label, value, sign, strong, sub }: { label: string; value: numbe
 
 async function Content({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const per = periodFrom(sp);
+  const per = await periodFrom(sp);
   let o: OwnerOverview, booths: Booth[];
   try {
     const [or, br] = await Promise.all([

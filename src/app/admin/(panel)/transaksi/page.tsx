@@ -10,7 +10,7 @@ import type { Customer, Totals, Transaction } from "@/lib/dash/types";
 
 async function Content({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const per = periodFrom(sp);
+  const per = await periodFrom(sp);
   const filter = { ...per, owner_id: sp.owner_id, status: sp.status, mode: sp.mode };
   let res, owners: Customer[];
   try {

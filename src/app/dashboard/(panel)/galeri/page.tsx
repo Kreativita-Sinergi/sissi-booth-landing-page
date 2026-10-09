@@ -11,7 +11,7 @@ import type { GallerySession } from "@/lib/dash/types";
 
 async function Content({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const per = periodFrom(sp);
+  const per = await periodFrom(sp);
   let res;
   try {
     res = await api<{ sessions: GallerySession[] }>("owner", `/owner/gallery${qs({ ...per, q: sp.q, page: sp.page, per_page: 24 })}`);

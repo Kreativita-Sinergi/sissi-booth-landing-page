@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={`${bagel.variable} ${archivo.variable} ${grotesk.variable} ${spaceMono.variable}`}>
+    <html lang="id" data-scroll-behavior="smooth" className={`${bagel.variable} ${archivo.variable} ${grotesk.variable} ${spaceMono.variable}`}>
       <body className="overflow-x-clip antialiased">{children}</body>
     </html>
   );

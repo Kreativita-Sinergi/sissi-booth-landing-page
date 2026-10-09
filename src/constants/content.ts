@@ -22,13 +22,17 @@ export const og = {
   chips: ["QRIS OTOMATIS", "TANPA INTERNET", "CETAK + QR + GIF"],
 };
 
+/** Diawali `/` agar tetap jalan dari halaman lain (mis. /panduan). */
 export const nav = [
-  { label: "Fitur", href: "#fitur" },
-  { label: "Cara kerja", href: "#cara-kerja" },
-  { label: "Paket", href: "#paket" },
-  { label: "FAQ", href: "#faq" },
-  { label: "Kontak", href: "#kontak" },
+  { label: "Fitur", href: "/#fitur" },
+  { label: "Cara kerja", href: "/#cara-kerja" },
+  { label: "Paket", href: "/#paket" },
+  { label: "Panduan", href: "/panduan" },
+  { label: "FAQ", href: "/#faq" },
+  { label: "Kontak", href: "/#kontak" },
 ] as const;
+
+export const navCta = { label: "Hubungi kami", href: "/#kontak" };
 
 export const hero = {
   kicker: "APLIKASI PHOTOBOOTH UNTUK BISNIS",
@@ -240,6 +244,72 @@ export const contact = {
   body: "Tim Sissi tunjukkan cara kerjanya langsung, sekalian kasih info harga paket harian, bulanan, dan tahunan.",
   email: "Email kami",
   whatsapp: "Chat WhatsApp",
+};
+
+/** Halaman /panduan: video YouTube dari playlist "Panduan Sissi Booth". */
+export const guide = {
+  meta: {
+    title: "Panduan Pengguna · Sissi Booth",
+    description: "Video panduan Sissi Booth: cara foto, unduh foto ke HP, aktifkan lisensi, atur kamera & printer, bingkai, harga, dan galeri sesi.",
+  },
+  kicker: "PANDUAN PENGGUNA",
+  title: "Belajar Sissi Booth,",
+  highlight: "cuma semenit!",
+  body: "Sembilan video singkat, dari tamu yang baru pertama foto sampai operator yang menyiapkan booth. Tonton sesuai yang kamu butuhkan.",
+  playlist: { label: "Buka playlist di YouTube", href: "https://www.youtube.com/playlist?list=PLcUJ1JGO-o4I" },
+  jumpLabel: "Langsung ke",
+  playLabel: "Putar video",
+  /** Awalan judul iframe untuk pembaca layar, mis. "Panduan Sissi Booth #01: …". */
+  videoPrefix: "Panduan Sissi Booth #",
+  groups: [
+    {
+      id: "tamu",
+      title: "Buat tamu",
+      body: "Tunjukkan ke tamu, atau putar di layar dekat booth.",
+      accent: "pink",
+      videos: [
+        { id: "d6_SFKFSWqA", no: "01", title: "Cara foto di booth", body: "Dari pilih gaya, jepret, hias, sampai cetak.", duration: "1:23" },
+        { id: "t9EQI55_rZs", no: "02", title: "Unduh foto ke HP", body: "Scan QR, lalu unduh. Bisa online atau lewat Wi-Fi booth tanpa internet.", duration: "0:47" },
+      ],
+    },
+    {
+      id: "persiapan",
+      title: "Persiapan awal",
+      body: "Sekali di awal, sebelum booth dipakai tamu.",
+      accent: "blue",
+      videos: [
+        { id: "JKX6ZMRAhqI", no: "09", title: "Aktifkan lisensi", body: "Mode demo, tombol AKTIFKAN, dan aktivasi saat offline.", duration: "0:36" },
+        { id: "68q4QZrZT7k", no: "03", title: "Masuk menu admin", body: "Buka panel admin dengan PIN dan kenali halaman ringkasan.", duration: "0:54" },
+        { id: "negXnauPTeg", no: "06", title: "Kamera & printer", body: "Pilih kamera, lalu cek dengan TES JEPRET dan TES CETAK.", duration: "1:10" },
+      ],
+    },
+    {
+      id: "acara",
+      title: "Atur acara & jualan",
+      body: "Sesuaikan booth untuk tiap acara atau lokasi.",
+      accent: "green",
+      videos: [
+        { id: "INZb4ObhGKY", no: "04", title: "Atur sesi & mode", body: "Kiosk atau Event, hitung mundur, dan pengaturan cetak.", duration: "1:02" },
+        { id: "zhZWEo1rwRE", no: "05", title: "Bikin bingkai sendiri", body: "Dari desain template sampai impor ke aplikasi.", duration: "1:02" },
+        { id: "s3GxQdAnV08", no: "07", title: "Softcopy & harga", body: "Atur kirim softcopy (cloud, hotspot, Wi-Fi) dan harga per layout.", duration: "0:48" },
+      ],
+    },
+    {
+      id: "setelah-acara",
+      title: "Setelah acara",
+      body: "Urus foto-foto yang sudah diambil.",
+      accent: "orange",
+      videos: [
+        { id: "Oq8GensNUow", no: "08", title: "Galeri sesi", body: "Cari sesi, CETAK ULANG, atau hapus sesi.", duration: "1:11" },
+      ],
+    },
+  ] satisfies {
+    id: string;
+    title: string;
+    body: string;
+    accent: Accent;
+    videos: { id: string; no: string; title: string; body: string; duration: string }[];
+  }[],
 };
 
 export const footer = {

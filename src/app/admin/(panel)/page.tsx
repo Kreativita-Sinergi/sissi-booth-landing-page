@@ -9,7 +9,7 @@ import { periodFrom, type SP } from "@/lib/dash/period";
 import type { AdminOverview } from "@/lib/dash/types";
 
 async function Content({ searchParams }: { searchParams: SP }) {
-  const per = periodFrom(await searchParams);
+  const per = await periodFrom(await searchParams);
   let o: AdminOverview;
   try {
     o = (await api<AdminOverview>("admin", `/admin/overview${qs(per)}`)).data;
