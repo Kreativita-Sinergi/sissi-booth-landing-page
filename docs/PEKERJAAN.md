@@ -16,6 +16,8 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · Panduan disesuaikan perubahan aplikasi: hias (tab STIKER, LANJUT CETAK; gambar
+  `cara-foto/hias-filter.jpg` & `stiker-cubit.jpg` baru), mode kiosk "segera hadir" (sesi-mode & harga), petunjuk masuk admin.
 - **2026-10-09** · Claude Opus 5.5 · Panduan `/panduan/desain-template`: gambar ditangkap ulang (kartu teks bawah kini
   terlipat → "ketuk UBAH", kotak "Impor dari Canva / PNG"), poin teks bawah hanya untuk bingkai bawaan.
 - **2026-10-09** · Claude Opus 5.5 · **Panduan baru `/panduan/desain-template`** (#11 "Buat template di aplikasi", tanpa video):

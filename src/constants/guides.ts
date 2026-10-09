@@ -154,7 +154,7 @@ export const guides: Guide[] = [
       {
         id: "hias",
         title: "Hias dengan filter & stiker",
-        body: "Pilih filter, semua foto langsung berubah warna. Lalu ketuk PILIH STIKER dan tempel stiker sesukamu. Beres? Ketuk SELESAI HIAS.",
+        body: "Pilih filter, semua foto langsung berubah warna. Mau stiker? Ketuk tab STIKER di atas dan tempel sesukamu. Beres? Ketuk LANJUT CETAK.",
         shots: [
           img("cara-foto", "hias-filter.jpg", "Layar hias: pilihan filter"),
           img("cara-foto", "stiker-cubit.jpg", "Layar hias: stiker diperbesar dengan dua jari"),
@@ -288,7 +288,7 @@ export const guides: Guide[] = [
       {
         id: "pojok",
         title: "Ketuk pojok kanan atas 5×",
-        body: "Di layar booth, ketuk pojok kanan atas 5 kali berturut-turut dengan cepat. Tombolnya memang tidak terlihat.",
+        body: "Di layar booth, ketuk pojok kanan atas 5 kali berturut-turut dengan cepat. Tombolnya memang tidak terlihat, supaya tamu tidak masuk. Selama booth belum diaktifkan, petunjuk kecil ini juga tampil di pojok kanan bawah layar tunggu.",
         shots: [img("masuk-admin", "pojok.jpg", "Pojok kanan atas layar booth tempat tombol admin tersembunyi")],
       },
       {
@@ -411,7 +411,8 @@ export const guides: Guide[] = [
       {
         id: "mode",
         title: "Pilih mode: KIOSK atau EVENT",
-        body: "KIOSK: tamu bayar QRIS sebelum foto, cocok untuk booth di mal atau kafe. EVENT: tamu foto gratis, cocok untuk nikahan, ulang tahun, dan acara kantor.",
+        body: "EVENT: tamu foto gratis, cocok untuk nikahan, ulang tahun, dan acara kantor. KIOSK: tamu bayar QRIS sebelum foto, cocok untuk booth di mal atau kafe.",
+        callout: { type: "info", title: "Mode kiosk segera hadir", text: "Pembayaran QRIS sedang disiapkan. Sementara itu booth memakai mode event; pilihan KIOSK aktif begitu QRIS siap." },
         shots: [img("sesi-mode", "event.jpg", "Pilihan mode KIOSK dan EVENT")],
       },
       {
@@ -632,7 +633,7 @@ export const guides: Guide[] = [
         title: "Atur harga (mode kiosk)",
         body: "Ketuk + atau − pada tiap layout; harga naik/turun Rp5.000 tiap ketukan dan langsung dipakai. Atur juga harga tambahan GIF untuk tamu yang memilih GIF Boomerang.",
         shots: [img("softcopy-harga", "harga-klasik.jpg", "Harga per layout"), img("softcopy-harga", "harga-gif.jpg", "Harga tambahan GIF Boomerang")],
-        callout: { type: "info", title: "Mode event", text: "Di mode event tamu foto gratis, jadi harga tidak dipakai." },
+        callout: { type: "info", title: "Mode event", text: "Di mode event tamu foto gratis, jadi harga tidak dipakai. Harga mulai berlaku setelah pembayaran QRIS (mode kiosk) siap." },
       },
     ],
     faqs: [
