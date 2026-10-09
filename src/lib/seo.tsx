@@ -56,7 +56,7 @@ export function homeJsonLd() {
 export function guideJsonLd(guide: Guide) {
   const url = abs(`/panduan/${guide.slug}`);
   const cover = abs(`/panduan/${guide.slug}/sampul.jpg`);
-  const video = {
+  const video = guide.video && {
     "@type": "VideoObject",
     name: `${guideUi.video.prefix}${guide.no}: ${guide.title}`,
     description: guide.summary,
@@ -83,9 +83,9 @@ export function guideJsonLd(guide: Guide) {
           name: s.title,
           text: s.body,
           url: `${url}#${s.id}`,
-          image: abs(s.shots[0].src),
+          ...(s.shots[0] ? { image: abs(s.shots[0].src) } : {}),
         })),
-        video,
+        ...(video ? { video } : {}),
         publisher: { "@id": organization["@id"] },
       },
       {

@@ -64,10 +64,12 @@ export default async function PanduanDetail({ params }: Props) {
                 <Clock aria-hidden className="size-4" strokeWidth={2.5} />
                 {guide.readTime}
               </span>
-              <span className="flex items-center gap-1.5 font-mono text-sm">
-                <CirclePlay aria-hidden className="size-4" strokeWidth={2.5} />
-                {guide.video.duration}
-              </span>
+              {guide.video && (
+                <span className="flex items-center gap-1.5 font-mono text-sm">
+                  <CirclePlay aria-hidden className="size-4" strokeWidth={2.5} />
+                  {guide.video.duration}
+                </span>
+              )}
               <span className="font-mono text-sm text-muted">{guideUi.updated}</span>
             </div>
             <h1 className="font-display text-[clamp(34px,10vw,44px)] leading-none md:text-7xl">{guide.title}</h1>
@@ -91,6 +93,7 @@ export default async function PanduanDetail({ params }: Props) {
         <section className="border-t-[3px] border-ink bg-paper py-12 md:py-16">
           <Container className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
             <div className="flex min-w-0 flex-col gap-8">
+              {guide.video && (
               <StickerBox className="overflow-hidden">
                 <YouTube
                   id={guide.video.id}
@@ -103,6 +106,7 @@ export default async function PanduanDetail({ params }: Props) {
                   {guideUi.video.title} · {guide.video.duration}
                 </p>
               </StickerBox>
+              )}
 
               <ol className="flex flex-col gap-8">
                 {guide.steps.map((s, i) => (

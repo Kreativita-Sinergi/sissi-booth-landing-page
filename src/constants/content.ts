@@ -230,12 +230,20 @@ export const faq = {
   title: "Yang sering ditanya",
   items: [
     ["Perangkat apa yang dibutuhkan?", "Laptop/PC atau tablet, kamera, dan printer foto. Kameranya bebas: webcam, capture card, sampai DSLR."],
+    [
+      "Bisa pakai kamera mirrorless/DSLR?",
+      "Bisa, lewat kabel USB (mode PC Remote, foto resolusi penuh) atau HDMI capture card. Untuk hasil paling tajam, pakai flash dengan bukaan f/8 dan fokus manual yang dikunci — tanpa repot urusan autofokus.",
+    ],
     ["Bisa coba dulu sebelum langganan?", "Bisa. Hubungi tim Sissi untuk demo. Di versi demo kamu bisa foto, hias, dan cetak seperti biasa; hasilnya diberi tanda \"DEMO\"."],
     ["Foto tamu disimpan berapa lama?", "Softcopy di galeri online bisa diunduh selama 30 hari, lalu dihapus permanen. Salinannya juga tersimpan di galeri sesi pada perangkat booth."],
     ["Printer apa yang bisa dipakai?", "Printer foto yang terpasang di perangkatmu, termasuk printer dye-sub untuk strip 2×6 dan kartu 4×6."],
     ["Bisa pakai bingkai sendiri?", "Bisa. Unggah bingkai PNG berisi nama & logo acaramu dari panel admin, lalu atur posisi fotonya."],
     ["Ada paket apa saja?", "Harian, bulanan, dan tahunan. Hubungi tim Sissi untuk info harga."],
   ] as const,
+  /** Tautan lanjutan di bawah jawaban tertentu (kunci = pertanyaan). */
+  links: {
+    "Bisa pakai kamera mirrorless/DSLR?": { label: "Lihat panduan setelan kamera", href: "/panduan/kamera" },
+  } as Record<string, { label: string; href: string }>,
 };
 
 export const contact = {

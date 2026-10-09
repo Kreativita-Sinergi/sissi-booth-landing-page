@@ -69,10 +69,12 @@ export function GuideStep({ step, n, accent }: { step: Step; n: number; accent: 
           <p className="text-lg">{step.body}</p>
         </div>
 
-        <figure className="flex flex-col gap-3">
-          <Shots shots={step.shots} priority={n === 1} />
-          {step.caption && <figcaption className="font-mono text-sm text-muted">{step.caption}</figcaption>}
-        </figure>
+        {step.shots.length > 0 && (
+          <figure className="flex flex-col gap-3">
+            <Shots shots={step.shots} priority={n === 1} />
+            {step.caption && <figcaption className="font-mono text-sm text-muted">{step.caption}</figcaption>}
+          </figure>
+        )}
 
         {step.points && (
           <ul className="flex flex-col gap-2.5 rounded-2xl border-[3px] border-ink bg-paper p-4 md:p-5">

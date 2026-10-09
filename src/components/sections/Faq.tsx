@@ -56,7 +56,17 @@ export function Faq() {
                 )}
               >
                 <div className="overflow-hidden">
-                  <p className="px-5 pb-6 text-muted md:px-6">{a}</p>
+                  <p className="px-5 pb-6 text-muted md:px-6">
+                    {a}
+                    {faq.links[q] && (
+                      <>
+                        {" "}
+                        <a href={faq.links[q].href} className="font-bold text-ink underline underline-offset-4">
+                          {faq.links[q].label} →
+                        </a>
+                      </>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>

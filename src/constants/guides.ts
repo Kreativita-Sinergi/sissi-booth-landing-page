@@ -30,8 +30,8 @@ export type Guide = {
   summary: string;
   overview: string;
   readTime: string;
-  /** `uploaded` = tanggal tayang di YouTube (untuk data terstruktur VideoObject). */
-  video: { id: string; duration: string; uploaded: string };
+  /** `uploaded` = tanggal tayang di YouTube (untuk data terstruktur VideoObject). Panduan tanpa video: kosong. */
+  video?: { id: string; duration: string; uploaded: string };
   prerequisites: string[];
   steps: GuideStep[];
   faqs: [question: string, answer: string][];
@@ -79,7 +79,7 @@ export const guideGroups = [
     title: "Persiapan awal",
     body: "Sekali di awal, sebelum booth dipakai tamu.",
     accent: "blue",
-    slugs: ["aktifkan-lisensi", "masuk-admin", "kamera-printer"],
+    slugs: ["aktifkan-lisensi", "masuk-admin", "kamera-printer", "kamera"],
   },
   {
     id: "acara",
@@ -626,6 +626,81 @@ export const guides: Guide[] = [
     ],
     faqs: [["Sesi lama terhapus sendiri?", "Ya, sesuai lama simpan file di menu Pengiriman & bayar. Lihat panduan Kirim softcopy & atur harga."]],
     related: ["unduh-foto", "softcopy-harga", "kamera-printer"],
+  },
+  {
+    slug: "kamera",
+    no: "10",
+    audience: "Pemilik booth",
+    title: "Setelan kamera pro",
+    summary: "Setelan mirrorless/DSLR supaya foto selalu tajam: flash + f/8 + fokus manual, atau tanpa flash dengan autofokus wajah.",
+    overview:
+      "Kamera pro menghasilkan foto paling bagus, asal setelannya pas untuk photobooth. Kamera mirrorless baru mencari fokus saat tombol shutter ditekan setengah — karena itu ada dua cara: kunci fokus manual dengan flash (paling disarankan), atau biarkan Sissi Booth menahan setengah shutter selama hitung mundur.",
+    readTime: "5 menit baca",
+    prerequisites: [
+      "Kamera mirrorless/DSLR + kabel USB data (bukan kabel cas saja), atau capture card HDMI",
+      "Flash/strobe di hot shoe (disarankan)",
+      "Sissi Booth sudah aktif & bisa masuk menu admin",
+    ],
+    steps: [
+      {
+        id: "sambungkan",
+        title: "Sambungkan kamera",
+        body: "Lewat USB: di kamera Sony buka MENU › Jaringan › Sambungan USB (atau USB Connection) › PC Remote, lalu colok ke laptop. Kamera muncul sebagai “kamera pro” di menu Kamera & printer. Lewat HDMI: colok ke capture card, pilih capture card sebagai kamera.",
+        shots: [img("kamera-printer", "kamera-pro.jpg", "Kamera pro Sony terdeteksi lewat USB di menu Kamera & printer")],
+        points: [
+          "Mode USB harus PC Remote — bukan Mass Storage/MTP (seperti flashdisk)",
+          "Format file JPEG (atau RAW+JPEG). RAW saja tidak bisa dipakai",
+          "Sudah diuji: Sony A7C. Canon & Nikon: segera diuji",
+        ],
+      },
+      {
+        id: "flash-f8",
+        title: "Cara paling tajam: flash + f/8 + fokus manual",
+        body: "Di bukaan f/8, area tajam sangat dalam: dari jarak ±2 meter (lensa 28–35 mm), tamu tetap tajam walau maju-mundur. Kunci fokus manual ke posisi tamu berdiri, maka kamera tidak perlu mencari fokus sama sekali — cepat dan selalu konsisten.",
+        shots: [],
+        points: [
+          "Mode M · bukaan f/8 · rana 1/125 detik · ISO 100–400",
+          "Fokus: AF sekali ke wajah orang di posisi berdiri, lalu pindah ke MF (jangan diubah lagi)",
+          "Flash TTL atau manual ±1/8 daya, arahkan memantul ke langit-langit bila bisa",
+        ],
+        callout: {
+          type: "warning",
+          title: "Live view gelap?",
+          text: "Matikan Live View Display › Setting Effect (OFF). Tanpa ini, layar booth menampilkan pencahayaan f/8 tanpa flash sehingga terlihat gelap, padahal hasil fotonya terang.",
+        },
+      },
+      {
+        id: "tanpa-flash",
+        title: "Tanpa flash (latar bokeh): autofokus wajah",
+        body: "Bukaan besar (f/1.8–f/2.8) membuat latar blur cantik, tapi area tajamnya tipis sehingga fokus harus tepat di wajah. Sissi Booth otomatis menahan setengah shutter selama hitung mundur, jadi kamera terus mengikuti wajah tamu dan memotret begitu fokus terkunci.",
+        shots: [],
+        points: [
+          "Focus Mode: AF-C",
+          "Focus Area: Wide",
+          "Face/Eye Prior. in AF: On",
+          "Priority Set in AF-C: AF (kamera tidak memotret sebelum fokus — mencegah foto blur)",
+          "Cahaya ruangan harus cukup; ruangan gelap membuat autofokus lambat",
+        ],
+        callout: {
+          type: "info",
+          title: "Kenapa harus setengah shutter?",
+          text: "Kamera mirrorless menghemat baterai: autofokus hanya berjalan saat tombol shutter ditekan setengah. Tanpa itu, live view diam di fokus terakhir — ini normal, bukan rusak.",
+        },
+      },
+      {
+        id: "tes",
+        title: "Tes sebelum acara",
+        body: "Buka admin › Kamera & printer, ketuk TES JEPRET beberapa kali sambil berdiri di posisi tamu. Perbesar hasilnya dan cek ketajaman mata. Di menu itu juga ada kartu “Setelan kamera yang disarankan” sebagai pengingat.",
+        shots: [img("kamera-printer", "tes-jepret-hasil.jpg", "Hasil TES JEPRET dengan resolusi foto")],
+        callout: { type: "tip", title: "Baterai & kartu", text: "Pakai dummy battery/adaptor listrik untuk acara panjang, dan pastikan kartu memori tidak penuh — foto juga tersimpan di kartu sebagai cadangan." },
+      },
+    ],
+    faqs: [
+      ["Foto kadang blur, kenapa?", "Biasanya fokus belum terkunci saat memotret. Pakai flash + f/8 + fokus manual, atau setel Priority Set in AF-C ke AF supaya kamera menunggu fokus."],
+      ["Kamera terdeteksi tapi tidak bisa dipilih?", "Mode USB masih Mass Storage/MTP. Ubah ke PC Remote di menu kamera, lalu colok ulang."],
+      ["Live view lambat atau patah-patah?", "Normal untuk USB (±15–25 fps). Untuk live view lebih mulus, pakai HDMI capture card."],
+    ],
+    related: ["kamera-printer", "cara-foto", "sesi-mode"],
   },
 ];
 

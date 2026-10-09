@@ -16,6 +16,12 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · **Panduan setelan kamera pro** `/panduan/kamera` (entri baru di `guides.ts`, grup
+  Persiapan; sampul buatan sendiri): sambungkan (PC Remote, JPEG), cara paling tajam flash + f/8 + MF (Setting Effect OFF),
+  tanpa flash AF-C wajah + setengah shutter otomatis, tes sebelum acara. `video` panduan kini opsional (halaman, kartu,
+  JSON-LD menyesuaikan; langkah tanpa gambar tidak menampilkan figure). FAQ beranda: "Bisa pakai kamera mirrorless/DSLR?"
+  + tautan ke panduan (`faq.links`). QR di aplikasi (admin Kamera) menuju halaman ini.
+
 - **2026-10-09** · Claude Opus 5.5 · **Dashboard admin Sissi (`/admin`) & pemilik booth (`/dashboard`)** + galeri QR
   `/s/[code]` dipindah dari server Go. Login email+sandi (cookie httpOnly), Server Actions, proxy unduhan CSV/zip,
   grafik SVG tanpa pustaka, dropdown & kalender kustom. Admin: ringkasan, pelanggan (+detail: lisensi, kunci tampil
