@@ -16,6 +16,7 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · Gambar `cara-foto/terima-kasih.jpg` diperbarui (layar terima kasih kini satu tombol).
 - **2026-10-09** · Claude Opus 5.5 · Panduan disesuaikan perubahan aplikasi: hias (tab STIKER, LANJUT CETAK; gambar
   `cara-foto/hias-filter.jpg` & `stiker-cubit.jpg` baru), mode kiosk "segera hadir" (sesi-mode & harga), petunjuk masuk admin.
 - **2026-10-09** · Claude Opus 5.5 · Panduan `/panduan/desain-template`: gambar ditangkap ulang (kartu teks bawah kini
