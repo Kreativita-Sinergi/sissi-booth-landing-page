@@ -1,8 +1,8 @@
 import { Suspense } from "react";
-import { ExternalLink, Images } from "lucide-react";
+import { Download, ExternalLink, Images } from "lucide-react";
 import { ConfirmAction, PeriodPicker } from "@/components/dash/client";
 import { SearchBox } from "@/components/dash/search";
-import { Card, Empty, ErrorBox, Loading, PageHeader, Pagination } from "@/components/dash/ui";
+import { Card, Empty, ErrorBox, LinkButton, Loading, PageHeader, Pagination } from "@/components/dash/ui";
 import { api, ApiError, qs } from "@/lib/dash/api";
 import { date, dateTime } from "@/lib/dash/format";
 import { deleteGallery } from "@/lib/dash/owner-actions";
@@ -21,7 +21,17 @@ async function Content({ searchParams }: { searchParams: SP }) {
   }
   return (
     <>
-      <PageHeader title="Galeri online" subtitle="Foto tamu yang terunggah ke galeri QR. Terhapus otomatis setelah masa simpan habis." />
+      <PageHeader
+        title="Galeri online"
+        subtitle="Foto tamu yang terunggah ke galeri QR. Terhapus otomatis setelah masa simpan habis."
+        actions={
+          res.data.sessions.length > 0 && (
+            <LinkButton href={`/dashboard/unduh/foto${qs(per)}`} icon={Download} small download>
+              Unduh semua (zip)
+            </LinkButton>
+          )
+        }
+      />
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <PeriodPicker from={per.from} to={per.to} />
         <SearchBox q={sp.q} placeholder="Cari kode sesi…" keep={{ from: sp.from, to: sp.to }} />

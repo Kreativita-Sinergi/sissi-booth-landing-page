@@ -23,8 +23,14 @@ export type OwnerOverview = {
   daily: Point[];
   by_layout: Group[];
   by_device: Group[];
+  by_frame?: Group[];
+  by_filter?: Group[];
+  /** 24 baris, jam WIB 0–23. */
+  by_hour?: Hour[];
   paper_cost_per_sheet: number;
 };
+
+export type Hour = { hour: number; transactions: number; revenue: number };
 
 export type Expiring = { license_id: string; owner_id: string; owner_name: string; owner_email: string; owner_phone: string; plan: string; ends_at: string };
 

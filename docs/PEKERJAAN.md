@@ -16,6 +16,9 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · Ringkasan pemilik: **Jam ramai** (`HourChart`, batang HTML 24 jam, jam tersibuk pink),
+  **Bingkai terlaris** & **Filter terlaris** (`FRAME_LABEL`/`FILTER_LABEL` di `format.ts` = teks aplikasi). Galeri online:
+  **Unduh semua (zip)** per periode (`/dashboard/unduh/foto` → `/owner/photos.zip`). Dicek 1440/390 + `next dev` 0 issue.
 - **2026-10-09** · Claude Opus 5.5 · Dashboard pemilik: **sisa kertas per booth** (`PaperLevel`, kuning ≤30%, pink ≤10%),
   kolom Kertas di admin › Booth; **banner langganan** (tanpa lisensi aktif / habis ≤7 hari, tautan WA) di layout panel.
   Diperiksa juga di `next dev` (0 issue). AGENTS.md: blok aturan agen bawaan `next dev` ikut di-commit.

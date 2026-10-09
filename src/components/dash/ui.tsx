@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import { cn } from "@/components/shared/cn";
-import { dayLabel, rupiahShort } from "@/lib/dash/format";
+import { dayLabel, number, rupiahShort } from "@/lib/dash/format";
 
 /** Komponen dashboard (server-safe) — gaya Sticker Bomb versi tenang untuk data. */
 
@@ -265,6 +265,7 @@ export function Pagination({
 }
 
 export type Point = { date: string; revenue: number; transactions: number };
+type Hour = { hour: number; transactions: number; revenue: number };
 
 /**
  * Grafik batang harian (SVG murni, tanpa pustaka). Label sumbu-x dijarangkan agar terbaca;
@@ -328,9 +329,45 @@ export function BarChart({
   );
 }
 
+/** Jam ramai: 24 batang jam WIB; jam tersibuk diberi warna pink + keterangan. */
+export function HourChart({ hours }: { hours: Hour[] }) {
+  const max = Math.max(0, ...hours.map((h) => h.transactions));
+  if (hours.length === 0 || max === 0) return <Empty text="Belum ada transaksi pada periode ini." />;
+  const peak = hours.reduce((a, b) => (b.transactions > a.transactions ? b : a));
+  const jam = (h: number) => `${String(h).padStart(2, "0")}.00`;
+  return (
+    <div>
+      <p className="mb-4 text-sm">
+        Paling ramai <b>{jam(peak.hour)}–{jam((peak.hour + 1) % 24)}</b> ({number(peak.transactions)} sesi). Pastikan kertas & operator siap di jam ini.
+      </p>
+      <div className="flex h-36 items-end gap-0.5 border-b-2 border-line sm:gap-1" role="img" aria-label="Grafik jam ramai">
+        {hours.map((h) => (
+          <div
+            key={h.hour}
+            title={`${jam(h.hour)}: ${h.transactions} sesi`}
+            className={cn(
+              "flex-1 rounded-t-md",
+              h.transactions > 0 && "border-2 border-b-0 border-ink",
+              h.hour === peak.hour ? "bg-booth-pink" : "bg-booth-yellow",
+            )}
+            style={{ height: h.transactions > 0 ? `${Math.max(3, (h.transactions / max) * 100)}%` : 0 }}
+          />
+        ))}
+      </div>
+      <div className="mt-1 flex gap-0.5 text-[11px] text-muted sm:gap-1">
+        {hours.map((h) => (
+          <span key={h.hour} className="flex-1 text-center">
+            {h.hour % 3 === 0 ? String(h.hour).padStart(2, "0") : ""}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Daftar batang horizontal untuk rekap (layout, booth, paket, pemilik). */
-export function Bars({ rows, format }: { rows: { label: string; value: number; sub?: string }[]; format: (n: number) => string }) {
-  if (rows.length === 0) return <Empty />;
+export function Bars({ rows, format, empty }: { rows: { label: string; value: number; sub?: string }[]; format: (n: number) => string; empty?: string }) {
+  if (rows.length === 0) return <Empty text={empty} />;
   const max = Math.max(1, ...rows.map((r) => r.value));
   const colors = ["bg-booth-blue", "bg-booth-pink", "bg-booth-green", "bg-booth-orange", "bg-booth-lilac", "bg-booth-yellow"];
   return (

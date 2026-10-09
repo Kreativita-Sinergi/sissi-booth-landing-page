@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Banknote, Printer, ReceiptText, TrendingUp } from "lucide-react";
 import { FilterSelect, PeriodPicker } from "@/components/dash/client";
-import { Bars, BarChart, Card, ErrorBox, Loading, PageHeader, Stat } from "@/components/dash/ui";
+import { Bars, BarChart, Card, HourChart, ErrorBox, Loading, PageHeader, Stat } from "@/components/dash/ui";
 import { cn } from "@/components/shared/cn";
 import { api, ApiError, qs } from "@/lib/dash/api";
-import { delta, LAYOUT_LABEL, number, rupiah, rupiahShort } from "@/lib/dash/format";
+import { delta, FILTER_LABEL, FRAME_LABEL, LAYOUT_LABEL, number, rupiah, rupiahShort } from "@/lib/dash/format";
 import { periodFrom, type SP } from "@/lib/dash/period";
 import type { Booth, OwnerOverview } from "@/lib/dash/types";
 
@@ -81,6 +81,23 @@ async function Content({ searchParams }: { searchParams: SP }) {
               Biaya kertas belum diisi. <Link href="/dashboard/pengaturan" className="font-bold underline">Isi di Pengaturan</Link> agar keuntungan akurat.
             </p>
           )}
+        </Card>
+      </div>
+
+      <Card title="Jam ramai" className="mt-6">
+        <HourChart hours={o.by_hour ?? []} />
+      </Card>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Card title="Bingkai terlaris">
+          <Bars rows={(o.by_frame ?? []).slice(0, 6).map((g) => ({ label: FRAME_LABEL[g.key] ?? g.label, value: g.transactions }))} format={(n) => `${number(n)} sesi`} />
+        </Card>
+        <Card title="Filter terlaris">
+          <Bars
+            rows={(o.by_filter ?? []).slice(0, 6).map((g) => ({ label: FILTER_LABEL[g.key] ?? g.label, value: g.transactions }))}
+            format={(n) => `${number(n)} sesi`}
+            empty="Belum ada data filter. Tercatat otomatis sejak aplikasi booth versi terbaru."
+          />
         </Card>
       </div>
 

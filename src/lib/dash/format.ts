@@ -56,6 +56,16 @@ export const PLAN_LABEL: Record<string, string> = { daily: "Harian", monthly: "B
 export const METHOD_LABEL: Record<string, string> = { transfer: "Transfer", cash: "Tunai", qris: "QRIS", other: "Lainnya", free: "Gratis" };
 export const LAYOUT_LABEL: Record<string, string> = { classic: "Strip Klasik", trio: "Strip Trio", grid: "Grid Bestie", solo: "Solo Besar" };
 
+/** Nama bingkai & filter = sama dengan teks aplikasi booth (`app_id.arb`). */
+export const FRAME_LABEL: Record<string, string> = {
+  sunny: "Kuning Ceria", bubblegum: "Pink Bubblegum", retro: "Retro Film", y2k: "Y2K Biru", mint: "Mint Polkadot",
+  sakura: "Sakura Love", galaxy: "Galaksi Bintang", picnic: "Piknik Kotak", candy: "Permen Garis", grape: "Anggur Manis",
+  ocean: "Ombak Pantai", lemon: "Lemon Soda", event: "Bingkai Event", mono: "Monokrom",
+};
+export const FILTER_LABEL: Record<string, string> = {
+  normal: "Normal", mono: "B&W", vintage: "Vintage", y2k: "Y2K", warm: "Hangat", cool: "Dingin", pastel: "Pastel", film: "Film", dreamy: "Dreamy",
+};
+
 /** Nomor WA Indonesia → tautan wa.me (08… → 628…). */
 export function waLink(phone: string, text: string): string | null {
   const digits = phone.replace(/\D/g, "").replace(/^0/, "62");
