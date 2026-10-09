@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { MonitorSmartphone } from "lucide-react";
 import { ConfirmAction } from "@/components/dash/client";
-import { Card, Empty, ErrorBox, Loading, PageHeader } from "@/components/dash/ui";
+import { Card, Empty, ErrorBox, Loading, PageHeader, PaperLevel } from "@/components/dash/ui";
 import { requestTime } from "@/lib/dash/period";
 import { api, ApiError } from "@/lib/dash/api";
 import { ago, date, number, rupiah } from "@/lib/dash/format";
@@ -49,6 +49,10 @@ async function Content() {
                     action={releaseBooth}
                     hidden={{ id: b.id }}
                   />
+                </div>
+                <div className="mt-4">
+                  <p className="mb-1 text-xs font-bold uppercase text-muted">Sisa kertas</p>
+                  <PaperLevel left={b.paper_left} capacity={b.paper_capacity} />
                 </div>
                 <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="rounded-xl bg-paper p-2">

@@ -16,6 +16,9 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-09** · Claude Opus 5.5 · Dashboard pemilik: **sisa kertas per booth** (`PaperLevel`, kuning ≤30%, pink ≤10%),
+  kolom Kertas di admin › Booth; **banner langganan** (tanpa lisensi aktif / habis ≤7 hari, tautan WA) di layout panel.
+  Diperiksa juga di `next dev` (0 issue). AGENTS.md: blok aturan agen bawaan `next dev` ikut di-commit.
 - **2026-10-09** · Claude Opus 5.5 · **Panduan setelan kamera pro** `/panduan/kamera` (entri baru di `guides.ts`, grup
   Persiapan; sampul buatan sendiri): sambungkan (PC Remote, JPEG), cara paling tajam flash + f/8 + MF (Setting Effect OFF),
   tanpa flash AF-C wajah + setengah shutter otomatis, tes sebelum acara. `video` panduan kini opsional (halaman, kartu,

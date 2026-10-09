@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { SearchBox } from "@/components/dash/search";
-import { Card, ErrorBox, Loading, PageHeader, Pagination, Table } from "@/components/dash/ui";
+import { Card, ErrorBox, Loading, PageHeader, Pagination, PaperLevel, Table } from "@/components/dash/ui";
 import { api, ApiError, qs } from "@/lib/dash/api";
 import { ago, date, number, rupiah } from "@/lib/dash/format";
 import { requestTime, type SP } from "@/lib/dash/period";
@@ -24,7 +24,7 @@ async function Content({ searchParams }: { searchParams: SP }) {
         <div className="mb-4">
           <SearchBox q={sp.q} placeholder="Cari booth / pemilik…" />
         </div>
-        <Table head={["Booth", "Pemilik", "Platform", "Versi app", "Terakhir online", "Sesi 30 hari", "Aktif sejak"]} empty={res.data.booths.length === 0}>
+        <Table head={["Booth", "Pemilik", "Platform", "Versi app", "Kertas", "Terakhir online", "Sesi 30 hari", "Aktif sejak"]} empty={res.data.booths.length === 0}>
           {res.data.booths.map((b) => {
             const online = b.last_seen_at && now - new Date(b.last_seen_at).getTime() < 24 * 3600_000;
             return (
@@ -38,6 +38,7 @@ async function Content({ searchParams }: { searchParams: SP }) {
                 <td><Link href={`/admin/pelanggan/${b.owner_id}`} className="hover:underline">{b.owner_name}</Link></td>
                 <td className="capitalize">{b.platform}</td>
                 <td>{b.app_version || "—"}</td>
+                <td><PaperLevel left={b.paper_left} capacity={b.paper_capacity} /></td>
                 <td className="whitespace-nowrap">{ago(b.last_seen_at, now)}</td>
                 <td className="whitespace-nowrap">{number(b.transactions_30d)} · {rupiah(b.revenue_30d)}</td>
                 <td className="whitespace-nowrap text-muted">{date(b.created_at)}</td>

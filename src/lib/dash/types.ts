@@ -92,6 +92,8 @@ export type Booth = {
   name: string;
   platform: string;
   app_version: string;
+  paper_left: number | null;
+  paper_capacity: number | null;
   last_seen_at: string | null;
   created_at: string;
   license_id: string;

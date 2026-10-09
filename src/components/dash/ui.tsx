@@ -374,3 +374,20 @@ export function Loading() {
     </div>
   );
 }
+
+/** Sisa kertas printer booth (bar + angka); merah bila ≤ 10%. */
+export function PaperLevel({ left, capacity }: { left: number | null; capacity: number | null }) {
+  if (left == null || !capacity) return <span className="text-xs text-muted">belum dilaporkan</span>;
+  const pct = Math.round((left / capacity) * 100);
+  const low = pct <= 10;
+  return (
+    <div className="flex min-w-28 flex-col gap-1">
+      <div className="h-2.5 overflow-hidden rounded-full border-2 border-ink bg-paper">
+        <div className={cn("h-full", low ? "bg-booth-pink" : pct <= 30 ? "bg-booth-yellow" : "bg-booth-green")} style={{ width: `${Math.max(3, pct)}%` }} />
+      </div>
+      <span className={cn("text-xs", low ? "font-bold text-[#c2185b]" : "text-muted")}>
+        {left}/{capacity} lembar{low && " · segera isi"}
+      </span>
+    </div>
+  );
+}
