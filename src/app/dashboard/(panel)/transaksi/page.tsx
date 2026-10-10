@@ -50,7 +50,7 @@ async function Content({ searchParams }: { searchParams: SP }) {
               <td className="font-mono text-xs">{x.session_code || "—"}</td>
               <td><Badge status={x.mode} /></td>
               <td className="whitespace-nowrap">{LAYOUT_LABEL[x.layout] ?? x.layout}{x.gif && " + GIF"}</td>
-              <td className="whitespace-nowrap font-bold">{x.amount ? rupiah(x.amount) : "—"}</td>
+              <td className="whitespace-nowrap font-semibold">{x.amount ? rupiah(x.amount) : "—"}</td>
               <td>{x.sheets}</td>
               <td><Badge status={x.status} /></td>
             </tr>

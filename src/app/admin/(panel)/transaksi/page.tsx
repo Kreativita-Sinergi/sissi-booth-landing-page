@@ -45,12 +45,12 @@ async function Content({ searchParams }: { searchParams: SP }) {
           {res.data.transactions.map((x) => (
             <tr key={x.id}>
               <td className="whitespace-nowrap">{dateTime(x.occurred_at)}</td>
-              <td><Link href={`/admin/pelanggan/${x.owner_id}`} className="font-bold hover:underline">{x.owner_name}</Link></td>
+              <td><Link href={`/admin/pelanggan/${x.owner_id}`} className="font-semibold hover:underline">{x.owner_name}</Link></td>
               <td>{x.device_name}</td>
               <td className="font-mono text-xs">{x.session_code || "—"}</td>
               <td><Badge status={x.mode} /></td>
               <td className="whitespace-nowrap">{LAYOUT_LABEL[x.layout] ?? x.layout}{x.gif && " + GIF"}</td>
-              <td className="whitespace-nowrap font-bold">{x.amount ? rupiah(x.amount) : "—"}</td>
+              <td className="whitespace-nowrap font-semibold">{x.amount ? rupiah(x.amount) : "—"}</td>
               <td>{x.sheets}</td>
               <td><Badge status={x.status} /></td>
             </tr>

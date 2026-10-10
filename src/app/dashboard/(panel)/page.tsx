@@ -11,12 +11,12 @@ import type { Booth, OwnerOverview } from "@/lib/dash/types";
 
 function Line({ label, value, sign, strong, sub }: { label: string; value: number; sign?: "+" | "−"; strong?: boolean; sub?: string }) {
   return (
-    <li className={cn("flex items-baseline justify-between gap-3 py-2.5", strong && "border-t-2 border-ink pt-3")}>
-      <span className={cn("min-w-0", strong ? "font-label" : "text-sm")}>
+    <li className={cn("flex items-baseline justify-between gap-3 py-2.5", strong && "border-t border-edge pt-3")}>
+      <span className={cn("min-w-0", strong ? "font-semibold" : "text-sm")}>
         {label}
-        {sub && <span className="block text-xs font-normal text-muted">{sub}</span>}
+        {sub && <span className="block text-xs font-normal text-subtle">{sub}</span>}
       </span>
-      <span className={cn("shrink-0 font-label", strong ? "text-xl" : "text-base", sign === "−" && "text-[#c2185b]")}>
+      <span className={cn("shrink-0 font-medium tabular-nums", strong ? "text-lg font-semibold" : "text-sm", sign === "−" && "text-danger")}>
         {sign === "−" && value > 0 ? "−" : ""}
         {rupiah(value)}
       </span>
@@ -51,9 +51,9 @@ async function Content({ searchParams }: { searchParams: SP }) {
         )}
       </div>
       {empty && (
-        <p className="mb-6 rounded-2xl border-2 border-ink bg-white px-4 py-3 text-sm">
+        <p className="mb-6 rounded-lg border border-edge bg-surface px-4 py-3 text-sm text-subtle">
           Belum ada transaksi pada periode ini. Data muncul otomatis begitu booth tersambung internet (aplikasi mengirim catatan tiap sesi, tanpa foto).
-          Untuk mode event, catat nilai kontraknya di <Link href="/dashboard/acara" className="font-bold underline">Acara</Link>.
+          Untuk mode event, catat nilai kontraknya di <Link href="/dashboard/acara" className="font-medium text-primary hover:underline">Acara</Link>.
         </p>
       )}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -77,8 +77,8 @@ async function Content({ searchParams }: { searchParams: SP }) {
             <Line label="Keuntungan" value={c.profit} strong />
           </ul>
           {!o.paper_cost_per_sheet && (
-            <p className="mt-3 rounded-xl bg-booth-yellow/60 px-3 py-2 text-xs">
-              Biaya kertas belum diisi. <Link href="/dashboard/pengaturan" className="font-bold underline">Isi di Pengaturan</Link> agar keuntungan akurat.
+            <p className="mt-3 rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning">
+              Biaya kertas belum diisi. <Link href="/dashboard/pengaturan" className="font-medium underline">Isi di Pengaturan</Link> agar keuntungan akurat.
             </p>
           )}
         </Card>

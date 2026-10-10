@@ -30,8 +30,8 @@ async function Content({ searchParams }: { searchParams: SP }) {
             return (
               <tr key={b.id}>
                 <td>
-                  <span className="inline-flex items-center gap-2 font-bold">
-                    <span className={`size-2.5 rounded-full border border-ink ${online ? "bg-booth-green" : "bg-line"}`} />
+                  <span className="inline-flex items-center gap-2 font-semibold">
+                    <span className={`size-2.5 rounded-full ${online ? "bg-success-solid" : "bg-edge-strong"}`} />
                     {b.name}
                   </span>
                 </td>
@@ -41,7 +41,7 @@ async function Content({ searchParams }: { searchParams: SP }) {
                 <td><PaperLevel left={b.paper_left} capacity={b.paper_capacity} /></td>
                 <td className="whitespace-nowrap">{ago(b.last_seen_at, now)}</td>
                 <td className="whitespace-nowrap">{number(b.transactions_30d)} · {rupiah(b.revenue_30d)}</td>
-                <td className="whitespace-nowrap text-muted">{date(b.created_at)}</td>
+                <td className="whitespace-nowrap text-subtle">{date(b.created_at)}</td>
               </tr>
             );
           })}

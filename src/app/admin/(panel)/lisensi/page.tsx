@@ -36,16 +36,16 @@ async function Content({ searchParams }: { searchParams: SP }) {
         </div>
         <Table head={["Pemilik", "Kunci", "Paket", "Status", "Mulai", "Berakhir", "Booth"]} empty={res.data.licenses.length === 0}>
           {res.data.licenses.map((l) => (
-            <tr key={l.id} className="hover:bg-paper">
+            <tr key={l.id} className="hover:bg-canvas">
               <td>
-                <Link href={`/admin/pelanggan/${l.owner_id}`} className="font-bold hover:underline">{l.owner_name}</Link>
-                <p className="text-xs text-muted">{l.owner_email}</p>
+                <Link href={`/admin/pelanggan/${l.owner_id}`} className="font-semibold hover:underline">{l.owner_name}</Link>
+                <p className="text-xs text-subtle">{l.owner_email}</p>
               </td>
-              <td className="font-mono font-bold">…{l.key_hint.slice(-4)}</td>
+              <td className="font-mono font-semibold">…{l.key_hint.slice(-4)}</td>
               <td>{PLAN_LABEL[l.plan]}</td>
               <td><Badge status={l.status} /></td>
               <td className="whitespace-nowrap">{date(l.starts_at)}</td>
-              <td className="whitespace-nowrap font-bold">{date(l.ends_at)}</td>
+              <td className="whitespace-nowrap font-semibold">{date(l.ends_at)}</td>
               <td>{l.active_devices}/{l.max_devices}</td>
             </tr>
           ))}

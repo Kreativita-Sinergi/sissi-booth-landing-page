@@ -29,14 +29,14 @@ function EventFields({ e, booths, fields }: { e?: BoothEvent; booths: { id: stri
         />
       )}
       <TextArea label="Catatan" name="note" placeholder="mis. Gedung Serbaguna, 300 tamu, 2 kru" defaultValue={e?.note} error={fields?.note} />
-      <p className="text-xs text-muted">Transaksi booth pada tanggal acara otomatis terhitung ke acara ini.</p>
+      <p className="text-xs text-subtle">Transaksi booth pada tanggal acara otomatis terhitung ke acara ini.</p>
     </>
   );
 }
 
 export function NewEventButton({ booths }: { booths: { id: string; name: string }[] }) {
   return (
-    <DialogAction label="Tambah acara" title="Tambah acara" tone="blue" wide icon={<Plus className="size-4" strokeWidth={3} />}>
+    <DialogAction label="Tambah acara" title="Tambah acara" tone="blue" wide icon={<Plus className="size-4" strokeWidth={2} />}>
       {(close) => (
         <ActionForm action={createEvent}>
           {(s) => (
@@ -80,7 +80,7 @@ export function ProfileForm({ me }: { me: OwnerProfile }) {
     <ActionForm action={updateProfile}>
       {(s) => (
         <>
-          {s.ok && <p className="rounded-xl border-2 border-ink bg-booth-green px-3 py-2 text-sm font-bold">{s.message}</p>}
+          {s.ok && <p className="rounded-lg border border-success/20 bg-success-soft px-3 py-2 text-sm font-medium text-success">{s.message}</p>}
           <Field label="Nama usaha / pemilik" name="name" placeholder="mis. Rani Photobooth" defaultValue={me.name} required error={s.fields?.name} />
           <Field label="No. WhatsApp" name="phone" placeholder="mis. 081234567890" defaultValue={me.phone} error={s.fields?.phone} />
           <Field
@@ -106,7 +106,7 @@ export function OwnerPasswordForm() {
     <ActionForm action={changeOwnerPassword}>
       {(s) => (
         <>
-          {s.ok && <p className="rounded-xl border-2 border-ink bg-booth-green px-3 py-2 text-sm font-bold">{s.message}</p>}
+          {s.ok && <p className="rounded-lg border border-success/20 bg-success-soft px-3 py-2 text-sm font-medium text-success">{s.message}</p>}
           <Field label="Kata sandi sekarang" name="current_password" placeholder="Kata sandi yang dipakai sekarang" type="password" autoComplete="current-password" required error={s.fields?.current_password} />
           <Field label="Kata sandi baru" name="new_password" placeholder="Min. 8 karakter, huruf & angka" type="password" autoComplete="new-password" required error={s.fields?.new_password} hint="Min. 8 karakter, huruf & angka." />
           <div>

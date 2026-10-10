@@ -23,6 +23,31 @@
   --shadow-hard: 6px 6px 0 0 var(--color-ink);
   --shadow-hard-lg: 10px 10px 0 0 var(--color-ink);
 
+  /* Dashboard /admin & /dashboard: netral (gaya dashboard umum), tidak mengikuti tema booth. */
+  --color-canvas: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-edge: #e4e7ec;
+  --color-edge-strong: #d0d5dd;
+  --color-fg: #101828;
+  --color-subtle: #667085;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-soft: #eff4ff;
+  --color-primary-muted: #c7d7fe;
+  --color-success: #067647;
+  --color-success-soft: #ecfdf3;
+  --color-success-solid: #17b26a;
+  --color-warning: #b54708;
+  --color-warning-soft: #fffaeb;
+  --color-warning-solid: #f79009;
+  --color-danger: #d92d20;
+  --color-danger-hover: #b42318;
+  --color-danger-soft: #fef3f2;
+  --color-info: #5925dc;
+  --color-info-soft: #f4f3ff;
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05);
+  --shadow-pop: 0 12px 16px -4px rgb(16 24 40 / 0.08), 0 4px 6px -2px rgb(16 24 40 / 0.03);
+
   --animate-marquee: marquee 28s linear infinite;
   @keyframes marquee {
     from { transform: translateX(0); }
@@ -38,6 +63,12 @@ body {
   background: var(--color-booth-yellow);
   color: var(--color-ink);
   font-family: var(--font-sans);
+}
+
+/* Latar halaman dashboard (bukan kuning landing) — juga saat overscroll. */
+body:has(.dash) {
+  background: var(--color-canvas);
+  color: var(--color-fg);
 }
 
 button, a, summary, [role="button"] {

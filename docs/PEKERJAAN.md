@@ -2,7 +2,7 @@
 
 > Dokumen hidup: baca di awal sesi, perbarui di akhir sesi (AGENTS.md §0.2). Hanya lokal.
 
-Terakhir diperbarui: **2026-10-09** · oleh: Claude Opus 5.5
+Terakhir diperbarui: **2026-10-10** · oleh: Claude Opus 5.5
 
 ## Menunggu reviu sebelum merge
 
@@ -15,6 +15,13 @@ Terakhir diperbarui: **2026-10-09** · oleh: Claude Opus 5.5
 _Tidak ada._
 
 ## Selesai
+
+- **2026-10-10** · Claude Opus 5.5 · **Dashboard `/admin` & `/dashboard` jadi netral** (update besar v2, tahap W1 —
+  `../docs/rencana.md` §7): token netral di `globals.css`, fon Inter khusus dashboard (`src/lib/dash/font.ts`), komponen
+  `ui/client/pickers/shell/login/search` + semua halaman panel ditulis ulang gayanya (API komponen tidak berubah). Tombol
+  pemicu aksi berbahaya bergaris merah; merah penuh hanya di dialog konfirmasi. Lint + tsc + build hijau; `check:dev`
+  36 halaman (1440 & 390) bersih; dicek visual. Data uji lokal: admin `uji-dashboard@sissi.id` dibuat & sandi pemilik
+  uji `rani14328@booth.id` diganti (DB dev lokal saja).
 
 - **2026-10-09** · Claude Opus 5.5 · Panduan cara foto: cara stiker dengan mouse (scroll / Shift+scroll).
 - **2026-10-09** · Claude Opus 5.5 · Panduan softcopy-harga: langkah harga → "Harga & pembayaran QRIS (segera hadir)"

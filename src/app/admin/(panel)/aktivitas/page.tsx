@@ -37,10 +37,10 @@ async function Content({ searchParams }: { searchParams: SP }) {
           {res.data.entries.map((e) => (
             <tr key={e.id}>
               <td className="whitespace-nowrap">{dateTime(e.created_at)}</td>
-              <td className="font-bold">{e.actor_name}</td>
+              <td className="font-semibold">{e.actor_name}</td>
               <td>{ACTION[e.action] ?? e.action}</td>
               <td>{e.target}</td>
-              <td className="text-muted">{e.detail || "—"}</td>
+              <td className="text-subtle">{e.detail || "—"}</td>
             </tr>
           ))}
         </Table>

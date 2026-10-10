@@ -62,6 +62,12 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
   `owner-actions.ts`); unduhan CSV/zip lewat Route Handler proxy (`download.ts`). Halaman masuk: `…/masuk`.
 - `cacheComponents` aktif → bagian yang membaca cookie/searchParams **wajib** di dalam `<Suspense>` (pola
   `Page → <Suspense><Content/></Suspense>`). Jangan `catch` tanpa meneruskan error non-`ApiError` (redirect Next).
+- **Gaya dashboard NETRAL** (keputusan pemilik 2026-10-10): dashboard umum — latar abu muda, kartu putih bergaris
+  tipis, sidebar putih, aksen biru, fon Inter (`src/lib/dash/font.ts` → `dashRoot` di `Shell` & `LoginForm`). **Jangan**
+  memakai token Sticker Bomb (`booth-*`, `ink`, `shadow-hard*`, `font-label/display`) di `/admin` & `/dashboard`; pakai
+  token netral di `@theme`: `canvas`, `surface`, `edge(-strong)`, `fg`, `subtle`, `primary(-hover/-soft/-muted)`,
+  `success/warning/danger/info(-soft/-solid)`, `shadow-card`, `shadow-pop`. Prop `tone` komponen tetap (blue = utama,
+  pink = berbahaya, lainnya sekunder). Landing & galeri `/s/` tetap Sticker Bomb.
 - Komponen: `src/components/dash/` — `ui.tsx` (server-safe: Card, Stat, Table, BarChart SVG, Bars, Badge…),
   `client.tsx` (dialog kustom, ActionForm, Field, ConfirmAction, PeriodPicker, FilterSelect), `pickers.tsx`
   (**dropdown & kalender kustom — dilarang `<select>`/`<input type=date>` bawaan**), `shell.tsx` (sidebar),

@@ -43,26 +43,26 @@ async function Content({ searchParams }: { searchParams: SP }) {
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {res.data.sessions.map((s) => (
-            <div key={s.code} className="flex flex-col overflow-hidden rounded-2xl border-2 border-ink bg-white shadow-hard-sm">
-              <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden bg-paper">
+            <div key={s.code} className="flex flex-col overflow-hidden rounded-xl border border-edge bg-surface shadow-card">
+              <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden bg-canvas">
                 {s.preview_url ? (
                   // eslint-disable-next-line @next/next/no-img-element -- gambar dari server galeri (domain dinamis)
                   <img src={s.preview_url} alt={`Hasil sesi ${s.code}`} loading="lazy" className="absolute inset-0 size-full object-contain p-3" />
                 ) : (
-                  <Images className="size-8 text-muted" />
+                  <Images className="size-8 text-subtle" />
                 )}
               </div>
               <div className="flex flex-col gap-2 p-3">
-                <p className="font-mono text-xs font-bold">{s.code}</p>
-                <p className="text-xs text-muted">
+                <p className="font-mono text-xs font-semibold">{s.code}</p>
+                <p className="text-xs text-subtle">
                   {dateTime(s.created_at)} · {s.device_name}
                 </p>
-                <p className="text-xs text-muted">
+                <p className="text-xs text-subtle">
                   {s.files} file · hapus otomatis {date(s.expires_at)}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center gap-1 rounded-xl border-2 border-ink bg-white px-3 font-label text-xs uppercase shadow-hard-sm">
-                    <ExternalLink className="size-3.5" strokeWidth={2.5} /> Buka
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium shadow-card hover:bg-canvas">
+                    <ExternalLink className="size-3.5" strokeWidth={2} /> Buka
                   </a>
                   <ConfirmAction label="Hapus" title={`Hapus galeri ${s.code}?`} message="Foto di galeri online dihapus permanen. Tamu tidak bisa membuka QR-nya lagi." confirm="Hapus" action={deleteGallery} hidden={{ code: s.code }} />
                 </div>

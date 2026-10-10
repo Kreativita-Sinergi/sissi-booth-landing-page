@@ -41,9 +41,9 @@ async function Content({ searchParams }: { searchParams: SP }) {
               ["Ditangguhkan", c.licenses_suspended, "suspended"],
             ].map(([label, n, s]) => (
               <li key={String(s)}>
-                <Link href={`/admin/lisensi?status=${s}`} className="flex items-center justify-between rounded-xl border-2 border-ink/10 px-3 py-2.5 hover:border-ink">
-                  <span className="font-bold">{label}</span>
-                  <span className="font-label text-lg">{n}</span>
+                <Link href={`/admin/lisensi?status=${s}`} className="flex items-center justify-between rounded-lg border border-edge px-3 py-2.5 hover:bg-canvas">
+                  <span className="font-semibold">{label}</span>
+                  <span className="text-lg font-semibold tabular-nums">{n}</span>
                 </Link>
               </li>
             ))}
@@ -52,23 +52,23 @@ async function Content({ searchParams }: { searchParams: SP }) {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card title="Lisensi segera habis" className="lg:col-span-2" action={<Link href="/admin/lisensi?status=expiring" className="text-xs font-bold underline">Semua</Link>}>
+        <Card title="Lisensi segera habis" className="lg:col-span-2" action={<Link href="/admin/lisensi?status=expiring" className="text-xs font-medium text-primary hover:underline">Semua</Link>}>
           {o.expiring.length === 0 ? (
             <Empty text="Tidak ada lisensi yang habis dalam 7 hari." icon={BadgeCheck} />
           ) : (
-            <ul className="flex flex-col divide-y-2 divide-ink/10">
+            <ul className="flex flex-col divide-y divide-edge">
               {o.expiring.map((x) => {
                 const wa = waLink(x.owner_phone, `Halo ${x.owner_name}, langganan Sissi Booth kamu (${PLAN_LABEL[x.plan] ?? x.plan}) akan berakhir ${date(x.ends_at)}. Mau diperpanjang?`);
                 return (
                   <li key={x.license_id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                     <div className="min-w-0">
-                      <Link href={`/admin/pelanggan/${x.owner_id}`} className="font-bold hover:underline">{x.owner_name}</Link>
-                      <p className="flex items-center gap-1 text-xs text-muted">
+                      <Link href={`/admin/pelanggan/${x.owner_id}`} className="font-semibold hover:underline">{x.owner_name}</Link>
+                      <p className="flex items-center gap-1 text-xs text-subtle">
                         <CalendarClock className="size-3.5" /> {PLAN_LABEL[x.plan] ?? x.plan} · berakhir {date(x.ends_at)}
                       </p>
                     </div>
                     {wa && (
-                      <a href={wa} target="_blank" rel="noopener noreferrer" className="rounded-xl border-2 border-ink bg-booth-green px-3 py-1.5 font-label text-xs uppercase shadow-hard-sm">
+                      <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium shadow-card hover:bg-canvas">
                         Ingatkan via WA
                       </a>
                     )}
@@ -87,7 +87,7 @@ async function Content({ searchParams }: { searchParams: SP }) {
         <Card title={`Transaksi semua booth · ${number(o.booth.transactions)} sesi · ${rupiah(o.booth.revenue)}`} className="lg:col-span-2">
           <BarChart points={o.booth_daily} value="transactions" tone="blue" format={(n) => String(n)} />
         </Card>
-        <Card title="Pemilik teratas" action={<Link href="/admin/transaksi" className="text-xs font-bold underline">Transaksi</Link>}>
+        <Card title="Pemilik teratas" action={<Link href="/admin/transaksi" className="text-xs font-medium text-primary hover:underline">Transaksi</Link>}>
           <Bars rows={o.top_owners.map((g) => ({ label: g.label, value: g.revenue, sub: `${g.transactions} sesi` }))} format={rupiahShort} />
         </Card>
       </div>

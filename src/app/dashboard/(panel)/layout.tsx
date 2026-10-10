@@ -16,11 +16,11 @@ async function Who() {
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
   }
-  if (!me) return <p className="text-muted">Pemilik booth</p>;
+  if (!me) return <p className="text-subtle">Pemilik booth</p>;
   return (
     <>
-      <p className="truncate font-bold">{me.name}</p>
-      <p className="truncate text-muted">{me.email}</p>
+      <p className="truncate font-semibold">{me.name}</p>
+      <p className="truncate text-subtle">{me.email}</p>
     </>
   );
 }
@@ -42,7 +42,7 @@ async function LicenseBanner() {
   const expired = active.length === 0;
   const wa = waLink("085161462806", "Halo tim Sissi, saya mau perpanjang langganan Sissi Booth.");
   return (
-    <div className={`mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-ink px-4 py-3 text-sm font-bold ${expired ? "bg-booth-pink" : "bg-booth-yellow"}`}>
+    <div className={`mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm font-medium ${expired ? "border-danger/20 bg-danger-soft text-danger" : "border-warning/20 bg-warning-soft text-warning"}`}>
       <span>
         {expired
           ? "Langganan Sissi Booth-mu sudah habis — booth berjalan dalam mode terbatas."
@@ -51,7 +51,7 @@ async function LicenseBanner() {
             : `Langganan Sissi Booth-mu berakhir ${days} hari lagi.`}
       </span>
       {wa && (
-        <a href={wa} target="_blank" rel="noopener noreferrer" className="rounded-xl border-2 border-ink bg-white px-3 py-1.5 font-label text-xs uppercase shadow-hard-sm">
+        <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium shadow-card hover:bg-canvas text-fg">
           Perpanjang via WA
         </a>
       )}
@@ -63,11 +63,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <Shell
       variant="owner"
-      title="sissi booth"
+      title="Sissi Booth"
       badge="Pemilik booth"
       logout={logoutOwner}
       user={
-        <Suspense fallback={<p className="text-muted">…</p>}>
+        <Suspense fallback={<p className="text-subtle">…</p>}>
           <Who />
         </Suspense>
       }

@@ -9,13 +9,16 @@ import type { ActionState } from "@/lib/dash/action-state";
 import { DateInput, RangePicker, Select, todayYmd, ymdLabel, type Option } from "./pickers";
 
 const btnBase =
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border-2 border-ink font-label uppercase shadow-hard-sm transition-all hover:-translate-x-px hover:-translate-y-px active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-booth-blue";
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium shadow-card transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+/** blue = aksi utama, pink = berbahaya, green = konfirmasi positif; sisanya tombol sekunder. */
 const btnTone = {
-  blue: "bg-booth-blue text-white",
-  green: "bg-booth-green",
-  pink: "bg-booth-pink",
-  yellow: "bg-booth-yellow",
-  white: "bg-white",
+  blue: "bg-primary text-white hover:bg-primary-hover",
+  green: "bg-success text-white hover:brightness-95",
+  pink: "bg-danger text-white hover:bg-danger-hover",
+  yellow: "border border-edge-strong bg-surface text-fg hover:bg-canvas",
+  white: "border border-edge-strong bg-surface text-fg hover:bg-canvas",
+  /** Pemicu aksi berbahaya di daftar/kartu; merah penuh hanya di dialog konfirmasi. */
+  pinkSoft: "border border-danger/30 bg-surface text-danger hover:bg-danger-soft",
 } as const;
 
 export function Button({
@@ -26,7 +29,7 @@ export function Button({
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: keyof typeof btnTone; small?: boolean }) {
   return (
-    <button {...rest} className={cn(btnBase, small ? "h-9 px-3 text-xs" : "h-11 px-4 text-sm", btnTone[tone], className)}>
+    <button {...rest} className={cn(btnBase, small ? "h-8 px-3 text-xs" : "h-10 px-4 text-sm", btnTone[tone], className)}>
       {children}
     </button>
   );
@@ -43,7 +46,7 @@ export function SubmitButton({ children, tone = "blue", small }: { children: Rea
   );
 }
 
-/** Dialog kustom bergaya stiker (bukan dialog bawaan browser). Esc / klik latar = tutup. */
+/** Dialog kustom (bukan dialog bawaan browser). Esc / klik latar = tutup. */
 export function Dialog({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; wide?: boolean }) {
   const id = useId();
   useEffect(() => {
@@ -59,22 +62,22 @@ export function Dialog({ open, onClose, title, children, wide }: { open: boolean
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-0 sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-fg/40 p-0 sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={id}
         className={cn(
-          "max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border-[3px] border-ink bg-white p-5 shadow-hard sm:rounded-3xl sm:p-6",
+          "max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-surface p-5 shadow-pop sm:rounded-xl sm:p-6",
           wide ? "sm:max-w-2xl" : "sm:max-w-md",
         )}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 id={id} className="font-label text-lg leading-tight">
+          <h2 id={id} className="text-lg font-semibold leading-tight">
             {title}
           </h2>
-          <button type="button" onClick={onClose} aria-label="Tutup" className="rounded-lg border-2 border-ink p-1 hover:bg-paper">
-            <X className="size-4" strokeWidth={3} />
+          <button type="button" onClick={onClose} aria-label="Tutup" className="rounded-lg p-1 text-subtle hover:bg-canvas hover:text-fg">
+            <X className="size-4" strokeWidth={2} />
           </button>
         </div>
         {children}
@@ -111,7 +114,7 @@ export function ActionForm({
   return (
     <form action={run} className={cn("flex flex-col gap-4", className)}>
       {state.message && !state.ok && (
-        <p role="alert" className="rounded-xl border-2 border-ink bg-booth-pink/30 px-3 py-2 text-sm font-bold">
+        <p role="alert" className="rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm font-medium text-danger">
           {state.message}
         </p>
       )}
@@ -121,7 +124,7 @@ export function ActionForm({
 }
 
 const fieldCls =
-  "h-11 w-full rounded-xl border-2 border-ink bg-white px-3 text-base outline-none focus:border-booth-blue focus:ring-3 focus:ring-booth-blue/30";
+  "h-10 w-full rounded-lg border border-edge-strong bg-surface px-3 text-sm font-normal shadow-card outline-none placeholder:text-subtle focus:border-primary focus:ring-3 focus:ring-primary/15";
 
 export function Field({
   label,
@@ -132,10 +135,10 @@ export function Field({
 }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string; error?: string; hint?: string }) {
   const id = useId();
   return (
-    <label htmlFor={id} className="flex min-w-0 flex-col gap-1.5 text-sm font-bold">
+    <label htmlFor={id} className="flex min-w-0 flex-col gap-1.5 text-sm font-medium">
       {label}
-      <input id={id} name={name} {...rest} className={cn(fieldCls, error && "border-booth-pink")} aria-invalid={!!error} />
-      {error ? <span className="text-xs text-[#c2185b]">{error}</span> : hint && <span className="text-xs font-normal text-muted">{hint}</span>}
+      <input id={id} name={name} {...rest} className={cn(fieldCls, error && "border-danger")} aria-invalid={!!error} />
+      {error ? <span className="text-xs font-normal text-danger">{error}</span> : hint && <span className="text-xs font-normal text-subtle">{hint}</span>}
     </label>
   );
 }
@@ -154,10 +157,10 @@ export function SelectField({
   defaultValue?: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 text-sm font-bold">
+    <div className="flex min-w-0 flex-col gap-1.5 text-sm font-medium">
       <span>{label}</span>
       <Select name={name} label={label} options={options} defaultValue={defaultValue} invalid={!!error} />
-      {error && <span className="text-xs text-[#c2185b]">{error}</span>}
+      {error && <span className="text-xs font-normal text-danger">{error}</span>}
     </div>
   );
 }
@@ -165,10 +168,10 @@ export function SelectField({
 /** Kolom tanggal dengan kalender kustom. */
 export function DateField({ label, name, error, defaultValue }: { label: string; name: string; error?: string; defaultValue?: string }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 text-sm font-bold">
+    <div className="flex min-w-0 flex-col gap-1.5 text-sm font-medium">
       <span>{label}</span>
       <DateInput name={name} label={label} defaultValue={defaultValue} invalid={!!error} />
-      {error && <span className="text-xs text-[#c2185b]">{error}</span>}
+      {error && <span className="text-xs font-normal text-danger">{error}</span>}
     </div>
   );
 }
@@ -176,10 +179,10 @@ export function DateField({ label, name, error, defaultValue }: { label: string;
 export function TextArea({ label, name, error, ...rest }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; name: string; error?: string }) {
   const id = useId();
   return (
-    <label htmlFor={id} className="flex min-w-0 flex-col gap-1.5 text-sm font-bold">
+    <label htmlFor={id} className="flex min-w-0 flex-col gap-1.5 text-sm font-medium">
       {label}
-      <textarea id={id} name={name} rows={3} {...rest} className={cn(fieldCls, "h-auto py-2", error && "border-booth-pink")} />
-      {error && <span className="text-xs text-[#c2185b]">{error}</span>}
+      <textarea id={id} name={name} rows={3} {...rest} className={cn(fieldCls, "h-auto py-2", error && "border-danger")} />
+      {error && <span className="text-xs font-normal text-danger">{error}</span>}
     </label>
   );
 }
@@ -240,7 +243,7 @@ export function ConfirmAction({
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button type="button" tone={tone} small={small} onClick={() => setOpen(true)}>
+      <Button type="button" tone={tone === "pink" ? "pinkSoft" : tone} small={small} onClick={() => setOpen(true)}>
         {label}
       </Button>
       <Dialog open={open} onClose={() => setOpen(false)} title={title}>
@@ -277,7 +280,7 @@ export function CopyButton({ text, label = "Salin" }: { text: string; label?: st
         setTimeout(() => setDone(false), 1500);
       }}
     >
-      {done ? <Check className="size-4" strokeWidth={3} /> : <Copy className="size-4" strokeWidth={2.5} />}
+      {done ? <Check className="size-4" strokeWidth={2} /> : <Copy className="size-4" strokeWidth={2} />}
       {done ? "Tersalin" : label}
     </Button>
   );
@@ -313,7 +316,7 @@ export function PeriodPicker({ from, to }: { from: string; to: string }) {
   return (
     <div className="relative flex flex-wrap items-center gap-2">
       {PRESETS.map((p) => (
-        <button key={p.key} type="button" onClick={() => preset(p.key)} className="h-9 rounded-full border-2 border-ink bg-white px-3 text-xs font-bold hover:bg-booth-yellow">
+        <button key={p.key} type="button" onClick={() => preset(p.key)} className="h-8 rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium shadow-card hover:bg-canvas">
           {p.label}
         </button>
       ))}
@@ -321,9 +324,9 @@ export function PeriodPicker({ from, to }: { from: string; to: string }) {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className={cn("inline-flex h-9 items-center gap-1.5 rounded-full border-2 border-ink px-3 text-xs font-bold", open ? "bg-ink text-white" : "bg-booth-yellow")}
+        className={cn("inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium shadow-card", open ? "border-primary bg-primary-soft text-primary" : "border-edge-strong bg-surface hover:bg-canvas")}
       >
-        <CalendarDays aria-hidden className="size-4" strokeWidth={2.5} />
+        <CalendarDays aria-hidden className="size-4" strokeWidth={2} />
         {ymdLabel(from)} – {ymdLabel(to)}
       </button>
       {open && (

@@ -13,11 +13,11 @@ async function Who() {
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
   }
-  if (!me) return <p className="text-muted">Admin</p>;
+  if (!me) return <p className="text-subtle">Admin</p>;
   return (
     <>
-      <p className="truncate font-bold">{me.name}</p>
-      <p className="truncate text-muted">{me.email}</p>
+      <p className="truncate font-semibold">{me.name}</p>
+      <p className="truncate text-subtle">{me.email}</p>
     </>
   );
 }
@@ -26,11 +26,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <Shell
       variant="admin"
-      title="sissi booth"
+      title="Sissi Booth"
       badge="Admin"
       logout={logoutAdmin}
       user={
-        <Suspense fallback={<p className="text-muted">…</p>}>
+        <Suspense fallback={<p className="text-subtle">…</p>}>
           <Who />
         </Suspense>
       }

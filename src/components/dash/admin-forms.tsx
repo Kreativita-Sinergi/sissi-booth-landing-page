@@ -32,7 +32,7 @@ function Actions({ children }: { children: React.ReactNode }) {
 
 export function NewOwnerButton() {
   return (
-    <DialogAction label="Tambah pemilik" title="Tambah pemilik booth" tone="blue" icon={<Plus className="size-4" strokeWidth={3} />}>
+    <DialogAction label="Tambah pemilik" title="Tambah pemilik booth" tone="blue" icon={<Plus className="size-4" strokeWidth={2} />}>
       {(close) => (
         <ActionForm action={createOwner}>
           {(s) => (
@@ -109,15 +109,15 @@ function KeyResult({ s, owner, onClose }: { s: ActionState; owner?: OwnerProfile
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm">{s.message} Simpan sekarang — kunci ini <b>tidak bisa dilihat lagi</b> setelah dialog ditutup.</p>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-ink bg-booth-yellow px-4 py-3">
-        <code className="font-mono text-lg font-bold tracking-wide">{key}</code>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-edge bg-canvas px-4 py-3">
+        <code className="font-mono text-lg font-semibold tracking-wide">{key}</code>
         <CopyButton text={key} />
       </div>
-      {s.data?.ends_at && <p className="text-sm text-muted">Berlaku sampai {date(s.data.ends_at)}.</p>}
+      {s.data?.ends_at && <p className="text-sm text-subtle">Berlaku sampai {date(s.data.ends_at)}.</p>}
       <Actions>
         <Button type="button" onClick={onClose}>Tutup</Button>
         {wa && (
-          <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center justify-center rounded-xl border-2 border-ink bg-booth-green px-4 font-label text-sm uppercase shadow-hard-sm">
+          <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center justify-center rounded-lg border border-edge-strong bg-surface px-4 text-sm font-medium shadow-card hover:bg-canvas">
             Kirim via WA
           </a>
         )}
@@ -136,7 +136,7 @@ export function NewLicenseButton({ owner }: { owner: OwnerProfile }) {
   return (
     <>
       <Button type="button" tone="blue" small onClick={() => setOpen(true)}>
-        <KeyRound className="size-4" strokeWidth={2.5} /> Buat lisensi
+        <KeyRound className="size-4" strokeWidth={2} /> Buat lisensi
       </Button>
       <Dialog open={open} onClose={close} title={result ? "Kunci lisensi" : "Buat lisensi"}>
         {result ? (
@@ -151,7 +151,7 @@ export function NewLicenseButton({ owner }: { owner: OwnerProfile }) {
                   <Field label="Jumlah periode" name="periods" placeholder="1" type="number" min={1} max={36} defaultValue={1} error={s.fields?.periods} />
                   <Field label="Maks. booth" name="max_devices" placeholder="1" type="number" min={1} max={100} defaultValue={1} error={s.fields?.max_devices} />
                 </div>
-                <p className="text-xs text-muted">Belum ada pembayaran? Catat lewat tombol “Catat pembayaran” setelah transfer masuk.</p>
+                <p className="text-xs text-subtle">Belum ada pembayaran? Catat lewat tombol “Catat pembayaran” setelah transfer masuk.</p>
                 <Actions>
                   <Button type="button" onClick={close}>Batal</Button>
                   <SubmitButton>Buat lisensi</SubmitButton>
@@ -175,7 +175,7 @@ export function RotateKeyButton({ license, owner }: { license: License; owner?: 
   return (
     <>
       <Button type="button" small onClick={() => setOpen(true)}>
-        <RefreshCw className="size-4" strokeWidth={2.5} /> Kunci baru
+        <RefreshCw className="size-4" strokeWidth={2} /> Kunci baru
       </Button>
       <Dialog open={open} onClose={close} title={result ? "Kunci lisensi baru" : "Buat kunci baru?"}>
         {result ? (
@@ -207,7 +207,7 @@ export function ExtendLicenseButton({ license }: { license: License }) {
           {(s) => (
             <>
               <input type="hidden" name="id" value={license.id} />
-              <p className="text-sm text-muted">Untuk perpanjangan berbayar, pakai “Catat pembayaran” agar masuk laporan pendapatan.</p>
+              <p className="text-sm text-subtle">Untuk perpanjangan berbayar, pakai “Catat pembayaran” agar masuk laporan pendapatan.</p>
               <SelectField label="Paket" name="plan" options={PLANS} defaultValue={license.plan} />
               <Field label="Jumlah periode" name="periods" placeholder="1" type="number" min={1} max={36} defaultValue={1} error={s.fields?.periods} />
               <Actions>
@@ -270,7 +270,7 @@ export function RecordPaymentButton({
     ...(licenses ?? []).map((l) => ({ value: l.id, label: `…${l.key_hint.slice(-4)} · s/d ${date(l.ends_at)}` })),
   ];
   return (
-    <DialogAction label="Catat pembayaran" title="Catat pembayaran langganan" tone="green" small={small} icon={<WalletCards className="size-4" strokeWidth={2.5} />}>
+    <DialogAction label="Catat pembayaran" title="Catat pembayaran langganan" tone="green" small={small} icon={<WalletCards className="size-4" strokeWidth={2} />}>
       {(close) => (
         <ActionForm action={recordPayment} onDone={close}>
           {(s) => (
@@ -315,7 +315,7 @@ export function RecordPaymentButton({
 
 export function NewAdminButton() {
   return (
-    <DialogAction label="Tambah admin" title="Tambah admin" tone="blue" small icon={<Plus className="size-4" strokeWidth={3} />}>
+    <DialogAction label="Tambah admin" title="Tambah admin" tone="blue" small icon={<Plus className="size-4" strokeWidth={2} />}>
       {(close) => (
         <ActionForm action={createAdmin} onDone={close}>
           {(s) => (
@@ -340,7 +340,7 @@ export function ChangePasswordForm({ action = changeAdminPassword }: { action?: 
     <ActionForm action={action}>
       {(s) => (
         <>
-          {s.ok && <p className="rounded-xl border-2 border-ink bg-booth-green px-3 py-2 text-sm font-bold">{s.message}</p>}
+          {s.ok && <p className="rounded-lg border border-success/20 bg-success-soft px-3 py-2 text-sm font-medium text-success">{s.message}</p>}
           <Field label="Kata sandi sekarang" name="current_password" placeholder="Kata sandi yang dipakai sekarang" type="password" autoComplete="current-password" required error={s.fields?.current_password} />
           <Field label="Kata sandi baru" name="new_password" placeholder="Min. 8 karakter, huruf & angka" type="password" autoComplete="new-password" required error={s.fields?.new_password} hint="Min. 8 karakter, huruf & angka." />
           <div>

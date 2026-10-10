@@ -3,8 +3,9 @@
 import { useActionState } from "react";
 import { Loader2 } from "lucide-react";
 import type { ActionState } from "@/lib/dash/action-state";
+import { dashRoot } from "@/lib/dash/font";
 
-/** Formulir masuk (admin Sissi / pemilik booth) bergaya stiker. */
+/** Formulir masuk (admin Sissi / pemilik booth) — gaya dashboard netral. */
 export function LoginForm({
   action,
   title,
@@ -20,37 +21,40 @@ export function LoginForm({
 }) {
   const [state, run, pending] = useActionState(action, {} as ActionState);
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-booth-yellow px-4 py-10">
-      <div className="w-full max-w-md">
-        <p className="mb-5 inline-flex rounded-full border-[3px] border-ink bg-booth-pink px-5 py-2 font-display text-2xl shadow-hard-sm">sissi booth</p>
-        <form action={run} className="flex flex-col gap-4 rounded-3xl border-[3px] border-ink bg-white p-6 shadow-hard md:p-8">
+    <main className={`${dashRoot} flex min-h-dvh items-center justify-center bg-canvas px-4 py-10`}>
+      <div className="w-full max-w-sm">
+        <p className="mb-6 flex items-center justify-center gap-2.5 text-base font-semibold">
+          <span aria-hidden className="inline-flex size-9 items-center justify-center rounded-lg bg-fg text-white">S</span>
+          Sissi Booth
+        </p>
+        <form action={run} className="flex flex-col gap-4 rounded-xl border border-edge bg-surface p-6 shadow-card md:p-8">
           <div>
-            <h1 className="font-label text-2xl">{title}</h1>
-            <p className="mt-1 text-sm text-muted">{subtitle}</p>
+            <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+            <p className="mt-1 text-sm text-subtle">{subtitle}</p>
           </div>
           {expired && !state.message && (
-            <p className="rounded-xl border-2 border-ink bg-booth-yellow px-3 py-2 text-sm font-bold">Sesi kamu sudah berakhir. Silakan masuk lagi.</p>
+            <p className="rounded-lg border border-warning/20 bg-warning-soft px-3 py-2 text-sm font-medium text-warning">Sesi kamu sudah berakhir. Silakan masuk lagi.</p>
           )}
           {state.message && (
-            <p role="alert" className="rounded-xl border-2 border-ink bg-booth-pink/30 px-3 py-2 text-sm font-bold">
+            <p role="alert" className="rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm font-medium text-danger">
               {state.message}
             </p>
           )}
           <input type="hidden" name="next" value={next ?? ""} />
-          <label className="flex flex-col gap-1.5 text-sm font-bold">
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
             Email
-            <input name="email" placeholder="nama@email.com" type="email" autoComplete="email" required className="h-12 rounded-xl border-2 border-ink px-3 text-base outline-none focus:ring-3 focus:ring-booth-blue/30" />
+            <input name="email" placeholder="nama@email.com" type="email" autoComplete="email" required className="h-10 rounded-lg border border-edge-strong px-3 text-sm font-normal shadow-card outline-none placeholder:text-subtle focus:border-primary focus:ring-3 focus:ring-primary/15" />
           </label>
-          <label className="flex flex-col gap-1.5 text-sm font-bold">
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
             Kata sandi
-            <input name="password" placeholder="Kata sandi" type="password" autoComplete="current-password" required className="h-12 rounded-xl border-2 border-ink px-3 text-base outline-none focus:ring-3 focus:ring-booth-blue/30" />
+            <input name="password" placeholder="Kata sandi" type="password" autoComplete="current-password" required className="h-10 rounded-lg border border-edge-strong px-3 text-sm font-normal shadow-card outline-none placeholder:text-subtle focus:border-primary focus:ring-3 focus:ring-primary/15" />
           </label>
           <button
             type="submit"
             disabled={pending}
-            className="mt-2 inline-flex h-13 items-center justify-center gap-2 rounded-2xl border-[3px] border-ink bg-booth-blue font-label text-base uppercase text-white shadow-hard-sm transition-all hover:-translate-y-px active:translate-y-0.5 active:shadow-none disabled:opacity-60"
+            className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-white shadow-card transition-colors hover:bg-primary-hover disabled:opacity-60"
           >
-            {pending && <Loader2 className="size-5 animate-spin" />}
+            {pending && <Loader2 className="size-4 animate-spin" />}
             Masuk
           </button>
         </form>

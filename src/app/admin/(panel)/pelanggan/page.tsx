@@ -38,17 +38,17 @@ async function Content({ searchParams }: { searchParams: SP }) {
         </div>
         <Table head={["Pemilik", "Status", "Aktif s/d", "Booth", "Total bayar", "Sesi 30 hari", "Terakhir online"]} empty={res.data.customers.length === 0}>
           {res.data.customers.map((c) => (
-            <tr key={c.id} className="hover:bg-paper">
+            <tr key={c.id} className="hover:bg-canvas">
               <td>
-                <Link href={`/admin/pelanggan/${c.id}`} className="font-bold hover:underline">{c.name}</Link>
-                <p className="text-xs text-muted">{c.email}{c.phone && ` · ${c.phone}`}</p>
+                <Link href={`/admin/pelanggan/${c.id}`} className="font-semibold hover:underline">{c.name}</Link>
+                <p className="text-xs text-subtle">{c.email}{c.phone && ` · ${c.phone}`}</p>
               </td>
               <td><Badge status={c.status} /></td>
               <td className="whitespace-nowrap">{date(c.active_until)}</td>
               <td>{c.devices}</td>
               <td className="whitespace-nowrap">{rupiah(c.paid_total)}</td>
               <td className="whitespace-nowrap">{number(c.transactions_30d)} · {rupiah(c.revenue_30d)}</td>
-              <td className="whitespace-nowrap text-muted">{ago(c.last_seen_at, now)}</td>
+              <td className="whitespace-nowrap text-subtle">{ago(c.last_seen_at, now)}</td>
             </tr>
           ))}
         </Table>

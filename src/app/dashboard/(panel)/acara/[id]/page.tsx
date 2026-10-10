@@ -35,8 +35,8 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   const range = `${dayLabel(e.starts_on)}${e.ends_on !== e.starts_on ? ` – ${dayLabel(e.ends_on)}` : ""}`;
   return (
     <>
-      <Link href="/dashboard/acara" className="mb-3 inline-flex items-center gap-1 text-sm font-bold hover:underline">
-        <ArrowLeft className="size-4" strokeWidth={3} /> Acara
+      <Link href="/dashboard/acara" className="mb-3 inline-flex items-center gap-1 text-sm font-semibold hover:underline">
+        <ArrowLeft className="size-4" strokeWidth={2} /> Acara
       </Link>
       <PageHeader
         title={e.name}
@@ -60,9 +60,9 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
         <Stat label="Sesi foto" value={number(e.transactions)} hint={e.revenue ? `+ kiosk ${rupiah(e.revenue)}` : undefined} />
         <Stat label="Lembar tercetak" value={number(e.sheets)} />
       </div>
-      {e.note && <p className="mt-6 rounded-2xl border-2 border-ink bg-white px-4 py-3 text-sm">{e.note}</p>}
+      {e.note && <p className="mt-6 rounded-lg border border-edge bg-surface px-4 py-3 text-sm">{e.note}</p>}
       <Card title="Sesi pada acara ini" className="mt-6">
-        <p className="mb-3 text-xs text-muted">“Unduh semua foto” berisi foto yang tersimpan di galeri online (bila booth memakai pengiriman Cloud/Otomatis dan sedang online).</p>
+        <p className="mb-3 text-xs text-subtle">“Unduh semua foto” berisi foto yang tersimpan di galeri online (bila booth memakai pengiriman Cloud/Otomatis dan sedang online).</p>
         <Table head={["Waktu", "Booth", "Kode", "Layout", "Lembar", "Status"]} empty={txs.length === 0}>
           {txs.map((x) => (
             <tr key={x.id}>

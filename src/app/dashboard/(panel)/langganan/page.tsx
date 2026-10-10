@@ -49,12 +49,12 @@ async function Content() {
             <Card key={l.id}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase text-muted">Paket {PLAN_LABEL[l.plan]}</p>
-                  <p className="font-label text-2xl">{l.status === "active" ? (left > 0 ? `${left} hari lagi` : "Berakhir hari ini") : date(l.ends_at)}</p>
+                  <p className="text-xs font-medium text-subtle">Paket {PLAN_LABEL[l.plan]}</p>
+                  <p className="font-semibold text-2xl">{l.status === "active" ? (left > 0 ? `${left} hari lagi` : "Berakhir hari ini") : date(l.ends_at)}</p>
                 </div>
                 <Badge status={l.status === "active" && left <= 7 ? "expiring" : l.status} />
               </div>
-              <p className="mt-3 text-sm text-muted">
+              <p className="mt-3 text-sm text-subtle">
                 {date(l.starts_at)} – {date(l.ends_at)} · kunci …{l.key_hint.slice(-4)} · booth {l.active_devices}/{l.max_devices}
               </p>
             </Card>
@@ -66,10 +66,10 @@ async function Content() {
           {payments.map((p) => (
             <tr key={p.id}>
               <td className="whitespace-nowrap">{dateTime(p.paid_at)}</td>
-              <td className="whitespace-nowrap font-bold">{rupiah(p.amount)}</td>
+              <td className="whitespace-nowrap font-semibold">{rupiah(p.amount)}</td>
               <td>{METHOD_LABEL[p.method] ?? p.method}</td>
               <td className="whitespace-nowrap">{p.periods > 0 ? `+${p.periods} ${PLAN_LABEL[p.plan]?.toLowerCase() ?? p.plan}` : "—"}</td>
-              <td className="text-muted">{p.note || "—"}</td>
+              <td className="text-subtle">{p.note || "—"}</td>
             </tr>
           ))}
         </Table>

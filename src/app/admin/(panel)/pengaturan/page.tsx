@@ -25,7 +25,7 @@ async function Content() {
           <Table head={["Nama", "Email", "Sejak", ""]}>
             {admins.map((a) => (
               <tr key={a.id}>
-                <td className="font-bold">{a.name}{a.id === me.id && " (kamu)"}</td>
+                <td className="font-semibold">{a.name}{a.id === me.id && " (kamu)"}</td>
                 <td>{a.email}</td>
                 <td className="whitespace-nowrap">{date(a.created_at)}</td>
                 <td className="text-right">

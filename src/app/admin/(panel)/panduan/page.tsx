@@ -10,7 +10,7 @@ type Step = { icon: LucideIcon; tone: string; title: string; where: string; poin
 const STEPS: Step[] = [
   {
     icon: UserPlus,
-    tone: "bg-booth-yellow",
+    tone: "bg-warning-soft text-warning",
     title: "Daftarkan pemilik booth",
     where: "Pelanggan › Tambah pemilik",
     points: [
@@ -21,7 +21,7 @@ const STEPS: Step[] = [
   },
   {
     icon: KeyRound,
-    tone: "bg-booth-blue text-white",
+    tone: "bg-primary-soft text-primary",
     title: "Buat lisensi",
     where: "Pelanggan › (pilih pemilik) › Lisensi › Buat lisensi",
     points: [
@@ -31,7 +31,7 @@ const STEPS: Step[] = [
   },
   {
     icon: MessageCircle,
-    tone: "bg-booth-green",
+    tone: "bg-success-soft text-success",
     title: "Kirim kunci ke pemilik",
     where: "Dialog kunci lisensi › Kirim via WA",
     points: [
@@ -41,7 +41,7 @@ const STEPS: Step[] = [
   },
   {
     icon: WalletCards,
-    tone: "bg-booth-pink",
+    tone: "bg-danger-soft text-danger",
     title: "Catat pembayaran",
     where: "Pelanggan › (pemilik) › Catat pembayaran — atau menu Pembayaran langganan",
     points: [
@@ -55,7 +55,7 @@ const STEPS: Step[] = [
 const WATCH: Step[] = [
   {
     icon: Activity,
-    tone: "bg-booth-orange",
+    tone: "bg-warning-soft text-warning",
     title: "Pantau tiap minggu",
     where: "Ringkasan & Booth",
     points: [
@@ -66,7 +66,7 @@ const WATCH: Step[] = [
   },
   {
     icon: MonitorSmartphone,
-    tone: "bg-booth-lilac",
+    tone: "bg-info-soft text-info",
     title: "Masalah yang sering muncul",
     where: "Pelanggan › (pemilik)",
     points: [
@@ -83,15 +83,15 @@ function StepCard({ step, n }: { step: Step; n?: number }) {
   return (
     <Card className="h-full">
       <div className="flex items-start gap-4">
-        <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl border-2 border-ink shadow-hard-sm", step.tone)}>
-          <Icon className="size-6" strokeWidth={2.5} aria-hidden />
+        <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", step.tone)}>
+          <Icon className="size-5" strokeWidth={2} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="font-label text-lg">
-            {n !== undefined && <span className="mr-2 text-muted">{n}.</span>}
+          <h2 className="font-semibold text-lg">
+            {n !== undefined && <span className="mr-2 text-subtle">{n}.</span>}
             {step.title}
           </h2>
-          <p className="mt-0.5 text-xs font-bold text-muted">{step.where}</p>
+          <p className="mt-0.5 text-xs font-semibold text-subtle">{step.where}</p>
           <ul className="mt-3 flex list-disc flex-col gap-1.5 pl-5 text-sm">
             {step.points.map((p) => (
               <li key={p}>{p}</li>

@@ -46,19 +46,19 @@ async function Content({ searchParams }: { searchParams: SP }) {
         <Stat label="Jumlah catatan" value={number(res.meta.total)} />
       </div>
       <Card>
-        <p className="mb-3 text-xs text-muted">Perpanjang lisensi saat mencatat pembayaran dari halaman detail pelanggan agar bisa memilih lisensinya.</p>
+        <p className="mb-3 text-xs text-subtle">Perpanjang lisensi saat mencatat pembayaran dari halaman detail pelanggan agar bisa memilih lisensinya.</p>
         <Table head={["Tanggal", "Pemilik", "Nominal", "Metode", "Perpanjangan", "Dicatat", "Status", ""]} empty={res.data.payments.length === 0}>
           {res.data.payments.map((p) => (
             <tr key={p.id} className={p.status === "void" ? "opacity-50" : ""}>
               <td className="whitespace-nowrap">{dateTime(p.paid_at)}</td>
               <td>
-                <Link href={`/admin/pelanggan/${p.owner_id}`} className="font-bold hover:underline">{p.owner_name}</Link>
-                {p.note && <p className="max-w-56 truncate text-xs text-muted">{p.note}</p>}
+                <Link href={`/admin/pelanggan/${p.owner_id}`} className="font-semibold hover:underline">{p.owner_name}</Link>
+                {p.note && <p className="max-w-56 truncate text-xs text-subtle">{p.note}</p>}
               </td>
-              <td className="whitespace-nowrap font-bold">{rupiah(p.amount)}</td>
+              <td className="whitespace-nowrap font-semibold">{rupiah(p.amount)}</td>
               <td>{METHOD_LABEL[p.method] ?? p.method}</td>
               <td className="whitespace-nowrap">{p.periods > 0 ? `+${p.periods} ${PLAN_LABEL[p.plan]?.toLowerCase() ?? p.plan}` : "—"}</td>
-              <td className="text-muted">{p.recorded_by || "—"}</td>
+              <td className="text-subtle">{p.recorded_by || "—"}</td>
               <td><Badge status={p.status} /></td>
               <td className="text-right">
                 {p.status === "valid" && (

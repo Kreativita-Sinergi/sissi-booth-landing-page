@@ -44,8 +44,8 @@ async function Content({ params, searchParams }: { params: Promise<{ id: string 
   const now = await requestTime();
   return (
     <>
-      <Link href="/admin/pelanggan" className="mb-3 inline-flex items-center gap-1 text-sm font-bold hover:underline">
-        <ArrowLeft className="size-4" strokeWidth={3} /> Pelanggan
+      <Link href="/admin/pelanggan" className="mb-3 inline-flex items-center gap-1 text-sm font-semibold hover:underline">
+        <ArrowLeft className="size-4" strokeWidth={2} /> Pelanggan
       </Link>
       <PageHeader
         title={c.name}
@@ -60,7 +60,7 @@ async function Content({ params, searchParams }: { params: Promise<{ id: string 
         }
       />
       {sp.baru === "1" && (
-        <p className="mb-6 rounded-2xl border-2 border-ink bg-booth-green px-4 py-3 text-sm font-bold">
+        <p className="mb-6 rounded-lg border border-success/20 bg-success-soft px-4 py-3 text-sm font-medium text-success">
           Pemilik dibuat. Langkah berikutnya: buat lisensi, lalu kirim kuncinya lewat WA.
         </p>
       )}
@@ -78,7 +78,7 @@ async function Content({ params, searchParams }: { params: Promise<{ id: string 
           <Table head={["Kunci", "Paket", "Status", "Berlaku", "Booth", ""]}>
             {licenses.map((l) => (
               <tr key={l.id}>
-                <td className="font-mono font-bold">…{l.key_hint.slice(-4)}</td>
+                <td className="font-mono font-semibold">…{l.key_hint.slice(-4)}</td>
                 <td>{PLAN_LABEL[l.plan]}</td>
                 <td><Badge status={l.status} /></td>
                 <td className="whitespace-nowrap">{date(l.starts_at)} – {date(l.ends_at)}</td>
@@ -100,7 +100,7 @@ async function Content({ params, searchParams }: { params: Promise<{ id: string 
         <Table head={["Booth", "Platform", "Versi", "Terakhir online", "Sesi 30 hari", ""]} empty={booths.length === 0}>
           {booths.map((b) => (
             <tr key={b.id}>
-              <td className="font-bold">{b.name}</td>
+              <td className="font-semibold">{b.name}</td>
               <td className="capitalize">{b.platform}</td>
               <td>{b.app_version || "—"}</td>
               <td className="whitespace-nowrap">{ago(b.last_seen_at, now)}</td>
@@ -125,10 +125,10 @@ async function Content({ params, searchParams }: { params: Promise<{ id: string 
           {payments.map((p) => (
             <tr key={p.id} className={p.status === "void" ? "opacity-50" : ""}>
               <td className="whitespace-nowrap">{dateTime(p.paid_at)}</td>
-              <td className="whitespace-nowrap font-bold">{rupiah(p.amount)}</td>
+              <td className="whitespace-nowrap font-semibold">{rupiah(p.amount)}</td>
               <td>{METHOD_LABEL[p.method] ?? p.method}</td>
               <td className="whitespace-nowrap">{p.periods > 0 ? `+${p.periods} ${PLAN_LABEL[p.plan]?.toLowerCase() ?? p.plan}` : "—"}</td>
-              <td className="max-w-56 truncate text-muted">{p.note || "—"}</td>
+              <td className="max-w-56 truncate text-subtle">{p.note || "—"}</td>
               <td><Badge status={p.status} /></td>
               <td className="text-right">
                 {p.status === "valid" && (

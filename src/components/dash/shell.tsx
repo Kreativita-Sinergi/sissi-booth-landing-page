@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/components/shared/cn";
+import { dashRoot } from "@/lib/dash/font";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 
@@ -58,11 +59,11 @@ function NavLinks({ nav, path, onPick }: { nav: NavItem[]; path: string; onPick:
       onClick={onPick}
       aria-current={active(n.href) ? "page" : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-sm font-bold transition-colors",
-        active(n.href) ? "border-ink bg-white shadow-hard-sm" : "border-transparent hover:border-ink/30 hover:bg-white/50",
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        active(n.href) ? "bg-primary-soft text-primary" : "text-subtle hover:bg-canvas hover:text-fg",
       )}
     >
-      <n.icon aria-hidden className="size-[18px] shrink-0" strokeWidth={2.5} />
+      <n.icon aria-hidden className="size-[18px] shrink-0" strokeWidth={2} />
       {n.label}
     </Link>
   ));
@@ -73,7 +74,7 @@ function ActiveNav({ nav, onPick }: { nav: NavItem[]; onPick: () => void }) {
 }
 
 /**
- * Kerangka dashboard: sidebar kuning (desktop) / menu geser (HP). Nama pengguna dikirim
+ * Kerangka dashboard netral: sidebar putih (desktop) / menu geser (HP). Nama pengguna dikirim
  * sebagai elemen (di-stream di balik Suspense), tombol keluar = aksi server.
  */
 export function Shell({
@@ -102,17 +103,20 @@ export function Shell({
   );
 
   const sidebar = (
-    <nav className="flex h-full flex-col gap-1 p-4">
-      <Link href={home} className="mb-1 inline-flex w-fit items-center rounded-full border-[3px] border-ink bg-booth-pink px-4 py-1.5 font-display text-xl shadow-hard-sm">
-        {title}
+    <nav className="flex h-full flex-col gap-0.5 p-4">
+      <Link href={home} className="mb-6 flex items-center gap-2.5 px-2 pt-1">
+        <span aria-hidden className="inline-flex size-8 items-center justify-center rounded-lg bg-fg text-sm font-semibold text-white">S</span>
+        <span className="flex min-w-0 flex-col leading-tight">
+          <span className="text-sm font-semibold">{title}</span>
+          <span className="text-xs text-subtle">{badge}</span>
+        </span>
       </Link>
-      <span className="mb-5 w-fit rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">{badge}</span>
       {links}
-      <div className="mt-auto flex flex-col gap-3 pt-6">
-        <div className="min-w-0 rounded-xl border-2 border-ink/20 bg-white/60 px-3 py-2 text-xs">{user}</div>
+      <div className="mt-auto flex flex-col gap-2 border-t border-edge pt-4">
+        <div className="min-w-0 px-2 text-xs">{user}</div>
         <form action={logout}>
-          <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-ink bg-white py-2.5 font-label text-xs uppercase shadow-hard-sm hover:bg-paper">
-            <LogOut aria-hidden className="size-4" strokeWidth={2.5} />
+          <button type="submit" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-subtle hover:bg-canvas hover:text-fg">
+            <LogOut aria-hidden className="size-[18px]" strokeWidth={2} />
             Keluar
           </button>
         </form>
@@ -121,21 +125,22 @@ export function Shell({
   );
 
   return (
-    <div className="min-h-dvh bg-paper">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 overflow-y-auto border-r-[3px] border-ink bg-booth-yellow lg:block">{sidebar}</aside>
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b-[3px] border-ink bg-booth-yellow px-4 py-3 lg:hidden">
-        <Link href={home} className="font-display text-lg">
+    <div className={cn(dashRoot, "min-h-dvh bg-canvas")}>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 overflow-y-auto border-r border-edge bg-surface lg:block">{sidebar}</aside>
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-edge bg-surface px-4 py-3 lg:hidden">
+        <Link href={home} className="flex items-center gap-2 text-sm font-semibold">
+          <span aria-hidden className="inline-flex size-7 items-center justify-center rounded-md bg-fg text-xs text-white">S</span>
           {title}
         </Link>
-        <button type="button" aria-label="Buka menu" onClick={() => setOpen(true)} className="rounded-lg border-2 border-ink bg-white p-1.5">
-          <Menu className="size-5" strokeWidth={2.5} />
+        <button type="button" aria-label="Buka menu" onClick={() => setOpen(true)} className="rounded-lg border border-edge-strong bg-surface p-1.5 hover:bg-canvas">
+          <Menu className="size-5" strokeWidth={2} />
         </button>
       </header>
       {open && (
-        <div className="fixed inset-0 z-50 bg-ink/50 lg:hidden" onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}>
-          <aside className="relative h-full w-72 max-w-[85vw] overflow-y-auto border-r-[3px] border-ink bg-booth-yellow">
-            <button type="button" aria-label="Tutup menu" onClick={() => setOpen(false)} className="absolute right-3 top-3 rounded-lg border-2 border-ink bg-white p-1">
-              <X className="size-4" strokeWidth={3} />
+        <div className="fixed inset-0 z-50 bg-fg/40 lg:hidden" onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}>
+          <aside className="relative h-full w-72 max-w-[85vw] overflow-y-auto bg-surface shadow-pop">
+            <button type="button" aria-label="Tutup menu" onClick={() => setOpen(false)} className="absolute right-3 top-4 rounded-lg p-1 text-subtle hover:bg-canvas">
+              <X className="size-4" strokeWidth={2} />
             </button>
             {sidebar}
           </aside>

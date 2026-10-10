@@ -89,20 +89,20 @@ export function Select({
           }
         }}
         className={cn(
-          "flex w-full items-center justify-between gap-2 border-2 border-ink bg-white text-left",
-          pill ? "h-9 rounded-full px-3 text-xs font-bold hover:bg-booth-yellow" : "h-11 rounded-xl px-3 text-base",
-          invalid && "border-booth-pink",
+          "flex w-full items-center justify-between gap-2 border border-edge-strong bg-surface text-left font-normal shadow-card outline-none focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/15",
+          pill ? "h-8 rounded-lg px-3 text-xs font-medium hover:bg-canvas" : "h-10 rounded-lg px-3 text-sm",
+          invalid && "border-danger",
         )}
       >
         <span className="truncate">{selected?.label ?? "Pilih…"}</span>
-        <ChevronDown aria-hidden className={cn("size-4 shrink-0 transition-transform", open && "rotate-180")} strokeWidth={3} />
+        <ChevronDown aria-hidden className={cn("size-4 shrink-0 text-subtle transition-transform", open && "rotate-180")} strokeWidth={2} />
       </button>
       {open && (
         <ul
           id={listId}
           role="listbox"
           aria-label={label}
-          className="absolute left-0 z-40 mt-1 max-h-64 min-w-full overflow-y-auto rounded-xl border-2 border-ink bg-white p-1 shadow-hard-sm"
+          className="absolute left-0 z-40 mt-1 max-h-64 min-w-full overflow-y-auto rounded-lg border border-edge bg-surface p-1 shadow-pop"
         >
           {options.map((o, i) => (
             <li
@@ -115,13 +115,13 @@ export function Select({
                 pick(o.value);
               }}
               className={cn(
-                "flex cursor-pointer items-center justify-between gap-3 whitespace-nowrap rounded-lg px-3 py-2 text-sm",
-                i === hi && "bg-booth-yellow",
-                o.value === current && "font-bold",
+                "flex cursor-pointer items-center justify-between gap-3 whitespace-nowrap rounded-md px-3 py-2 text-sm font-normal",
+                i === hi && "bg-canvas",
+                o.value === current && "font-medium text-primary",
               )}
             >
               {o.label}
-              {o.value === current && <Check aria-hidden className="size-4" strokeWidth={3} />}
+              {o.value === current && <Check aria-hidden className="size-4" strokeWidth={2} />}
             </li>
           ))}
         </ul>
@@ -175,19 +175,19 @@ function Month({
   return (
     <div className="w-[280px]">
       <div className="mb-2 flex items-center justify-between">
-        <button type="button" aria-label="Bulan sebelumnya" onClick={() => shift(-1)} className="rounded-lg border-2 border-ink p-1 hover:bg-booth-yellow">
-          <ChevronLeft className="size-4" strokeWidth={3} />
+        <button type="button" aria-label="Bulan sebelumnya" onClick={() => shift(-1)} className="rounded-lg p-1 text-subtle hover:bg-canvas hover:text-fg">
+          <ChevronLeft className="size-4" strokeWidth={2} />
         </button>
-        <span className="font-label text-sm">
+        <span className="text-sm font-semibold">
           {MONTHS[view.m]} {view.y}
         </span>
-        <button type="button" aria-label="Bulan berikutnya" onClick={() => shift(1)} className="rounded-lg border-2 border-ink p-1 hover:bg-booth-yellow">
-          <ChevronRight className="size-4" strokeWidth={3} />
+        <button type="button" aria-label="Bulan berikutnya" onClick={() => shift(1)} className="rounded-lg p-1 text-subtle hover:bg-canvas hover:text-fg">
+          <ChevronRight className="size-4" strokeWidth={2} />
         </button>
       </div>
       <div className="grid grid-cols-7 gap-0.5 text-center text-xs">
         {DAYS.map((d) => (
-          <span key={d} className="py-1 font-bold text-muted">
+          <span key={d} className="py-1 font-medium text-subtle">
             {d}
           </span>
         ))}
@@ -204,9 +204,9 @@ function Month({
               type="button"
               onClick={() => onPick(v)}
               className={cn(
-                "h-9 rounded-lg text-sm",
-                edge ? "bg-ink font-bold text-white" : inside ? "bg-booth-yellow" : "hover:bg-paper",
-                v === today && !edge && "border-2 border-ink",
+                "h-9 rounded-lg text-sm font-normal",
+                edge ? "bg-primary font-medium text-white" : inside ? "bg-primary-soft text-primary" : "hover:bg-canvas",
+                v === today && !edge && "font-semibold text-primary",
               )}
             >
               {i + 1}
@@ -231,13 +231,13 @@ export function DateInput({ name, defaultValue, label, invalid }: { name: string
         aria-label={label}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className={cn("flex h-11 w-full items-center justify-between gap-2 rounded-xl border-2 border-ink bg-white px-3 text-left text-base", invalid && "border-booth-pink")}
+        className={cn("flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-edge-strong bg-surface px-3 text-left text-sm font-normal shadow-card", invalid && "border-danger")}
       >
-        <span className={cn(!value && "text-muted")}>{value ? ymdLabel(value) : "Pilih tanggal"}</span>
-        <Calendar aria-hidden className="size-4 shrink-0" strokeWidth={2.5} />
+        <span className={cn(!value && "text-subtle")}>{value ? ymdLabel(value) : "Pilih tanggal"}</span>
+        <Calendar aria-hidden className="size-4 shrink-0 text-subtle" strokeWidth={2} />
       </button>
       {open && (
-        <div className="absolute left-0 z-40 mt-1 rounded-2xl border-2 border-ink bg-white p-3 shadow-hard-sm">
+        <div className="absolute left-0 z-40 mt-1 rounded-xl border border-edge bg-surface p-3 shadow-pop">
           <Month
             start={value}
             initial={value}
@@ -258,7 +258,7 @@ export function RangePicker({ from, to, onApply, onClose }: { from: string; to: 
   const [end, setEnd] = useState<string | undefined>(to);
   const ref = useOutside(true, onClose);
   return (
-    <div ref={ref} className="absolute left-0 top-full z-40 mt-2 rounded-2xl border-2 border-ink bg-white p-3 shadow-hard-sm sm:left-auto sm:right-0">
+    <div ref={ref} className="absolute left-0 top-full z-40 mt-2 rounded-xl border border-edge bg-surface p-3 shadow-pop sm:left-auto sm:right-0">
       <Month
         start={start}
         end={end}
@@ -272,15 +272,15 @@ export function RangePicker({ from, to, onApply, onClose }: { from: string; to: 
           }
         }}
       />
-      <div className="mt-3 flex items-center justify-between gap-2 border-t-2 border-ink/10 pt-3">
-        <span className="text-xs text-muted">{end === undefined ? "Ketuk tanggal akhir" : `${ymdLabel(start < end ? start : end)} – ${ymdLabel(start < end ? end : start)}`}</span>
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-edge pt-3">
+        <span className="text-xs text-subtle">{end === undefined ? "Ketuk tanggal akhir" : `${ymdLabel(start < end ? start : end)} – ${ymdLabel(start < end ? end : start)}`}</span>
         <button
           type="button"
           onClick={() => {
             const e = end ?? start;
             onApply(start < e ? start : e, start < e ? e : start);
           }}
-          className="h-9 rounded-xl border-2 border-ink bg-booth-blue px-3 font-label text-xs uppercase text-white shadow-hard-sm"
+          className="h-8 rounded-lg bg-primary px-3 text-xs font-medium text-white shadow-card hover:bg-primary-hover"
         >
           Terapkan
         </button>

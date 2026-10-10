@@ -32,11 +32,11 @@ async function Content() {
               <Card key={b.id}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="flex items-center gap-2 font-label text-lg">
-                      <span className={`size-3 shrink-0 rounded-full border-2 border-ink ${online ? "bg-booth-green" : "bg-line"}`} />
+                    <h2 className="flex items-center gap-2 font-semibold text-lg">
+                      <span className={`size-2.5 shrink-0 rounded-full ${online ? "bg-success-solid" : "bg-edge-strong"}`} />
                       <span className="truncate">{b.name}</span>
                     </h2>
-                    <p className="text-sm text-muted">
+                    <p className="text-sm text-subtle">
                       <span className="capitalize">{b.platform}</span>
                       {b.app_version && ` · versi ${b.app_version}`} · aktif sejak {date(b.created_at)}
                     </p>
@@ -51,21 +51,21 @@ async function Content() {
                   />
                 </div>
                 <div className="mt-4">
-                  <p className="mb-1 text-xs font-bold uppercase text-muted">Sisa kertas</p>
+                  <p className="mb-1 text-xs font-medium text-subtle">Sisa kertas</p>
                   <PaperLevel left={b.paper_left} capacity={b.paper_capacity} />
                 </div>
                 <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded-xl bg-paper p-2">
-                    <dt className="text-muted">Online</dt>
-                    <dd className="font-bold">{ago(b.last_seen_at, now)}</dd>
+                  <div className="rounded-xl bg-canvas p-2">
+                    <dt className="text-subtle">Online</dt>
+                    <dd className="font-semibold">{ago(b.last_seen_at, now)}</dd>
                   </div>
-                  <div className="rounded-xl bg-paper p-2">
-                    <dt className="text-muted">Sesi 30 hari</dt>
-                    <dd className="font-label">{number(b.transactions_30d)}</dd>
+                  <div className="rounded-xl bg-canvas p-2">
+                    <dt className="text-subtle">Sesi 30 hari</dt>
+                    <dd className="font-semibold">{number(b.transactions_30d)}</dd>
                   </div>
-                  <div className="rounded-xl bg-paper p-2">
-                    <dt className="text-muted">Pendapatan</dt>
-                    <dd className="font-label">{rupiah(b.revenue_30d)}</dd>
+                  <div className="rounded-xl bg-canvas p-2">
+                    <dt className="text-subtle">Pendapatan</dt>
+                    <dd className="font-semibold">{rupiah(b.revenue_30d)}</dd>
                   </div>
                 </dl>
               </Card>
