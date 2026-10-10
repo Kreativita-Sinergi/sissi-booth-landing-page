@@ -37,8 +37,8 @@ const STEPS: Step[] = [
     body: (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-subtle">
-          Template = <B>gambar desain</B> (latar / bingkai) + <B>posisi foto</B>. Desain di Canva, Photoshop, dll. dengan ukuran di bawah.
-          Unduh <B>panduan</B> (PNG berisi ukuran & garis aman) lalu pakai sebagai lapisan acuan.
+          Template = <B>gambar desain</B> (latar / bingkai) + <B>posisi foto</B>. Buat desainmu dengan ukuran di bawah. Unduh <B>panduan</B>{" "}
+          (PNG berisi ukuran & garis aman) untuk memudahkanmu membuat atau mengedit template.
         </p>
         <FrameTips />
       </div>

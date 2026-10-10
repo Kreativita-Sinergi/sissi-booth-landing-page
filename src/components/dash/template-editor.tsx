@@ -1803,7 +1803,7 @@ export function TemplateEditor({
                   PNG dengan bagian foto transparan → posisi foto terdeteksi otomatis. JPG juga bisa: posisi foto kamu atur sendiri. Maks. 4 MB.
                 </span>
                 <div className="mt-1 flex w-full flex-col items-center gap-2 border-t border-edge pt-4 text-xs">
-                  <span>Belum punya desain? Unduh panduan ukuran untuk Canva / Photoshop:</span>
+                  <span>Belum punya desain? Unduh panduan ukuran untuk memandumu membuat template:</span>
                   <div className="grid w-full grid-cols-3 gap-2">
                     {FORMAT_KEYS.map((f) => (
                       <button
