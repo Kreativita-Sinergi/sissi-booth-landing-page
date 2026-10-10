@@ -144,7 +144,7 @@ export function FrameTips() {
         <li>Pakai ukuran piksel persis seperti di atas. Ukuran lain tetap bisa, nanti diatur posisinya.</li>
         <li>Jauhkan teks & logo penting dari tepi (±3%, garis merah di panduan) — tepi bisa sedikit terpotong saat cetak.</li>
         <li>Ukuran file maksimal 4 MB. Desain dengan warna rata lebih kecil daripada foto penuh.</li>
-        <li>Di Canva: Buat desain → Ukuran khusus (px) → unduh PNG dengan &quot;Latar belakang transparan&quot;.</li>
+        <li>Saat menyimpan dari aplikasi desain, pilih PNG dengan latar belakang transparan dan ukuran khusus (px) seperti di atas.</li>
       </ul>
     </div>
   );

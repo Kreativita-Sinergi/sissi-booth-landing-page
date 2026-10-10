@@ -1285,7 +1285,6 @@ export function TemplateEditor({
               {saving && <Loader2 className="size-4 animate-spin" />}
               Simpan
             </Button>
-            {todo.length > 0 && <span aria-hidden className="absolute -right-1 -top-1 size-2.5 rounded-full bg-danger ring-2 ring-surface" />}
             {toast && (
               <div
                 key={toast.id}
@@ -1376,7 +1375,6 @@ export function TemplateEditor({
                 >
                   <Icon className="size-5" strokeWidth={1.75} />
                   {label}
-                  {!off && todo.some((t) => t.tab === k) && <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-danger" />}
                 </button>
               );
             })}
@@ -1483,15 +1481,14 @@ export function TemplateEditor({
                 <button
                   type="button"
                   onClick={() => setTips(true)}
-                  className="flex items-center gap-3 rounded-lg p-3 text-left ring-1 ring-inset ring-edge hover:bg-canvas hover:ring-primary/40"
+                  className="flex flex-col gap-1 rounded-lg p-3 text-left ring-1 ring-inset ring-edge hover:bg-canvas hover:ring-primary/40"
                 >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning">
-                    <Lightbulb className="size-[18px]" strokeWidth={2} />
+                  <span className="flex items-center gap-2 font-medium">
+                    <Lightbulb className="size-4 shrink-0 text-warning" strokeWidth={2} />
+                    <span className="flex-1">Saran gambar</span>
+                    <ChevronRight className="size-4 shrink-0 text-subtle" strokeWidth={2} />
                   </span>
-                  <span className="min-w-0">
-                    <span className="block font-medium">Saran gambar</span>
-                    <span className="block text-xs text-subtle">Ukuran tiap format, unduh panduan, tips PNG transparan</span>
-                  </span>
+                  <span className="text-xs text-subtle">Ukuran tiap format, unduh panduan, dan tips PNG transparan.</span>
                 </button>
               </div>
             ) : panel === "info" ? (
