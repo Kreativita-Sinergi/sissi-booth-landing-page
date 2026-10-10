@@ -62,7 +62,7 @@ const STEPS: Step[] = [
   },
   {
     icon: MousePointer2,
-    title: "Atur foto seperti di Canva",
+    title: "Atur posisi foto",
     body: (
       <Points
         items={[
@@ -200,7 +200,8 @@ export function TemplateGuide({ open, onOpenChange }: { open: boolean; onOpenCha
             <h3 className="text-base font-semibold">{s.title}</h3>
           </div>
         </div>
-        <div className="min-h-56">{s.body}</div>
+        {/* Tinggi tetap (desktop) agar dialog & tombol tidak melompat antar langkah; isi panjang bergulir di dalam. */}
+        <div className="min-h-56 sm:h-[23rem] sm:overflow-y-auto sm:pr-1">{s.body}</div>
         <div className="flex items-center justify-between gap-2 border-t border-edge pt-4">
           <Button small onClick={close}>
             {last ? "Tutup" : "Lewati"}
