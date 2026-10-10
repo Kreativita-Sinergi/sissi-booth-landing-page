@@ -254,6 +254,8 @@ export function AdjustStage({
 }) {
   const pan = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const el = useRef<HTMLDivElement>(null);
+  // Garis bantu magnet yang sedang aktif (posisi relatif kanvas 0–1).
+  const [guide, setGuide] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
   const latest = useRef({ adjust, onChange });
   useEffect(() => {
     latest.current = { adjust, onChange };
@@ -293,10 +295,32 @@ export function AdjustStage({
       onPointerMove={(e) => {
         const p = pan.current;
         if (!p) return;
-        onChange({ ...adjust, ox: Math.round(p.ox + (e.clientX - p.x) / k), oy: Math.round(p.oy + (e.clientY - p.y) / k) });
+        let ox = p.ox + (e.clientX - p.x) / k, oy = p.oy + (e.clientY - p.y) / k;
+        const v: number[] = [], h: number[] = [];
+        if (!e.altKey) {
+          // Magnet: tengah gambar ke tengah kanvas, atau tepi gambar ke tepi kanvas (ambang 8 px layar). Alt = mati.
+          const IW = iw / k, IH = ih / k, thr = 8 / k;
+          const snap = (val: number, opts: [number, number][], out: number[]) => {
+            let best: [number, number] | null = null;
+            for (const o of opts) if (Math.abs(val - o[0]) <= thr && (!best || Math.abs(val - o[0]) < Math.abs(val - best[0]))) best = o;
+            if (!best) return val;
+            out.push(best[1]);
+            return best[0];
+          };
+          ox = snap(ox, [[0, 0.5], [IW / 2 - W / 2, 0], [W / 2 - IW / 2, 1]], v);
+          oy = snap(oy, [[0, 0.5], [IH / 2 - H / 2, 0], [H / 2 - IH / 2, 1]], h);
+        }
+        setGuide({ v, h });
+        onChange({ ...adjust, ox: Math.round(ox), oy: Math.round(oy) });
       }}
-      onPointerUp={() => (pan.current = null)}
-      onPointerCancel={() => (pan.current = null)}
+      onPointerUp={() => {
+        pan.current = null;
+        setGuide({ v: [], h: [] });
+      }}
+      onPointerCancel={() => {
+        pan.current = null;
+        setGuide({ v: [], h: [] });
+      }}
     >
       {pic("opacity-25")}
       <div className="checker absolute inset-0 overflow-hidden outline-2 outline-offset-0 outline-primary">
@@ -304,6 +328,12 @@ export function AdjustStage({
         {adjust.bg && <div aria-hidden className="pointer-events-none absolute" style={{ left, top, width: iw, height: ih, boxShadow: `0 0 0 100000px ${adjust.bg}` }} />}
         {pic("")}
       </div>
+      {guide.v.map((x) => (
+        <div key={`v${x}`} aria-hidden className="pointer-events-none absolute inset-y-0 z-10 w-px -translate-x-1/2 bg-danger" style={{ left: `${x * 100}%` }} />
+      ))}
+      {guide.h.map((y) => (
+        <div key={`h${y}`} aria-hidden className="pointer-events-none absolute inset-x-0 z-10 h-px -translate-y-1/2 bg-danger" style={{ top: `${y * 100}%` }} />
+      ))}
     </div>
   );
 }
@@ -333,7 +363,7 @@ export function AdjustPanel({
       <Panel title="Atur gambar">
         <p className="flex gap-2 rounded-lg bg-primary-soft px-3 py-2 text-xs text-primary">
           <Info className="mt-px size-3.5 shrink-0" strokeWidth={2} />
-          Seret gambar di panggung untuk menggeser, gulir mouse atau pakai slider untuk memperbesar. Yang tercetak hanya isi kotak bergaris.
+          Seret untuk menggeser (menempel ke tengah & tepi, Alt = bebas). Gulir untuk memperbesar. Yang tercetak hanya isi kotak biru.
         </p>
         <div className="flex flex-col gap-2 text-sm">
           <span className="font-medium">Format cetak</span>
