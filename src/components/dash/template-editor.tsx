@@ -969,6 +969,7 @@ export function TemplateEditor({
     const t = e.target as HTMLElement | null;
     if (t && (t.closest("input, textarea, [contenteditable=true]") || t.closest("[role=dialog]"))) return;
     if (ask || tips || keys || guide || showTodo || greenAsk) return;
+    if (shapeMenu && e.key === "Escape") return setShapeMenu(false);
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
     if (mod && k === "s") {
@@ -1626,27 +1627,31 @@ export function TemplateEditor({
                     {item.shape === "custom" ? "Bentuk bebas" : (SHAPES.find((s) => s.key === item.shape)?.label ?? item.shape)}
                   </button>
                   {shapeMenu && (
-                    <div className="absolute left-0 top-full z-40 mt-1 grid w-60 grid-cols-3 gap-1 rounded-xl border border-edge bg-surface p-2 shadow-pop">
-                      {SHAPES.map((sh) => {
-                        const off = sh.key === "frame" && (!overlay || slotLayer(item, overlay) === "above");
-                        return (
-                          <button
-                            key={sh.key}
-                            type="button"
-                            disabled={off}
-                            title={off ? "Hanya untuk foto di bawah bingkai yang punya lubang" : sh.label}
-                            onClick={() => {
-                              setShape(one, sh.key);
-                              setShapeMenu(false);
-                            }}
-                            className={cn("flex flex-col items-center gap-1 rounded-lg p-1.5 text-[11px] disabled:opacity-30", item.shape === sh.key ? "bg-primary-soft text-primary" : "hover:bg-canvas")}
-                          >
-                            <ShapeIcon shape={sh.key} className="size-5" />
-                            {sh.label}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <>
+                      {/* Klik di luar menu = tutup. */}
+                      <div aria-hidden className="fixed inset-0 z-30" onPointerDown={() => setShapeMenu(false)} />
+                      <div className="absolute left-0 top-full z-40 mt-1 grid w-60 grid-cols-3 gap-1 rounded-xl border border-edge bg-surface p-2 shadow-pop">
+                        {SHAPES.map((sh) => {
+                          const off = sh.key === "frame" && (!overlay || slotLayer(item, overlay) === "above");
+                          return (
+                            <button
+                              key={sh.key}
+                              type="button"
+                              disabled={off}
+                              title={off ? "Hanya untuk foto di bawah bingkai yang punya lubang" : sh.label}
+                              onClick={() => {
+                                setShape(one, sh.key);
+                                setShapeMenu(false);
+                              }}
+                              className={cn("flex flex-col items-center gap-1 rounded-lg p-1.5 text-[11px] disabled:opacity-30", item.shape === sh.key ? "bg-primary-soft text-primary" : "hover:bg-canvas")}
+                            >
+                              <ShapeIcon shape={sh.key} className="size-5" />
+                              {sh.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
                 {item.shape === "custom" && (
