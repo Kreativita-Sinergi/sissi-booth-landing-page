@@ -80,7 +80,8 @@ const STEPS: Step[] = [
             <B>Bawah bingkai</B> = foto terlihat lewat lubang. <B>Atas bingkai</B> = foto menempel di atas desain seperti stiker.
           </>,
           <>
-            Nomor foto = <B>urutan jepret</B>. Ubah dengan panah ◀ ▶ di toolbar atau tombol urutkan otomatis.
+            Tab <B>Lapisan</B> menampilkan semua elemen dari depan ke belakang. Nomor foto = <B>urutan jepret</B>; ubah dengan panah di sana
+            atau tombol urutkan otomatis.
           </>,
         ]}
       />
@@ -115,7 +116,7 @@ const STEPS: Step[] = [
           <>
             <B>Elemen → Gambar hiasan</B>: tambahkan bunga, logo, stiker, atau tulisan (PNG transparan) yang tampil <B>di atas foto & bingkai</B>.
           </>,
-          <>Tarik sudut = ubah ukuran proporsional (Shift = bebas). Tombol Majukan / Mundurkan mengatur tumpukan antar gambar.</>,
+          <>Tarik sudut = ubah ukuran proporsional (Shift = bebas). Susunan antar gambar diatur di tab Lapisan.</>,
           <>Hiasan yang menyatu dengan desain (mis. bunga yang menutupi tepi foto) juga bisa langsung digambar di PNG bingkai.</>,
         ]}
       />

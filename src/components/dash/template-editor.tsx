@@ -14,8 +14,10 @@ import {
   ArrowLeft,
   ArrowUpToLine,
   BookOpen,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Copy,
   Crop,
   Download,
@@ -23,6 +25,7 @@ import {
   ImagePlus,
   ImageUp,
   Info,
+  Layers,
   Keyboard,
   Lightbulb,
   Loader2,
@@ -102,7 +105,7 @@ import {
 import { TemplateGuide } from "./template-guide";
 import { TemplatePreview } from "./template-preview";
 
-type SideTab = "elemen" | "latar" | "info";
+type SideTab = "elemen" | "lapisan" | "latar" | "info";
 type Notice = { tone: "ok" | "warn" | "err"; text: string };
 /** Gambar lapisan di editor; `ratio` = lebar/tinggi asli (piksel) untuk ubah ukuran proporsional. */
 type Img = { asset_id: string; url: string; ratio: number };
@@ -1013,6 +1016,117 @@ export function TemplateEditor({
   }, []);
 
 
+  /** Satu baris di panel Lapisan: pilih (Shift = tambah), majukan/mundurkan dalam kelompoknya, hapus. */
+  function layerRow(i: number) {
+    const e = items[i];
+    const on = sel.includes(i);
+    const isImg = !!e.img;
+    const above = !isImg && slotLayer(e, overlay) === "above";
+    const [lo, hi] = isImg ? [nPhotos, items.length - 1] : [0, nPhotos - 1];
+    return (
+      <li key={i} className={cn("group flex items-center gap-2 rounded-lg px-1.5 py-1", on ? "bg-primary-soft" : "hover:bg-canvas")}>
+        <button
+          type="button"
+          onClick={(ev) => {
+            setMode("edit");
+            setSel(ev.shiftKey ? (on ? sel.filter((j) => j !== i) : [...sel, i]) : [i]);
+          }}
+          aria-pressed={on}
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+        >
+          {isImg ? (
+            <span className="checker size-9 shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-edge">
+              <img src={e.img!.url} alt="" className="size-full object-contain" />
+            </span>
+          ) : (
+            <span className={cn("relative flex size-9 shrink-0 items-center justify-center rounded-md", above ? "bg-info-soft text-info" : "bg-primary-soft text-primary")}>
+              <ShapeIcon shape={e.shape} points={e.points} className="size-5" />
+              <span className={cn("absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded px-0.5 text-[10px] font-semibold text-white", above ? "bg-info" : "bg-primary")}>
+                {i + 1}
+              </span>
+            </span>
+          )}
+          <span className="min-w-0">
+            <span className={cn("block truncate font-medium", on && "text-primary")}>{isImg ? `Gambar ${i - nPhotos + 1}` : `Foto ${i + 1}`}</span>
+            <span className="block truncate text-xs text-subtle">
+              {isImg ? "Hiasan" : e.shape === "custom" ? "Bentuk bebas" : (SHAPES.find((x) => x.key === e.shape)?.label ?? "Foto")}
+            </span>
+          </span>
+        </button>
+        <span className={cn("flex shrink-0 flex-col", !on && "opacity-0 group-hover:opacity-100 focus-within:opacity-100")}>
+          {(
+            [
+              [1, isImg ? "Majukan" : "Majukan (urutan foto lebih akhir)", ChevronUp, i >= hi],
+              [-1, isImg ? "Mundurkan" : "Mundurkan (urutan foto lebih awal)", ChevronDown, i <= lo],
+            ] as const
+          ).map(([dir, label, Icon, off]) => (
+            <button
+              key={dir}
+              type="button"
+              aria-label={label}
+              title={label}
+              disabled={off}
+              onClick={() => reorder(i, dir)}
+              className="flex h-4 w-6 items-center justify-center rounded text-subtle hover:bg-surface hover:text-fg disabled:opacity-30"
+            >
+              <Icon className="size-3.5" strokeWidth={2.25} />
+            </button>
+          ))}
+        </span>
+      </li>
+    );
+  }
+
+  /** Panel Lapisan: semua elemen dari paling depan ke paling belakang, persis urutan gambar di booth. */
+  function layerPanel() {
+    const idx = items.map((_, i) => i);
+    const imgRows = idx.filter((i) => i >= nPhotos).reverse();
+    const aboveRows = idx.filter((i) => i < nPhotos && slotLayer(items[i], overlay) === "above").reverse();
+    const belowRows = idx.filter((i) => i < nPhotos && slotLayer(items[i], overlay) === "below").reverse();
+    const frameRow = frame && (
+      <li key="frame" className="flex items-center gap-2.5 rounded-lg px-1.5 py-1">
+        <span className="checker size-9 shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-edge">
+          <img src={frame.src} alt="" className="size-full object-contain" />
+        </span>
+        <button type="button" onClick={() => setSide("latar")} className="min-w-0 text-left">
+          <span className="block font-medium">{overlay ? "Bingkai" : "Latar"}</span>
+          <span className="block text-xs text-subtle">{overlay ? "Foto di bawahnya terlihat lewat lubang" : "Paling belakang"}</span>
+        </button>
+      </li>
+    );
+    const group = (title: string, rows: number[]) =>
+      rows.length > 0 && (
+        <div key={title} className="flex flex-col gap-0.5">
+          <p className="px-1.5 text-[11px] font-medium uppercase tracking-wide text-subtle">{title}</p>
+          <ul className="flex flex-col gap-0.5">{rows.map(layerRow)}</ul>
+        </div>
+      );
+    return (
+      <div className="flex flex-col gap-3 text-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Lapisan</h3>
+          <IconBtn label="Urutkan foto otomatis (atas → bawah, kiri → kanan)" onClick={() => change([...sortSlots(photos), ...imgs])} disabled={nPhotos < 2}>
+            <SortAsc className="size-4" strokeWidth={2} />
+          </IconBtn>
+        </div>
+        {items.length === 0 && !frame ? (
+          <p className="text-xs text-subtle">Belum ada apa pun. Unggah gambar latar & tambahkan foto di tab Elemen.</p>
+        ) : (
+          <>
+            {group("Hiasan", imgRows)}
+            {group(overlay ? "Foto di atas bingkai" : "Foto", aboveRows)}
+            {overlay && frameRow && <ul className="border-y border-edge py-1">{frameRow}</ul>}
+            {group("Foto di bawah bingkai", belowRows)}
+            {!overlay && frameRow && <ul className="border-t border-edge pt-1">{frameRow}</ul>}
+          </>
+        )}
+        <p className="text-xs text-subtle">
+          Atas = paling depan. Nomor foto = urutan jepret ({nPhotos}/{MAX_SLOTS}); mengubah urutan foto juga mengubah nomornya.
+        </p>
+      </div>
+    );
+  }
+
   /** Pegangan ubah ukuran (8) & putar untuk elemen terpilih — dipakai foto & gambar. */
   function selHandles(i: number, c: string) {
     return (
@@ -1188,6 +1302,7 @@ export function TemplateEditor({
             {(
               [
                 ["elemen", "Elemen", Shapes],
+                ["lapisan", "Lapisan", Layers],
                 ["latar", "Latar", ImageUp],
                 ["info", "Info", Tag],
               ] as [SideTab, string, typeof Shapes][]
@@ -1237,13 +1352,14 @@ export function TemplateEditor({
                   <div className="grid grid-cols-2 gap-1.5">
                     {(
                       [
-                        ["pen", "Pen (lengkung)", PenTool],
-                        ["lasso", "Seret bebas", Spline],
+                        ["pen", "Pen (lengkung)", PenTool, "Klik = titik sudut · klik + seret = lengkung · klik titik pertama untuk menutup"],
+                        ["lasso", "Seret bebas", Spline, "Tahan & seret seperti spidol — hasilnya dihaluskan otomatis"],
                       ] as const
-                    ).map(([k, label, Icon]) => (
+                    ).map(([k, label, Icon, hint]) => (
                       <button
                         key={k}
                         type="button"
+                        title={hint}
                         disabled={!frame || nPhotos >= MAX_SLOTS}
                         aria-pressed={draw?.kind === k}
                         onClick={() => startDraw(k)}
@@ -1257,11 +1373,6 @@ export function TemplateEditor({
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-subtle">
-                    Gambar bentuk foto apa pun (awan, siluet, huruf…). Pen seperti di Photoshop: klik = titik sudut, klik + seret = lengkung
-                    halus; klik titik pertama untuk menutup. Seret bebas: tahan & seret seperti spidol. Klik dua kali bentuknya untuk mengedit
-                    titik & lengkung.
-                  </p>
                 </section>
                 <section className="flex flex-col gap-2">
                   <h3 className="font-semibold">
@@ -1270,72 +1381,11 @@ export function TemplateEditor({
                   <Button onClick={() => imgFileRef.current?.click()} disabled={!frame || busy || imgs.length >= 20}>
                     {busy ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" strokeWidth={2} />} Tambah gambar
                   </Button>
-                  <p className="text-xs text-subtle">
-                    Bunga, logo, stiker, tulisan… ditaruh <b className="font-medium text-fg">di atas foto & bingkai</b>. Pakai PNG transparan agar
-                    hanya hiasannya yang terlihat. Maks. 4 MB per gambar.
-                  </p>
-                  {imgs.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {imgs.map((e, k) => {
-                        const i = nPhotos + k;
-                        const on = sel.includes(i);
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={(ev) => setSel(ev.shiftKey ? (on ? sel.filter((j) => j !== i) : [...sel, i]) : [i])}
-                            aria-pressed={on}
-                            title={`Gambar ${k + 1}`}
-                            className={cn("checker size-10 overflow-hidden rounded-md ring-1 ring-inset", on ? "ring-2 ring-success" : "ring-edge-strong hover:ring-fg/30")}
-                          >
-                            <img src={e.img!.url} alt="" className="size-full object-contain" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-                <section className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">
-                      Urutan foto <span className="font-normal text-subtle">({nPhotos}/{MAX_SLOTS})</span>
-                    </h3>
-                    <IconBtn label="Urutkan otomatis (atas → bawah, kiri → kanan)" onClick={() => change([...sortSlots(photos), ...imgs])} disabled={nPhotos < 2}>
-                      <SortAsc className="size-4" strokeWidth={2} />
-                    </IconBtn>
-                  </div>
-                  {nPhotos === 0 ? (
-                    <p className="text-xs text-subtle">Belum ada foto.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {photos.map((o, i) => {
-                        const above = slotLayer(o, overlay) === "above";
-                        const on = sel.includes(i);
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={(e) => setSel(e.shiftKey ? (on ? sel.filter((j) => j !== i) : [...sel, i]) : [i])}
-                            aria-pressed={on}
-                            title={`Foto ke-${i + 1} · ${above ? "di atas bingkai" : "di bawah bingkai"}`}
-                            className={cn(
-                              "inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-lg px-1.5 text-sm font-medium ring-1 ring-inset",
-                              on ? (above ? "bg-info text-white ring-info" : "bg-primary text-white ring-primary") : above ? "bg-info-soft text-info ring-info/30" : "bg-surface ring-edge-strong hover:bg-canvas",
-                            )}
-                          >
-                            <ShapeIcon shape={o.shape} points={o.points} className="size-3.5" />
-                            {i + 1}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <p className="text-xs text-subtle">
-                    Nomor = urutan foto diambil. <span className="text-primary">Biru</span>: di bawah bingkai (lewat lubang) · <span className="text-info">ungu</span>: di atas
-                    bingkai.
-                  </p>
+                  <p className="text-xs text-subtle">PNG transparan, tampil di atas foto & bingkai. Atur susunannya di tab Lapisan.</p>
                 </section>
               </div>
+            ) : side === "lapisan" ? (
+              layerPanel()
             ) : side === "latar" ? (
               <div className="flex flex-col gap-3 text-sm">
                 <h3 className="font-semibold">Gambar latar / bingkai</h3>
@@ -1371,16 +1421,20 @@ export function TemplateEditor({
                     <Switch checked={showSafe} onChange={setShowSafe} label="Garis aman cetak" />
                   </label>
                 )}
-                {frame ? (
-                  <button type="button" onClick={() => setTips(true)} className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-                    <Lightbulb className="size-3.5" strokeWidth={2} /> Saran gambar bingkai & panduan ukuran
-                  </button>
-                ) : (
-                  <>
-                    <h3 className="mt-1 font-semibold">Saran gambar</h3>
-                    <FrameTips />
-                  </>
-                )}
+                {/* Saran lengkap di pop-up agar panel sempit tetap ringkas. */}
+                <button
+                  type="button"
+                  onClick={() => setTips(true)}
+                  className="flex items-center gap-3 rounded-lg p-3 text-left ring-1 ring-inset ring-edge hover:bg-canvas hover:ring-primary/40"
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning">
+                    <Lightbulb className="size-[18px]" strokeWidth={2} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-medium">Saran gambar</span>
+                    <span className="block text-xs text-subtle">Ukuran tiap format, unduh panduan, tips PNG transparan</span>
+                  </span>
+                </button>
               </div>
             ) : side === "info" ? (
               <div className="flex flex-col gap-3 text-sm">
