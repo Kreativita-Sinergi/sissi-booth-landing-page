@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { dashIcons } from "@/lib/dash/font";
 import { Suspense } from "react";
 import { Shell } from "@/components/dash/shell";
 import { api, ApiError } from "@/lib/dash/api";
@@ -7,7 +8,7 @@ import { waLink } from "@/lib/dash/format";
 import { requestTime } from "@/lib/dash/period";
 import type { License } from "@/lib/dash/types";
 
-export const metadata: Metadata = { title: "Dashboard · Sissi Booth", robots: { index: false } };
+export const metadata: Metadata = { title: "Dashboard · Sissi Booth", robots: { index: false }, icons: dashIcons };
 
 async function Who() {
   let me: { name: string; email: string } | null = null;

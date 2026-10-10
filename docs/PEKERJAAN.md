@@ -16,6 +16,9 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-10** · Claude Opus 5.5 · Logo dashboard diganti **SVG resmi Sissi** dari pemilik; favicon dashboard ikon Sissi
+  (kotak putih); tombol Batal/Simpan di dialog kembali ikut bergulir (judul & X tetap). Hijau + `check:dev` bersih.
+
 - **2026-10-10** · Claude Opus 5.5 · Revisi dashboard (masukan pemilik): logo Sissi dari POS (sidebar, header HP,
   halaman masuk); tabel menempel ke tepi kartu (kepala abu, sorot baris, tombol tidak mepet); pagination bernomor
   `‹ 1 2 3 4 5 … 12 13 ›` + "Menampilkan 1–30 dari 376" (HP: "6 / 13"); dialog dengan judul/X & tombol bawah tetap

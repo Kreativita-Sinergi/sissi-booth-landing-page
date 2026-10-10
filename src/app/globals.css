@@ -24,8 +24,6 @@
   --shadow-hard-lg: 10px 10px 0 0 var(--color-ink);
 
   /* Dashboard /admin & /dashboard: netral (gaya dashboard umum), tidak mengikuti tema booth. */
-  /* Oranye merek Sissi (logo; sama dengan pos/sissi-app AppColors.primary). */
-  --color-sissi: #f1702c;
   --color-canvas: #f5f6f8;
   --color-surface: #ffffff;
   --color-edge: #e4e7ec;

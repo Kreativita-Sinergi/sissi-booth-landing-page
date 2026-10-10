@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { dashIcons } from "@/lib/dash/font";
 import { Suspense } from "react";
 import { Shell } from "@/components/dash/shell";
 import { api, ApiError } from "@/lib/dash/api";
 import { logoutAdmin } from "@/lib/dash/auth-actions";
 
-export const metadata: Metadata = { title: "Admin · Sissi Booth", robots: { index: false } };
+export const metadata: Metadata = { title: "Admin · Sissi Booth", robots: { index: false }, icons: dashIcons };
 
 async function Who() {
   let me: { name: string; email: string } | null = null;

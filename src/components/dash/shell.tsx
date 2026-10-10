@@ -107,7 +107,7 @@ export function Shell({
 
   const sidebar = (
     <nav className="flex h-full flex-col gap-0.5 p-4">
-      <Link href={home} aria-label={`${title} — ${badge}`} className="mb-6 flex flex-col gap-1.5 px-2 pt-1">
+      <Link href={home} aria-label={`${title} — ${badge}`} className="mb-6 flex flex-col items-start gap-1.5 px-2 pt-1">
         <SissiLogo />
         <span className="text-xs font-medium text-subtle">
           {title} · {badge}

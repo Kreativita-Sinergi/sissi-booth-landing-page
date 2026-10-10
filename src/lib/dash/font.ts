@@ -8,3 +8,6 @@ const inter = Inter({ subsets: ["latin"] });
  * elemen ini tidak terbaca dari `:root`) + warna netral (lihat `body:has(.dash)` di globals.css).
  */
 export const dashRoot = `dash ${inter.className} text-fg antialiased`;
+
+/** Favicon dashboard = ikon Sissi (landing tetap memakai ikon Sissi Booth dari `app/icon.tsx`). */
+export const dashIcons = { icon: "/brand/sissi-favicon.svg" };
