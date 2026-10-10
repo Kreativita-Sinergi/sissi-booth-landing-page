@@ -1753,9 +1753,9 @@ export function TemplateEditor({
 
 function ShortcutList() {
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+    <dl className="grid grid-cols-[auto_1fr] items-center gap-x-8 text-xs">
       {SHORTCUTS.map(([k, v]) => (
-        <div key={k} className="contents">
+        <div key={k} className="col-span-2 grid grid-cols-subgrid items-center border-b border-edge py-2 last:border-b-0">
           <dt>
             <kbd className="whitespace-nowrap rounded-md bg-canvas px-1.5 py-0.5 font-mono text-[11px] ring-1 ring-inset ring-edge">{k}</kbd>
           </dt>
