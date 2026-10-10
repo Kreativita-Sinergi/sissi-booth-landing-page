@@ -85,6 +85,7 @@ import { Button, Dialog, Switch } from "./client";
 import {
   ACCEPT,
   AdjustPanel,
+  AdjustTips,
   AdjustStage,
   clamp,
   coverScale,
@@ -1544,7 +1545,7 @@ export function TemplateEditor({
           {/* Toolbar kontekstual */}
           <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-1 border-b border-edge px-3 py-1.5 text-xs">
             {adjust ? (
-              <span className="text-subtle">Atur gambar · {FORMATS[adjust.format].label} · seret gambar untuk menggeser, roda mouse untuk zoom.</span>
+              <AdjustTips label={FORMATS[adjust.format].label} />
             ) : !frame ? (
               <span className="text-subtle">Mulai dengan mengunggah gambar latar atau bingkai.</span>
             ) : mode === "preview" ? (

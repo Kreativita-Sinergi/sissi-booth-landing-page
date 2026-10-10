@@ -340,6 +340,28 @@ export function AdjustStage({
   );
 }
 
+/** Tips mode "Atur gambar" sebaris (di toolbar kanvas). */
+export function AdjustTips({ label }: { label: string }) {
+  return (
+    <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-subtle">
+      <span className="font-medium text-fg">Atur gambar · {label}</span>
+      {(
+        [
+          [Hand, "Seret untuk menggeser", undefined],
+          [Magnet, "Menempel ke tengah & tepi", "Tahan Alt saat menyeret untuk menggeser bebas"],
+          [ZoomIn, "Gulir untuk zoom", undefined],
+          [SquareDashed, "Yang dicetak: kotak biru", "Bagian di luar kotak biru tidak ikut dicetak"],
+        ] as const
+      ).map(([Icon, text, hint]) => (
+        <span key={text} title={hint} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <Icon className="size-3.5 shrink-0 text-primary" strokeWidth={2} />
+          {text}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /** Panel "Atur gambar": format, ukuran (zoom), posisi cepat, warna latar, terapkan. */
 export function AdjustPanel({
   adjust,
@@ -363,21 +385,6 @@ export function AdjustPanel({
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <Panel title="Atur gambar">
-        <ul className="flex flex-col gap-1.5 text-xs text-subtle">
-          {(
-            [
-              [Hand, "Seret untuk menggeser", undefined],
-              [Magnet, "Menempel ke tengah & tepi", "Tahan Alt saat menyeret untuk menggeser bebas"],
-              [ZoomIn, "Gulir untuk zoom", undefined],
-              [SquareDashed, "Yang dicetak: kotak biru", "Bagian di luar kotak biru tidak ikut dicetak"],
-            ] as const
-          ).map(([Icon, text, hint]) => (
-            <li key={text} title={hint} className="flex items-center gap-2 whitespace-nowrap">
-              <Icon className="size-3.5 shrink-0 text-primary" strokeWidth={2} />
-              {text}
-            </li>
-          ))}
-        </ul>
         <div className="flex flex-col gap-2 text-sm">
           <span className="font-medium">Format cetak</span>
           <FormatPicker list value={adjust.format} onChange={(f) => onChange({ ...adjust, format: f, ox: 0, oy: 0, zoom: 1 })} suggested={closestFormat(img.naturalWidth, img.naturalHeight)} />
