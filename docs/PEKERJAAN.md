@@ -16,6 +16,15 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-10** · Claude Opus 5.5 · Editor template lebih rapi & jelas: panel **Saran gambar bingkai** (ukuran tiap format,
+  tips PNG transparan/area aman/4 MB/Canva, tombol unduh **PNG panduan** per format); **magnet** saat geser & ubah
+  ukuran slot (tepi/tengah kanvas, garis aman, tepi/tengah & ukuran slot lain; garis bantu merah; Alt = bebas); alat
+  **Rapikan** (tengah datar/tegak, samakan ukuran, semua di tengah, jarak rata ↕/↔); sakelar **garis aman** cetak;
+  tombol Batal di header dihapus (sudah ada ← Template); **Atur posisi gambar** juga untuk template tersimpan (muat
+  gambar dengan CORS + `?cors=1` agar tidak memakai cache non-CORS); warna latar Atur gambar hanya mengisi ruang di luar
+  gambar (lubang foto tetap transparan). Catatan: server dev Turbopack sempat menyajikan `globals.css` lama — perubahan
+  isi berkas memicu kompilasi ulang.
+
 - **2026-10-10** · Claude Opus 5.5 · Editor template: **gambar tidak pas → dialog konfirmasi** (alasan dalam bahasa sederhana +
   pilih format, "Paling pas" disarankan) → **mode Atur gambar** (seret, zoom slider/roda mouse, Penuhi kotak / Tampilkan
   utuh / Ke tengah, warna bagian kosong, ganti format; bagian terpotong tampil pudar) → Terapkan = dirender ke PNG ukuran

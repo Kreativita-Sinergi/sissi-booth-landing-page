@@ -3,10 +3,10 @@
 /* eslint-disable @next/next/no-img-element -- gambar bingkai lokal (object URL) / server file. */
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Copy, Crop, Eye, ImageUp, Info, Loader2, Pencil, Plus, ScanSearch, SortAsc, Trash2 } from "lucide-react";
+import { AlignCenterHorizontal, AlignCenterVertical, ArrowLeft, Copy, Crop, Download, Eye, ImageUp, Info, Lightbulb, Loader2, Pencil, Plus, ScanSearch, SortAsc, StretchHorizontal, StretchVertical, Trash2, Scaling } from "lucide-react";
 import { cn } from "@/components/shared/cn";
 import type { ActionState } from "@/lib/dash/action-state";
-import { closestFormat, defaultSlots, detectSlots, FORMAT_KEYS, FORMATS, formatFor, SHAPES, sortSlots } from "@/lib/dash/template";
+import { closestFormat, defaultSlots, detectSlots, distribute, FORMAT_KEYS, FORMATS, formatFor, SAFE, SHAPES, snapMove, snapResize, sortSlots, type Guides } from "@/lib/dash/template";
 import type { FrameTemplate, Slot, SlotShape, TemplateCategory, TemplateFormat } from "@/lib/dash/types";
 import { Button, Dialog, Switch } from "./client";
 import { TemplatePreview } from "./template-preview";
@@ -41,7 +41,8 @@ function loadImage(src: string, cors = false): Promise<HTMLImageElement> {
     if (cors) img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = src;
+    // Jangan pakai salinan cache dari <img> biasa (tanpa CORS) → kanvas akan "tercemar" & tidak bisa dibaca.
+    img.src = cors ? `${src}${src.includes("?") ? "&" : "?"}cors=1` : src;
   });
 }
 
@@ -87,6 +88,9 @@ export function TemplateEditor({
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [notice, setNotice] = useState<{ tone: "ok" | "warn" | "err"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [guides, setGuides] = useState<Guides>({ v: [], h: [] });
+  const [showSafe, setShowSafe] = useState(true);
+  const [tips, setTips] = useState(false);
   const [source, setSource] = useState<Source | null>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [adjust, setAdjust] = useState<Adjust | null>(null);
@@ -210,6 +214,21 @@ export function TemplateEditor({
     setAdjust({ src, format, zoom: 1, ox: 0, oy: 0, bg: "#ffffff" });
   }
 
+  /** Atur posisi gambar yang sedang dipakai (unggahan baru atau gambar template tersimpan). */
+  async function adjustCurrent() {
+    if (source) return startAdjust(source, format ?? closestFormat(source.img.naturalWidth, source.img.naturalHeight));
+    if (!frame) return;
+    setBusy(true);
+    try {
+      const img = await loadImage(frame.src, !frame.src.startsWith("blob:"));
+      startAdjust({ img, url: frame.src, name: "bingkai", png: true }, format ?? closestFormat(img.naturalWidth, img.naturalHeight));
+    } catch {
+      setNotice({ tone: "warn", text: "Gambar bingkai tidak bisa dibuka untuk diatur. Unggah ulang gambarnya, lalu atur posisinya." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function applyAdjust() {
     if (!adjust) return;
     const [W, H] = FORMATS[adjust.format].px;
@@ -220,12 +239,15 @@ export function TemplateEditor({
     c.width = W;
     c.height = H;
     const ctx = c.getContext("2d")!;
+    const dx = W / 2 + adjust.ox - (iw * k) / 2, dy = H / 2 + adjust.oy - (ih * k) / 2;
     if (adjust.bg) {
+      // Warna hanya untuk ruang kosong DI LUAR gambar; bagian transparan di dalam gambar (lubang foto) tetap transparan.
       ctx.fillStyle = adjust.bg;
       ctx.fillRect(0, 0, W, H);
+      ctx.clearRect(dx, dy, iw * k, ih * k);
     }
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, W / 2 + adjust.ox - (iw * k) / 2, H / 2 + adjust.oy - (ih * k) / 2, iw * k, ih * k);
+    ctx.drawImage(img, dx, dy, iw * k, ih * k);
     setBusy(true);
     const blob = await new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
     setBusy(false);
@@ -279,8 +301,14 @@ export function TemplateEditor({
     if (!d || !stageW) return;
     const s = d.start;
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    const others = slots.filter((_, j) => j !== d.i);
+    const thrX = 6 / stageW, thrY = 6 / stageH; // ambang magnet ±6 px layar
     if (d.kind === "move") {
-      update(d.i, { x: r4(clamp(s.x + dx / stageW, -0.5, 1.5 - s.w)), y: r4(clamp(s.y + dy / stageH, -0.5, 1.5 - s.h)) });
+      const moved = { ...s, x: clamp(s.x + dx / stageW, -0.5, 1.5 - s.w), y: clamp(s.y + dy / stageH, -0.5, 1.5 - s.h) };
+      // Magnet ke tepi/tengah kanvas & slot lain (tahan Alt untuk bebas).
+      const snapped = e.altKey ? { x: moved.x, y: moved.y, guides: { v: [], h: [] } } : snapMove(moved, others, thrX, thrY);
+      setGuides(snapped.guides);
+      update(d.i, { x: r4(snapped.x), y: r4(snapped.y) });
       return;
     }
     const t = (s.rotation * Math.PI) / 180;
@@ -307,7 +335,17 @@ export function TemplateEditor({
     }
     const ox = (sx * (w - w0)) / 2, oy = (sy * (h - h0)) / 2;
     const cx = cx0 + ox * cos - oy * sin, cy = cy0 + ox * sin + oy * cos;
-    update(d.i, { x: r4((cx - w / 2) / stageW), y: r4((cy - h / 2) / stageH), w: r4(w / stageW), h: r4(h / stageH) });
+    const resized = { ...s, x: (cx - w / 2) / stageW, y: (cy - h / 2) / stageH, w: w / stageW, h: h / stageH };
+    // Magnet ukuran hanya untuk slot tegak lurus (tanpa rotasi) & tanpa Shift/Alt.
+    if (s.rotation === 0 && !e.shiftKey && !e.altKey) {
+      const snapped = snapResize(resized, [sx, sy], others, thrX, thrY);
+      setGuides(snapped.guides);
+      const o = snapped.slot;
+      update(d.i, { x: r4(o.x), y: r4(o.y), w: r4(Math.max(0.02, o.w)), h: r4(Math.max(0.02, o.h)) });
+      return;
+    }
+    setGuides({ v: [], h: [] });
+    update(d.i, { x: r4(resized.x), y: r4(resized.y), w: r4(resized.w), h: r4(resized.h) });
   }
 
   function onKey(e: React.KeyboardEvent) {
@@ -378,9 +416,6 @@ export function TemplateEditor({
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href={backHref} className="inline-flex h-10 items-center rounded-lg border border-edge-strong bg-surface px-4 text-sm font-medium shadow-card hover:bg-canvas">
-            Batal
-          </Link>
           <Button tone="blue" onClick={submit} disabled={saving || problems.length > 0} title={problems.join(" ")}>
             {saving && <Loader2 className="size-4 animate-spin" />}
             Simpan template
@@ -426,6 +461,11 @@ export function TemplateEditor({
                 </button>
               ))}
             </div>
+            {frame && !adjust && mode === "edit" && (
+              <label className="flex items-center gap-2 text-xs text-subtle">
+                <Switch checked={showSafe} onChange={setShowSafe} label="Garis aman cetak" /> Garis aman
+              </label>
+            )}
             <span className="text-xs text-subtle">
               {adjust
                 ? `Atur gambar · ${FORMATS[adjust.format].label} · ${FORMATS[adjust.format].size}`
@@ -458,14 +498,33 @@ export function TemplateEditor({
                 tabIndex={0}
                 aria-label="Panggung template: klik slot untuk memilih, seret untuk memindahkan, panah untuk menggeser"
                 onPointerMove={onMove}
-                onPointerUp={() => (drag.current = null)}
-                onPointerCancel={() => (drag.current = null)}
+                onPointerUp={() => {
+                  drag.current = null;
+                  setGuides({ v: [], h: [] });
+                }}
+                onPointerCancel={() => {
+                  drag.current = null;
+                  setGuides({ v: [], h: [] });
+                }}
                 onPointerDown={() => setSel(null)}
                 onKeyDown={onKey}
                 className="checker relative touch-none select-none rounded-md shadow-card outline-none focus-visible:ring-3 focus-visible:ring-primary/30"
                 style={{ width: stageW, height: stageH }}
               >
                 <img src={frame.src} alt="" draggable={false} className="pointer-events-none absolute inset-0 size-full" />
+                {showSafe && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute z-[15] border border-dashed border-danger/60"
+                    style={{ left: `${SAFE * 100}%`, top: `${SAFE * 100}%`, right: `${SAFE * 100}%`, bottom: `${SAFE * 100}%` }}
+                  />
+                )}
+                {guides.v.map((x) => (
+                  <div key={`v${x}`} aria-hidden className="pointer-events-none absolute inset-y-0 z-30 w-px bg-danger" style={{ left: `${x * 100}%` }} />
+                ))}
+                {guides.h.map((y) => (
+                  <div key={`h${y}`} aria-hidden className="pointer-events-none absolute inset-x-0 z-30 h-px bg-danger" style={{ top: `${y * 100}%` }} />
+                ))}
                 {slots.map((s, i) => (
                   <div
                     key={i}
@@ -513,7 +572,9 @@ export function TemplateEditor({
             </p>
           ) : frame && mode === "edit" && (
             <p className="border-t border-edge px-4 py-2.5 text-xs text-subtle">
-              Seret slot untuk memindahkan · tarik sudut untuk ubah ukuran (Shift = proporsional) · bulatan atas untuk memutar · panah untuk menggeser halus.
+              Seret slot untuk memindahkan — menempel otomatis ke tengah, tepi, dan slot lain (garis merah). Tarik sudut untuk ubah ukuran (Shift =
+              proporsional) · bulatan atas untuk memutar · panah untuk menggeser halus · tahan Alt untuk mematikan magnet. Garis putus-putus = batas
+              aman cetak.
             </p>
           )}
         </section>
@@ -545,8 +606,8 @@ export function TemplateEditor({
                   <ScanSearch className="size-4" strokeWidth={2} /> Deteksi ulang lubang
                 </Button>
               )}
-              {source && (
-                <Button small onClick={() => startAdjust(source, format ?? closestFormat(source.img.naturalWidth, source.img.naturalHeight))} disabled={busy}>
+              {frame && (
+                <Button small onClick={adjustCurrent} disabled={busy}>
                   <Crop className="size-4" strokeWidth={2} /> Atur posisi gambar
                 </Button>
               )}
@@ -561,6 +622,9 @@ export function TemplateEditor({
                 {notice.text}
               </p>
             )}
+            <button type="button" onClick={() => setTips(true)} className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+              <Lightbulb className="size-3.5" strokeWidth={2} /> Saran gambar bingkai & unduh panduan ukuran
+            </button>
             <label className="flex items-start justify-between gap-3 text-sm">
               <span>
                 <span className="font-medium">Bingkai di atas foto</span>
@@ -569,6 +633,12 @@ export function TemplateEditor({
               <Switch checked={overlay} onChange={setOverlay} label="Bingkai di atas foto" />
             </label>
           </Panel>
+
+          {!frame && (
+            <Panel title="Saran gambar bingkai">
+              <FrameTips />
+            </Panel>
+          )}
 
           <Panel title="Template">
             <label className="flex flex-col gap-1.5 text-sm font-medium">
@@ -700,6 +770,29 @@ export function TemplateEditor({
                     <input type="range" min={0} max={0.5} step={0.01} value={slot.radius ?? 0.12} onChange={(e) => update(sel, { radius: Number(e.target.value) })} className="accent-primary" aria-label="Lengkung sudut" />
                   </div>
                 )}
+                <div className="flex flex-col gap-1.5 text-sm">
+                  <span className="font-medium">Rapikan</span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Button small onClick={() => update(sel, { x: r4(0.5 - slot.w / 2) })}>
+                      <AlignCenterVertical className="size-4" strokeWidth={2} /> Tengah datar
+                    </Button>
+                    <Button small onClick={() => update(sel, { y: r4(0.5 - slot.h / 2) })}>
+                      <AlignCenterHorizontal className="size-4" strokeWidth={2} /> Tengah tegak
+                    </Button>
+                    <Button small disabled={slots.length < 2} onClick={() => setSlots(slots.map((o) => ({ ...o, w: slot.w, h: slot.h })))} title="Semua slot dibuat seukuran slot ini">
+                      <Scaling className="size-4" strokeWidth={2} /> Samakan ukuran
+                    </Button>
+                    <Button small disabled={slots.length < 2} onClick={() => setSlots(slots.map((o) => ({ ...o, x: r4(0.5 - o.w / 2) })))} title="Semua slot ditengahkan mendatar">
+                      <AlignCenterVertical className="size-4" strokeWidth={2} /> Semua di tengah
+                    </Button>
+                    <Button small disabled={slots.length < 3} onClick={() => setSlots(distribute(slots, "y"))} title="Jarak atas-bawah antar slot dibuat sama">
+                      <StretchVertical className="size-4" strokeWidth={2} /> Jarak rata ↕
+                    </Button>
+                    <Button small disabled={slots.length < 3} onClick={() => setSlots(distribute(slots, "x"))} title="Jarak kiri-kanan antar slot dibuat sama">
+                      <StretchHorizontal className="size-4" strokeWidth={2} /> Jarak rata ↔
+                    </Button>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Button
                     small
@@ -733,6 +826,10 @@ export function TemplateEditor({
         </div>
         )}
       </div>
+
+      <Dialog open={tips} onClose={() => setTips(false)} title="Saran gambar bingkai" wide>
+        <FrameTips />
+      </Dialog>
 
       <Dialog open={ask !== null} onClose={() => setAsk(null)} title="Gambar perlu disesuaikan" wide>
         {ask && (
@@ -775,6 +872,82 @@ export function TemplateEditor({
           </div>
         )}
       </Dialog>
+    </div>
+  );
+}
+
+/** PNG panduan ukuran: kanvas ukuran cetak, garis aman, dan contoh lubang foto transparan bernomor. */
+async function downloadGuide(format: TemplateFormat) {
+  const [W, H] = FORMATS[format].px;
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#eef2ff";
+  ctx.fillRect(0, 0, W, H);
+  ctx.setLineDash([18, 12]);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#ef4444";
+  ctx.strokeRect(W * SAFE, H * SAFE, W * (1 - 2 * SAFE), H * (1 - 2 * SAFE));
+  const u = Math.min(W, H) / 600;
+  defaultSlots(format).forEach((sl, i) => {
+    const x = sl.x * W, y = sl.y * H, w = sl.w * W, h = sl.h * H;
+    ctx.clearRect(x, y, w, h);
+    ctx.strokeStyle = "#2563eb";
+    ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = "#2563eb";
+    ctx.font = `600 ${28 * u}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(`FOTO ${i + 1} (transparan)`, x + w / 2, y + h / 2);
+  });
+  ctx.fillStyle = "#64748b";
+  ctx.font = `${18 * u}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(`Panduan Sissi Booth · ${FORMATS[format].label} · ${FORMATS[format].size}`, W / 2, H - H * SAFE - 14 * u);
+  ctx.fillStyle = "#ef4444";
+  ctx.fillText("Garis merah = batas aman (jangan taruh teks penting di luar)", W / 2, H * SAFE + 30 * u);
+  const blob = await new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
+  if (!blob) return;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `panduan-sissi-booth-${format}.png`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/** Saran membuat gambar bingkai + tombol unduh PNG panduan per format. */
+function FrameTips() {
+  return (
+    <div className="flex flex-col gap-3 text-sm">
+      <div className="flex flex-col divide-y divide-edge rounded-lg ring-1 ring-inset ring-edge">
+        {FORMAT_KEYS.map((f) => (
+          <div key={f} className="flex items-center justify-between gap-3 px-3 py-2">
+            <span className="min-w-0">
+              <span className="block font-medium">{FORMATS[f].label}</span>
+              <span className="block text-xs text-subtle">
+                {FORMATS[f].size} · {FORMATS[f].hint}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => void downloadGuide(f)}
+              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-medium text-primary hover:bg-primary-soft"
+            >
+              <Download className="size-3.5" strokeWidth={2} /> Panduan
+            </button>
+          </div>
+        ))}
+      </div>
+      <ul className="flex list-disc flex-col gap-1 pl-4 text-xs text-subtle">
+        <li>
+          Simpan sebagai <b className="font-medium text-fg">PNG</b> dan buat <b className="font-medium text-fg">bagian foto transparan</b> (dihapus) — posisinya terdeteksi
+          otomatis, bentuk apa pun: kotak, bulat, hati.
+        </li>
+        <li>Pakai ukuran piksel persis seperti di atas. Ukuran lain tetap bisa, nanti diatur posisinya.</li>
+        <li>Jauhkan teks & logo penting dari tepi (±3%, garis merah di panduan) — tepi bisa sedikit terpotong saat cetak.</li>
+        <li>Ukuran file maksimal 4 MB. Desain dengan warna rata lebih kecil daripada foto penuh.</li>
+        <li>Di Canva: Buat desain → Ukuran khusus (px) → unduh PNG dengan &quot;Latar belakang transparan&quot;.</li>
+      </ul>
     </div>
   );
 }
@@ -866,7 +1039,9 @@ function AdjustStage({
       onPointerCancel={() => (pan.current = null)}
     >
       {pic("opacity-25")}
-      <div className={cn("absolute inset-0 overflow-hidden outline-2 outline-offset-0 outline-primary", !adjust.bg && "checker")} style={adjust.bg ? { background: adjust.bg } : undefined}>
+      <div className="checker absolute inset-0 overflow-hidden outline-2 outline-offset-0 outline-primary">
+        {/* Warna latar hanya di luar gambar (bayangan raksasa di sekeliling area gambar). */}
+        {adjust.bg && <div aria-hidden className="pointer-events-none absolute" style={{ left, top, width: iw, height: ih, boxShadow: `0 0 0 100000px ${adjust.bg}` }} />}
         {pic("")}
       </div>
     </div>
@@ -929,7 +1104,7 @@ function AdjustPanel({
           </p>
         </div>
         <div className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium">Warna bagian kosong</span>
+          <span className="font-medium">Warna ruang kosong di luar gambar</span>
           <div className="flex flex-wrap items-center gap-1.5">
             {BG_CHOICES.map((b) => (
               <button
@@ -947,7 +1122,8 @@ function AdjustPanel({
               Warna lain
             </label>
           </div>
-          {adjust.bg === null && <p className="text-xs text-warning">Bagian kosong tetap transparan — foto tamu akan terlihat di sana dan bisa terdeteksi sebagai lubang foto.</p>}
+          <p className="text-xs text-subtle">Lubang foto (bagian transparan) di dalam gambar tetap transparan.</p>
+          {adjust.bg === null && <p className="text-xs text-warning">Ruang kosong di luar gambar juga dibiarkan transparan — bisa terdeteksi sebagai lubang foto.</p>}
         </div>
         {notice?.tone === "err" && <p className="rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">{notice.text}</p>}
         <div className="flex gap-2 border-t border-edge pt-3">
