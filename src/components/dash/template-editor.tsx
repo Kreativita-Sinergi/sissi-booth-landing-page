@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  CircleAlert,
   Copy,
   Crop,
   Download,
@@ -47,6 +48,7 @@ import {
   Triangle,
   Undo2,
   Waves,
+  X,
 } from "lucide-react";
 import { cn } from "@/components/shared/cn";
 import type { ActionState } from "@/lib/dash/action-state";
@@ -919,6 +921,7 @@ export function TemplateEditor({
     const t = e.target as HTMLElement | null;
     if (t && (t.closest("input, textarea, [contenteditable=true]") || t.closest("[role=dialog]"))) return;
     if (ask || tips || keys || guide) return;
+    if (showTodo && e.key === "Escape") return setShowTodo(false);
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
     if (mod && k === "s") {
@@ -1185,6 +1188,7 @@ export function TemplateEditor({
         </Link>
         <span className="hidden h-6 w-px bg-edge sm:block" />
         <input
+          id="tpl-name"
           value={name}
           maxLength={60}
           onChange={(e) => setName(e.target.value)}
@@ -1233,28 +1237,45 @@ export function TemplateEditor({
             </Button>
             {todo.length > 0 && <span aria-hidden className="absolute -right-1 -top-1 size-2.5 rounded-full bg-danger ring-2 ring-surface" />}
             {showTodo && todo.length > 0 && (
-              <div className="absolute right-0 top-full z-40 mt-2 w-72 rounded-xl border border-edge bg-surface p-3 text-xs shadow-pop">
-                <p className="mb-1.5 font-medium text-fg">Lengkapi dulu sebelum menyimpan:</p>
-                <ul className="flex flex-col gap-1 text-subtle">
-                  {todo.map((t) => (
-                    <li key={t.text}>
-                      <button
-                        type="button"
-                        className="text-left hover:text-primary hover:underline"
-                        onClick={() => {
-                          if (t.tab) setSide(t.tab);
-                          setShowTodo(false);
-                        }}
-                      >
-                        • {t.text}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <button type="button" onClick={() => setShowTodo(false)} className="mt-2 text-subtle hover:text-fg">
-                  Tutup
-                </button>
-              </div>
+              <>
+                {/* Klik di luar = tutup. */}
+                <div aria-hidden className="fixed inset-0 z-30" onClick={() => setShowTodo(false)} />
+                <div role="alertdialog" aria-labelledby="todo-title" className="absolute right-0 top-full z-40 mt-2 w-80 rounded-xl border border-edge bg-surface shadow-pop">
+                  <div className="flex items-start gap-2.5 border-b border-edge px-4 py-3">
+                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning">
+                      <CircleAlert className="size-4" strokeWidth={2} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p id="todo-title" className="text-sm font-semibold text-fg">
+                        Lengkapi dulu
+                      </p>
+                      <p className="text-xs text-subtle">Template belum bisa disimpan.</p>
+                    </div>
+                    <button type="button" onClick={() => setShowTodo(false)} aria-label="Tutup" className="-mr-1 rounded-lg p-1 text-subtle hover:bg-canvas hover:text-fg">
+                      <X className="size-4" strokeWidth={2} />
+                    </button>
+                  </div>
+                  <ul className="flex flex-col p-1.5">
+                    {todo.map((t) => (
+                      <li key={t.text}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-fg hover:bg-canvas"
+                          onClick={() => {
+                            if (t.tab) setSide(t.tab);
+                            else document.getElementById("tpl-name")?.focus();
+                            setShowTodo(false);
+                          }}
+                        >
+                          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
+                          <span className="flex-1">{t.text}</span>
+                          <ChevronRight className="size-4 shrink-0 text-subtle" strokeWidth={2} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
             )}
           </div>
         </div>
