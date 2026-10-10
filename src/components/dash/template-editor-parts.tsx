@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element -- gambar bingkai lokal (object URL) / server file. */
 import { useEffect, useRef, useState } from "react";
-import { Download, Info, Loader2 } from "lucide-react";
+import { Crosshair, Download, Hand, Loader2, Magnet, Maximize2, Minimize2, SquareDashed, ZoomIn } from "lucide-react";
 import { cn } from "@/components/shared/cn";
 import { closestFormat, defaultSlots, findGreen, FORMAT_KEYS, FORMATS, SAFE } from "@/lib/dash/template";
 import type { TemplateFormat } from "@/lib/dash/types";
@@ -304,7 +304,9 @@ export function AdjustStage({
             let best: [number, number] | null = null;
             for (const o of opts) if (Math.abs(val - o[0]) <= thr && (!best || Math.abs(val - o[0]) < Math.abs(val - best[0]))) best = o;
             if (!best) return val;
-            out.push(best[1]);
+            // Semua sasaran yang jatuh di posisi sama ikut ditandai (gambar selebar kanvas: tengah & kedua tepi sekaligus),
+            // agar garis tengah tetap tampil walau magnet memilih tepi.
+            for (const o of opts) if (Math.abs(o[0] - best[0]) < 1) out.push(o[1]);
             return best[0];
           };
           ox = snap(ox, [[0, 0.5], [IW / 2 - W / 2, 0], [W / 2 - IW / 2, 1]], v);
@@ -361,10 +363,21 @@ export function AdjustPanel({
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <Panel title="Atur gambar">
-        <p className="flex gap-2 rounded-lg bg-primary-soft px-3 py-2 text-xs text-primary">
-          <Info className="mt-px size-3.5 shrink-0" strokeWidth={2} />
-          Seret untuk menggeser (menempel ke tengah & tepi, Alt = bebas). Gulir untuk memperbesar. Yang tercetak hanya isi kotak biru.
-        </p>
+        <ul className="flex flex-col gap-1.5 text-xs text-subtle">
+          {(
+            [
+              [Hand, "Seret untuk menggeser", undefined],
+              [Magnet, "Menempel ke tengah & tepi", "Tahan Alt saat menyeret untuk menggeser bebas"],
+              [ZoomIn, "Gulir untuk zoom", undefined],
+              [SquareDashed, "Yang dicetak: kotak biru", "Bagian di luar kotak biru tidak ikut dicetak"],
+            ] as const
+          ).map(([Icon, text, hint]) => (
+            <li key={text} title={hint} className="flex items-center gap-2 whitespace-nowrap">
+              <Icon className="size-3.5 shrink-0 text-primary" strokeWidth={2} />
+              {text}
+            </li>
+          ))}
+        </ul>
         <div className="flex flex-col gap-2 text-sm">
           <span className="font-medium">Format cetak</span>
           <FormatPicker list value={adjust.format} onChange={(f) => onChange({ ...adjust, format: f, ox: 0, oy: 0, zoom: 1 })} suggested={closestFormat(img.naturalWidth, img.naturalHeight)} />
@@ -383,15 +396,31 @@ export function AdjustPanel({
             className="accent-primary"
             aria-label="Ukuran gambar"
           />
-          <div className="flex flex-wrap gap-1.5">
-            <Button small onClick={() => onChange({ ...adjust, zoom: 1, ox: 0, oy: 0 })}>Penuhi kotak</Button>
-            <Button small onClick={() => onChange({ ...adjust, zoom: fit, ox: 0, oy: 0 })}>Tampilkan utuh</Button>
-            <Button small onClick={() => onChange({ ...adjust, ox: 0, oy: 0 })}>Ke tengah</Button>
+          {/* Posisi cepat: satu baris tombol ikon; penjelasan di tooltip agar panel tetap ringkas. */}
+          <div className="grid grid-cols-3 gap-1 rounded-lg bg-canvas p-1">
+            {(
+              [
+                ["Penuhi", Maximize2, "Penuhi kotak: tanpa ruang kosong, sebagian gambar terpotong", { zoom: 1, ox: 0, oy: 0 }, Math.abs(adjust.zoom - 1) < 0.005],
+                ["Utuh", Minimize2, "Tampilkan utuh: seluruh gambar terlihat, sisa ruang diisi warna latar", { zoom: fit, ox: 0, oy: 0 }, Math.abs(adjust.zoom - fit) < 0.005],
+                ["Tengah", Crosshair, "Taruh gambar tepat di tengah", { ox: 0, oy: 0 }, adjust.ox === 0 && adjust.oy === 0],
+              ] as const
+            ).map(([label, Icon, hint, patch, on]) => (
+              <button
+                key={label}
+                type="button"
+                title={hint}
+                aria-pressed={on}
+                onClick={() => onChange({ ...adjust, ...patch })}
+                className={cn(
+                  "flex flex-col items-center gap-1 rounded-md py-1.5 text-xs font-medium",
+                  on ? "bg-surface text-primary shadow-card" : "text-subtle hover:bg-surface hover:text-fg",
+                )}
+              >
+                <Icon className="size-4" strokeWidth={2} />
+                {label}
+              </button>
+            ))}
           </div>
-          <p className="text-xs text-subtle">
-            <b className="font-medium">Penuhi kotak</b>: tanpa ruang kosong, sebagian gambar terpotong. <b className="font-medium">Tampilkan utuh</b>: seluruh gambar terlihat, sisa
-            ruang diisi warna latar.
-          </p>
         </div>
         <div className="flex flex-col gap-1.5 text-sm">
           <span className="font-medium">Warna ruang kosong di luar gambar</span>
