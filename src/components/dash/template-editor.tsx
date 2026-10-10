@@ -280,6 +280,9 @@ export function TemplateEditor({
   const stageW = fitW * zoom;
   const stageH = frame ? (stageW * frame.height) / frame.width : 0;
   const one = sel.length === 1 ? sel[0] : null;
+  // Elemen & Lapisan baru bisa dipakai setelah ada gambar latar (mis. setelah urungkan unggahan → kembali ke Latar).
+  const needsFrame = (k: SideTab) => k === "elemen" || k === "lapisan";
+  const panel: SideTab = !frame && needsFrame(side) ? "latar" : side;
   const item = one !== null ? items[one] : undefined;
   const nPhotos = items.filter((e) => !e.img).length;
   const photos = items.slice(0, nPhotos);
@@ -882,7 +885,7 @@ export function TemplateEditor({
   if (!frame) todo.push({ text: "Unggah gambar latar / bingkai.", tab: "latar" });
   else if (!format) todo.push({ text: "Ukuran gambar tidak cocok dengan format cetak — atur posisi gambar.", tab: "latar" });
   if (!name.trim()) todo.push({ text: "Isi nama template (kolom di atas)." });
-  if (nPhotos === 0) todo.push({ text: "Tambahkan minimal satu foto.", tab: "elemen" });
+  if (frame && nPhotos === 0) todo.push({ text: "Tambahkan minimal satu foto.", tab: "elemen" });
 
   function submit() {
     if (todo.length || !frame || !format) {
@@ -1307,18 +1310,24 @@ export function TemplateEditor({
                 ["info", "Info", Tag],
               ] as [SideTab, string, typeof Shapes][]
             ).map(([k, label, Icon]) => {
-              const on = adjust ? k === "latar" : side === k;
+              const on = adjust ? k === "latar" : panel === k;
+              const off = !frame && needsFrame(k);
               return (
                 <button
                   key={k}
                   type="button"
                   aria-pressed={on}
+                  disabled={off}
+                  title={off ? "Unggah gambar latar dulu di tab Latar" : undefined}
                   onClick={() => setSide(k)}
-                  className={cn("relative flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium", on ? "bg-surface text-primary shadow-card" : "text-subtle hover:bg-surface hover:text-fg")}
+                  className={cn(
+                    "relative flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium disabled:cursor-not-allowed disabled:opacity-40",
+                    on ? "bg-surface text-primary shadow-card" : "text-subtle enabled:hover:bg-surface enabled:hover:text-fg",
+                  )}
                 >
                   <Icon className="size-5" strokeWidth={1.75} />
                   {label}
-                  {todo.some((t) => t.tab === k) && <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-danger" />}
+                  {!off && todo.some((t) => t.tab === k) && <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-danger" />}
                 </button>
               );
             })}
@@ -1326,7 +1335,7 @@ export function TemplateEditor({
           <div className="min-w-0 flex-1 overflow-y-auto p-3">
             {adjust ? (
               <AdjustPanel adjust={adjust} onChange={setAdjust} onCancel={() => setAdjust(null)} onApply={applyAdjust} busy={busy} notice={notice} />
-            ) : side === "elemen" ? (
+            ) : panel === "elemen" ? (
               <div className="flex flex-col gap-4 text-sm">
                 {notice && <NoticeBox notice={notice} />}
                 <section className="flex flex-col gap-2">
@@ -1384,9 +1393,9 @@ export function TemplateEditor({
                   <p className="text-xs text-subtle">PNG transparan, tampil di atas foto & bingkai. Atur susunannya di tab Lapisan.</p>
                 </section>
               </div>
-            ) : side === "lapisan" ? (
+            ) : panel === "lapisan" ? (
               layerPanel()
-            ) : side === "latar" ? (
+            ) : panel === "latar" ? (
               <div className="flex flex-col gap-3 text-sm">
                 <h3 className="font-semibold">Gambar latar / bingkai</h3>
                 <div className="flex flex-col gap-1.5">
@@ -1436,7 +1445,7 @@ export function TemplateEditor({
                   </span>
                 </button>
               </div>
-            ) : side === "info" ? (
+            ) : panel === "info" ? (
               <div className="flex flex-col gap-3 text-sm">
                 <h3 className="font-semibold">Info template</h3>
                 {frame && format && (
