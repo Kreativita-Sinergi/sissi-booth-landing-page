@@ -6,8 +6,8 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import { AlignCenterHorizontal, AlignCenterVertical, ArrowLeft, Copy, Crop, Download, Eye, ImageUp, Info, Lightbulb, Loader2, Pencil, Plus, ScanSearch, SortAsc, StretchHorizontal, StretchVertical, Trash2, Scaling } from "lucide-react";
 import { cn } from "@/components/shared/cn";
 import type { ActionState } from "@/lib/dash/action-state";
-import { closestFormat, defaultSlots, detectSlots, distribute, FORMAT_KEYS, FORMATS, formatFor, SAFE, SHAPES, snapMove, snapResize, sortSlots, type Guides } from "@/lib/dash/template";
-import type { FrameTemplate, Slot, SlotShape, TemplateCategory, TemplateFormat } from "@/lib/dash/types";
+import { closestFormat, defaultSlots, detectSlots, distribute, FORMAT_KEYS, FORMATS, formatFor, SAFE, SHAPES, shapePath, slotLayer, snapMove, snapResize, sortSlots, type Guides } from "@/lib/dash/template";
+import type { FrameTemplate, Slot, SlotLayer, SlotShape, TemplateCategory, TemplateFormat } from "@/lib/dash/types";
 import { Button, Dialog, Switch } from "./client";
 import { TemplatePreview } from "./template-preview";
 
@@ -20,6 +20,16 @@ type Adjust = { src: Source; format: TemplateFormat; zoom: number; ox: number; o
 type Ask = { src: Source; reasons: string[]; format: TemplateFormat };
 
 const ACCEPT = ["image/png", "image/jpeg", "image/webp"];
+type Tab = "slot" | "gambar" | "info";
+
+/**
+ * Masker CSS: hanya bagian TRANSPARAN bingkai yang terlihat (untuk mewarnai lubang foto sesuai bentuk aslinya,
+ * termasuk bentuk tidak beraturan).
+ */
+const holeMask = (src: string): React.CSSProperties => {
+  const img = `linear-gradient(#000, #000), url("${src}")`;
+  return { maskImage: img, WebkitMaskImage: img, maskSize: "100% 100%", WebkitMaskSize: "100% 100%", maskComposite: "exclude", WebkitMaskComposite: "xor" };
+};
 const BG_CHOICES: { label: string; value: string | null }[] = [
   { label: "Transparan", value: null },
   { label: "Putih", value: "#ffffff" },
@@ -91,6 +101,7 @@ export function TemplateEditor({
   const [guides, setGuides] = useState<Guides>({ v: [], h: [] });
   const [showSafe, setShowSafe] = useState(true);
   const [tips, setTips] = useState(false);
+  const [tab, setTab] = useState<Tab>(template ? "slot" : "gambar");
   const [source, setSource] = useState<Source | null>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [adjust, setAdjust] = useState<Adjust | null>(null);
@@ -135,6 +146,7 @@ export function TemplateEditor({
   const update = (i: number, patch: Partial<Slot>) => setSlots((all) => all.map((s, j) => (j === i ? { ...s, ...patch } : s)));
 
   function applyDetection(img: HTMLImageElement, f: Frame, replace: boolean) {
+    setTab("slot");
     const fmt = formatFor(f.width, f.height);
     let found: ReturnType<typeof detectSlots>;
     try {
@@ -280,7 +292,8 @@ export function TemplateEditor({
 
   function addSlot() {
     if (slots.length >= MAX_SLOTS) return;
-    const s: Slot = { x: 0.3, y: 0.35, w: 0.4, h: format === "strip_2x6" ? 0.15 : 0.3, rotation: 0, shape: "rect" };
+    // Slot tambahan default DI ATAS bingkai agar terlihat walau diletakkan di area bingkai yang tidak transparan.
+    const s: Slot = { x: 0.3, y: 0.35, w: 0.4, h: format === "strip_2x6" ? 0.15 : 0.3, rotation: 0, shape: "rect", layer: "above" };
     setSlots([...slots, s]);
     setSel(slots.length);
   }
@@ -291,6 +304,7 @@ export function TemplateEditor({
     e.stopPropagation();
     e.preventDefault();
     setSel(i);
+    setTab("slot");
     drag.current = { kind, i, x: e.clientX, y: e.clientY, start: slots[i], corner };
     stageRef.current?.setPointerCapture(e.pointerId);
     stageRef.current?.focus({ preventScroll: true });
@@ -367,6 +381,25 @@ export function TemplateEditor({
     }
   }
 
+  /** Ganti bentuk: "Ikuti lubang" selalu di bawah bingkai. */
+  function setShape(i: number, shape: SlotShape) {
+    const cur = slots[i];
+    update(i, { shape, radius: shape === "rounded" ? (cur.radius ?? 0.12) : undefined, layer: shape === "frame" ? "below" : cur.layer });
+  }
+
+  /** Ganti lapisan: di atas bingkai tidak bisa "Ikuti lubang" → jadi kotak. */
+  function setLayer(i: number, layer: SlotLayer) {
+    const cur = slots[i];
+    update(i, { layer, shape: layer === "above" && cur.shape === "frame" ? "rect" : cur.shape });
+  }
+
+  function duplicate(i: number) {
+    if (slots.length >= MAX_SLOTS) return;
+    const cur = slots[i];
+    setSlots([...slots, { ...cur, x: r4(cur.x + 0.03), y: r4(cur.y + 0.03) }]);
+    setSel(slots.length);
+  }
+
   function removeSlot(i: number) {
     const next = slots.filter((_, j) => j !== i);
     setSlots(next);
@@ -375,11 +408,12 @@ export function TemplateEditor({
 
   // --- simpan ---
 
-  const problems: string[] = [];
-  if (!frame) problems.push("Unggah gambar bingkai (PNG).");
-  else if (!format) problems.push("Ukuran gambar tidak cocok dengan format cetak.");
-  if (!name.trim()) problems.push("Isi nama template.");
-  if (slots.length === 0) problems.push("Tambahkan minimal satu slot foto.");
+  const todo: { text: string; tab: Tab }[] = [];
+  if (!frame) todo.push({ text: "Unggah gambar bingkai.", tab: "gambar" });
+  else if (!format) todo.push({ text: "Ukuran gambar tidak cocok dengan format cetak — atur posisi gambar.", tab: "gambar" });
+  if (!name.trim()) todo.push({ text: "Isi nama template (tab Info).", tab: "info" });
+  if (slots.length === 0) todo.push({ text: "Tambahkan minimal satu slot foto.", tab: "slot" });
+  const problems = todo.map((t) => t.text);
 
   function submit() {
     if (problems.length || !frame || !format) return;
@@ -392,7 +426,10 @@ export function TemplateEditor({
         format,
         frame_overlay: overlay,
         // "Ikuti lubang" hanya sah bila bingkai di atas foto.
-        slots: slots.map((s) => ({ ...s, shape: !overlay && s.shape === "frame" ? "rect" : s.shape, x: r4(s.x), y: r4(s.y), w: r4(s.w), h: r4(s.h) })),
+        slots: slots.map((s) => {
+          const shape = !overlay && s.shape === "frame" ? "rect" : s.shape;
+          return { ...s, shape, layer: slotLayer({ ...s, shape }, overlay), x: r4(s.x), y: r4(s.y), w: r4(s.w), h: r4(s.h) };
+        }),
         category_ids: [...cats],
         active,
       }),
@@ -474,6 +511,65 @@ export function TemplateEditor({
                   : "Belum ada gambar"}
             </span>
           </header>
+          {frame && !adjust && mode === "edit" && (
+            <div className="flex min-h-11 flex-wrap items-center gap-1.5 border-b border-edge bg-canvas/60 px-4 py-2 text-xs">
+              {slot && sel !== null ? (
+                <>
+                  <span className="mr-1 font-semibold">Slot {sel + 1}</span>
+                  {SHAPES.map((sh) => {
+                    const off = sh.key === "frame" && (!overlay || slotLayer(slot, overlay) === "above");
+                    return (
+                      <button
+                        key={sh.key}
+                        type="button"
+                        disabled={off}
+                        aria-pressed={slot.shape === sh.key}
+                        onClick={() => setShape(sel, sh.key)}
+                        className={cn("h-7 rounded-md px-2 font-medium ring-1 ring-inset disabled:opacity-40", slot.shape === sh.key ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface ring-edge-strong hover:bg-canvas")}
+                      >
+                        {sh.label}
+                      </button>
+                    );
+                  })}
+                  {overlay && (
+                    <span className="ml-1 inline-flex rounded-md bg-surface p-0.5 ring-1 ring-inset ring-edge-strong">
+                      {(
+                        [
+                          ["below", "Bawah bingkai"],
+                          ["above", "Atas bingkai"],
+                        ] as const
+                      ).map(([k, label]) => (
+                        <button
+                          key={k}
+                          type="button"
+                          aria-pressed={slotLayer(slot, overlay) === k}
+                          onClick={() => setLayer(sel, k)}
+                          className={cn("h-6 rounded px-2 font-medium", slotLayer(slot, overlay) === k ? (k === "above" ? "bg-info-soft text-info" : "bg-primary-soft text-primary") : "text-subtle hover:text-fg")}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </span>
+                  )}
+                  <span className="flex gap-0.5 border-l border-edge pl-1.5">
+                    <IconBtn label="Duplikat slot" onClick={() => duplicate(sel)} disabled={slots.length >= MAX_SLOTS}>
+                      <Copy className="size-4" strokeWidth={2} />
+                    </IconBtn>
+                    <IconBtn label="Hapus slot" onClick={() => removeSlot(sel)}>
+                      <Trash2 className="size-4 text-danger" strokeWidth={2} />
+                    </IconBtn>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-subtle">Klik slot untuk mengubahnya, atau</span>
+                  <Button small onClick={addSlot} disabled={slots.length >= MAX_SLOTS}>
+                    <Plus className="size-4" strokeWidth={2} /> Tambah slot foto
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           <div ref={boxRef} className="flex justify-center overflow-hidden p-4 sm:p-6">
             {adjust ? (
               <AdjustStage adjust={adjust} boxW={boxW} maxH={maxH} onChange={setAdjust} />
@@ -525,44 +621,73 @@ export function TemplateEditor({
                 {guides.h.map((y) => (
                   <div key={`h${y}`} aria-hidden className="pointer-events-none absolute inset-x-0 z-30 h-px bg-danger" style={{ top: `${y * 100}%` }} />
                 ))}
-                {slots.map((s, i) => (
-                  <div
-                    key={i}
-                    onPointerDown={(e) => begin(e, i, "move")}
-                    className={cn(
-                      "absolute cursor-move border-2",
-                      i === sel ? "z-20 border-primary bg-primary/20" : "z-10 border-dashed border-primary/70 bg-primary/10 hover:bg-primary/15",
-                    )}
-                    style={{ left: s.x * stageW, top: s.y * stageH, width: s.w * stageW, height: s.h * stageH, transform: `rotate(${s.rotation}deg)` }}
-                  >
-                    <span className="pointer-events-none absolute left-1 top-1 inline-flex size-5 items-center justify-center rounded bg-primary text-[11px] font-semibold text-white">{i + 1}</span>
-                    {i === sel && (
-                      <>
-                        {(
-                          [
-                            [-1, -1],
-                            [1, -1],
-                            [1, 1],
-                            [-1, 1],
-                          ] as [number, number][]
-                        ).map(([cx, cy]) => (
-                          <span
-                            key={`${cx}${cy}`}
-                            onPointerDown={(e) => begin(e, i, "resize", [cx, cy])}
-                            className="absolute size-3 rounded-sm border-2 border-primary bg-white"
-                            style={{ left: cx < 0 ? -7 : undefined, right: cx > 0 ? -7 : undefined, top: cy < 0 ? -7 : undefined, bottom: cy > 0 ? -7 : undefined, cursor: cx === cy ? "nwse-resize" : "nesw-resize" }}
-                          />
-                        ))}
-                        <span className="pointer-events-none absolute -top-6 left-1/2 h-5 w-px -translate-x-1/2 bg-primary" />
-                        <span
-                          onPointerDown={(e) => begin(e, i, "rotate")}
-                          title="Putar (tahan Alt untuk tanpa tempel 15°)"
-                          className="absolute -top-8 left-1/2 size-3.5 -translate-x-1/2 cursor-grab rounded-full border-2 border-primary bg-white"
+                {/* Lubang foto asli (bentuk apa pun, termasuk tidak beraturan) diwarnai biru muda. */}
+                {overlay && <div aria-hidden className="pointer-events-none absolute inset-0 z-[5] bg-primary/25" style={holeMask(frame.src)} />}
+                {slots.map((s, i) => {
+                  const isSel = i === sel;
+                  const above = slotLayer(s, overlay) === "above";
+                  const color = above ? "var(--color-info)" : "var(--color-primary)";
+                  const hole = s.shape === "frame";
+                  return (
+                    <div
+                      key={i}
+                      onPointerDown={(e) => begin(e, i, "move")}
+                      title={above ? "Di atas bingkai" : "Di bawah bingkai (lewat lubang)"}
+                      className={cn("absolute cursor-move", isSel ? "z-20" : "z-10")}
+                      style={{ left: s.x * stageW, top: s.y * stageH, width: s.w * stageW, height: s.h * stageH, transform: `rotate(${s.rotation}deg)` }}
+                    >
+                      {/* Garis mengikuti bentuk slot; "Ikuti lubang" cukup kotak tipis (bentuknya = warna lubang). */}
+                      <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden>
+                        <path
+                          d={shapePath(s, (s.w * stageW) / (s.h * stageH))}
+                          fill={hole ? "transparent" : color}
+                          fillOpacity={isSel ? 0.25 : 0.15}
+                          stroke={color}
+                          strokeOpacity={hole && !isSel ? 0.6 : 1}
+                          strokeWidth={isSel ? 2 : 1.5}
+                          strokeDasharray={isSel ? undefined : "4 3"}
+                          vectorEffect="non-scaling-stroke"
                         />
-                      </>
-                    )}
-                  </div>
-                ))}
+                      </svg>
+                      {isSel && !hole && s.shape !== "rect" && (
+                        <span aria-hidden className="pointer-events-none absolute inset-0 border border-dashed" style={{ borderColor: color, opacity: 0.5 }} />
+                      )}
+                      <span
+                        className="pointer-events-none absolute left-1 top-1 inline-flex h-5 min-w-5 items-center justify-center gap-0.5 rounded px-1 text-[11px] font-semibold text-white"
+                        style={{ background: color }}
+                      >
+                        {i + 1}
+                        {above && <span className="text-[9px] font-medium">atas</span>}
+                      </span>
+                      {isSel && (
+                        <>
+                          {(
+                            [
+                              [-1, -1],
+                              [1, -1],
+                              [1, 1],
+                              [-1, 1],
+                            ] as [number, number][]
+                          ).map(([cx, cy]) => (
+                            <span
+                              key={`${cx}${cy}`}
+                              onPointerDown={(e) => begin(e, i, "resize", [cx, cy])}
+                              className="absolute size-3 rounded-sm border-2 bg-white"
+                              style={{ borderColor: color, left: cx < 0 ? -7 : undefined, right: cx > 0 ? -7 : undefined, top: cy < 0 ? -7 : undefined, bottom: cy > 0 ? -7 : undefined, cursor: cx === cy ? "nwse-resize" : "nesw-resize" }}
+                            />
+                          ))}
+                          <span className="pointer-events-none absolute -top-6 left-1/2 h-5 w-px -translate-x-1/2" style={{ background: color }} />
+                          <span
+                            onPointerDown={(e) => begin(e, i, "rotate")}
+                            title="Putar (tahan Alt untuk tanpa tempel 15°)"
+                            className="absolute -top-8 left-1/2 size-3.5 -translate-x-1/2 cursor-grab rounded-full border-2 bg-white"
+                            style={{ borderColor: color }}
+                          />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -572,258 +697,306 @@ export function TemplateEditor({
             </p>
           ) : frame && mode === "edit" && (
             <p className="border-t border-edge px-4 py-2.5 text-xs text-subtle">
-              Seret slot untuk memindahkan — menempel otomatis ke tengah, tepi, dan slot lain (garis merah). Tarik sudut untuk ubah ukuran (Shift =
-              proporsional) · bulatan atas untuk memutar · panah untuk menggeser halus · tahan Alt untuk mematikan magnet. Garis putus-putus = batas
-              aman cetak.
+              <span className="font-medium text-primary">Biru</span> = foto di bawah bingkai (terlihat lewat lubang, area lubang diwarnai) ·{" "}
+              <span className="font-medium text-info">ungu</span> = foto di atas bingkai. Seret untuk memindahkan — menempel otomatis ke tengah, tepi, dan
+              slot lain (garis merah; Alt = bebas). Tarik sudut untuk ubah ukuran (Shift = proporsional), bulatan atas untuk memutar, panah untuk
+              menggeser halus. Garis putus-putus merah = batas aman cetak.
             </p>
           )}
         </section>
 
         {/* Panel */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (f) void pickFile(f);
+          }}
+        />
         {adjust ? (
           <AdjustPanel adjust={adjust} onChange={setAdjust} onCancel={() => setAdjust(null)} onApply={applyAdjust} busy={busy} notice={notice} />
         ) : (
-        <div className="flex min-w-0 flex-col gap-4">
-          <Panel title="Gambar bingkai">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/png"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) void pickFile(f);
-              }}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button small onClick={() => fileRef.current?.click()} disabled={busy}>
-                {busy ? <Loader2 className="size-4 animate-spin" /> : <ImageUp className="size-4" strokeWidth={2} />}
-                {frame ? "Ganti PNG" : "Unggah PNG"}
-              </Button>
-              {frame && (
-                <Button small onClick={redetect} disabled={busy}>
-                  <ScanSearch className="size-4" strokeWidth={2} /> Deteksi ulang lubang
-                </Button>
-              )}
-              {frame && (
-                <Button small onClick={adjustCurrent} disabled={busy}>
-                  <Crop className="size-4" strokeWidth={2} /> Atur posisi gambar
-                </Button>
-              )}
+          <aside className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:pb-1">
+            <div role="tablist" aria-label="Pengaturan" className="grid grid-cols-3 gap-1 rounded-xl bg-surface p-1 shadow-card ring-1 ring-inset ring-edge">
+              {(
+                [
+                  ["slot", `Slot foto${slots.length ? ` (${slots.length})` : ""}`],
+                  ["gambar", "Gambar"],
+                  ["info", "Info"],
+                ] as [Tab, string][]
+              ).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === k}
+                  onClick={() => setTab(k)}
+                  className={cn("relative h-8 rounded-lg text-xs font-medium", tab === k ? "bg-primary-soft text-primary" : "text-subtle hover:bg-canvas hover:text-fg")}
+                >
+                  {label}
+                  {todo.some((t) => t.tab === k) && <span aria-label="perlu diisi" className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-danger" />}
+                </button>
+              ))}
             </div>
-            {notice && (
-              <p
-                className={cn(
-                  "rounded-lg px-3 py-2 text-xs",
-                  notice.tone === "ok" ? "bg-success-soft text-success" : notice.tone === "warn" ? "bg-warning-soft text-warning" : "bg-danger-soft text-danger",
-                )}
-              >
-                {notice.text}
-              </p>
-            )}
-            <button type="button" onClick={() => setTips(true)} className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-              <Lightbulb className="size-3.5" strokeWidth={2} /> Saran gambar bingkai & unduh panduan ukuran
-            </button>
-            <label className="flex items-start justify-between gap-3 text-sm">
-              <span>
-                <span className="font-medium">Bingkai di atas foto</span>
-                <span className="block text-xs text-subtle">Aktif: foto terlihat lewat bagian transparan. Mati: gambar jadi latar, foto di atasnya.</span>
-              </span>
-              <Switch checked={overlay} onChange={setOverlay} label="Bingkai di atas foto" />
-            </label>
-          </Panel>
 
-          {!frame && (
-            <Panel title="Saran gambar bingkai">
-              <FrameTips />
-            </Panel>
-          )}
-
-          <Panel title="Template">
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              Nama
-              <input
-                value={name}
-                maxLength={60}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="mis. Pink Wedding"
-                className="h-10 rounded-lg border border-edge-strong bg-surface px-3 text-sm font-normal shadow-card outline-none placeholder:text-subtle focus:border-primary focus:ring-3 focus:ring-primary/15"
-              />
-            </label>
-            <div className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium">Kategori</span>
-              <div className="flex flex-wrap gap-1.5">
-                {categories.map((c) => {
-                  const on = cats.has(c.id);
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => {
-                        const next = new Set(cats);
-                        if (on) next.delete(c.id);
-                        else next.add(c.id);
-                        setCats(next);
-                      }}
-                      className={cn("h-7 rounded-full px-3 text-xs font-medium ring-1 ring-inset", on ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface text-subtle ring-edge-strong hover:text-fg")}
-                    >
-                      {c.name}
+            {tab === "gambar" && (
+              <>
+                <Panel title="Gambar bingkai">
+                  <div className="flex flex-wrap gap-2">
+                    <Button small onClick={() => fileRef.current?.click()} disabled={busy}>
+                      {busy ? <Loader2 className="size-4 animate-spin" /> : <ImageUp className="size-4" strokeWidth={2} />}
+                      {frame ? "Ganti gambar" : "Unggah gambar"}
+                    </Button>
+                    {frame && (
+                      <Button small onClick={redetect} disabled={busy}>
+                        <ScanSearch className="size-4" strokeWidth={2} /> Deteksi ulang lubang
+                      </Button>
+                    )}
+                    {frame && (
+                      <Button small onClick={adjustCurrent} disabled={busy}>
+                        <Crop className="size-4" strokeWidth={2} /> Atur posisi gambar
+                      </Button>
+                    )}
+                  </div>
+                  {notice && <NoticeBox notice={notice} />}
+                  {frame && (
+                    <button type="button" onClick={() => setTips(true)} className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                      <Lightbulb className="size-3.5" strokeWidth={2} /> Saran gambar bingkai & unduh panduan ukuran
                     </button>
-                  );
-                })}
-                {categories.length === 0 && <span className="text-xs text-subtle">Belum ada kategori.</span>}
-              </div>
-            </div>
-            <label className="flex items-center justify-between gap-3 text-sm">
-              <span>
-                <span className="font-medium">{builtin ? "Aktif untuk semua pemilik" : "Tampil di booth"}</span>
-              </span>
-              <Switch checked={active} onChange={setActive} label="Aktif" />
-            </label>
-          </Panel>
-
-          <Panel
-            title={`Slot foto (${slots.length}/${MAX_SLOTS})`}
-            action={
-              <div className="flex gap-1">
-                <IconBtn label="Urutkan otomatis (atas → bawah, kiri → kanan)" onClick={() => setSlots(sortSlots(slots))} disabled={slots.length < 2}>
-                  <SortAsc className="size-4" strokeWidth={2} />
-                </IconBtn>
-                <IconBtn label="Tambah slot" onClick={addSlot} disabled={!frame || slots.length >= MAX_SLOTS}>
-                  <Plus className="size-4" strokeWidth={2} />
-                </IconBtn>
-              </div>
-            }
-          >
-            {slots.length === 0 ? (
-              <p className="text-sm text-subtle">{frame ? "Belum ada slot. Tambah slot atau deteksi ulang lubang." : "Unggah gambar bingkai dulu."}</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {slots.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setSel(i)}
-                    aria-pressed={i === sel}
-                    className={cn("inline-flex size-8 items-center justify-center rounded-lg text-sm font-medium ring-1 ring-inset", i === sel ? "bg-primary text-white ring-primary" : "bg-surface ring-edge-strong hover:bg-canvas")}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
+                  )}
+                  <label className="flex items-start justify-between gap-3 text-sm">
+                    <span>
+                      <span className="font-medium">Bingkai di atas foto</span>
+                      <span className="block text-xs text-subtle">Aktif: foto terlihat lewat bagian transparan. Mati: gambar jadi latar, semua foto di atasnya.</span>
+                    </span>
+                    <Switch checked={overlay} onChange={setOverlay} label="Bingkai di atas foto" />
+                  </label>
+                </Panel>
+                {!frame && (
+                  <Panel title="Saran gambar bingkai">
+                    <FrameTips />
+                  </Panel>
+                )}
+              </>
             )}
-            {slot && sel !== null && (
-              <div className="flex flex-col gap-3 border-t border-edge pt-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <Num label="X (%)" value={slot.x * 100} onChange={(v) => update(sel, { x: r4(v / 100) })} />
-                  <Num label="Y (%)" value={slot.y * 100} onChange={(v) => update(sel, { y: r4(v / 100) })} />
-                  <Num label="Lebar (%)" value={slot.w * 100} min={2} onChange={(v) => update(sel, { w: r4(clamp(v, 2, 150) / 100) })} />
-                  <Num label="Tinggi (%)" value={slot.h * 100} min={2} onChange={(v) => update(sel, { h: r4(clamp(v, 2, 150) / 100) })} />
-                </div>
-                <div className="flex flex-col gap-1.5 text-sm">
-                  <span className="flex items-center justify-between font-medium">
-                    Kemiringan <span className="font-normal tabular-nums text-subtle">{slot.rotation}°</span>
-                  </span>
+
+            {tab === "info" && (
+              <Panel title="Info template">
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
+                  Nama
                   <input
-                    type="range"
-                    min={-180}
-                    max={180}
-                    step={1}
-                    value={slot.rotation}
-                    onChange={(e) => update(sel, { rotation: Number(e.target.value) })}
-                    className="accent-primary"
-                    aria-label="Kemiringan"
+                    value={name}
+                    maxLength={60}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="mis. Pink Wedding"
+                    className="h-10 rounded-lg border border-edge-strong bg-surface px-3 text-sm font-normal shadow-card outline-none placeholder:text-subtle focus:border-primary focus:ring-3 focus:ring-primary/15"
                   />
-                </div>
+                </label>
                 <div className="flex flex-col gap-1.5 text-sm">
-                  <span className="font-medium">Bentuk</span>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {SHAPES.map((sh) => {
-                      const off = sh.key === "frame" && !overlay;
+                  <span className="font-medium">Kategori</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categories.map((c) => {
+                      const on = cats.has(c.id);
                       return (
                         <button
-                          key={sh.key}
+                          key={c.id}
                           type="button"
-                          disabled={off}
-                          title={off ? "Hanya bila bingkai di atas foto" : undefined}
-                          aria-pressed={slot.shape === sh.key}
-                          onClick={() => update(sel, { shape: sh.key as SlotShape, radius: sh.key === "rounded" ? (slot.radius ?? 0.12) : undefined })}
+                          aria-pressed={on}
+                          onClick={() => {
+                            const next = new Set(cats);
+                            if (on) next.delete(c.id);
+                            else next.add(c.id);
+                            setCats(next);
+                          }}
+                          className={cn("h-7 rounded-full px-3 text-xs font-medium ring-1 ring-inset", on ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface text-subtle ring-edge-strong hover:text-fg")}
+                        >
+                          {c.name}
+                        </button>
+                      );
+                    })}
+                    {categories.length === 0 && <span className="text-xs text-subtle">Belum ada kategori.</span>}
+                  </div>
+                  <span className="text-xs text-subtle">Dipakai pemilik untuk memilih template sesuai tema acara.</span>
+                </div>
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-medium">{builtin ? "Aktif untuk semua pemilik" : "Tampil di booth"}</span>
+                  <Switch checked={active} onChange={setActive} label="Aktif" />
+                </label>
+              </Panel>
+            )}
+
+            {tab === "slot" && (
+              <Panel
+                title={`Slot foto (${slots.length}/${MAX_SLOTS})`}
+                action={
+                  <div className="flex gap-1">
+                    <IconBtn label="Urutkan otomatis (atas → bawah, kiri → kanan)" onClick={() => setSlots(sortSlots(slots))} disabled={slots.length < 2}>
+                      <SortAsc className="size-4" strokeWidth={2} />
+                    </IconBtn>
+                    <IconBtn label="Tambah slot" onClick={addSlot} disabled={!frame || slots.length >= MAX_SLOTS}>
+                      <Plus className="size-4" strokeWidth={2} />
+                    </IconBtn>
+                  </div>
+                }
+              >
+                {notice && frame && <NoticeBox notice={notice} />}
+                {slots.length === 0 ? (
+                  <p className="text-sm text-subtle">{frame ? "Belum ada slot. Tambah slot atau deteksi ulang lubang (tab Gambar)." : "Unggah gambar bingkai dulu di tab Gambar."}</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {slots.map((o, i) => {
+                      const above = slotLayer(o, overlay) === "above";
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setSel(i)}
+                          aria-pressed={i === sel}
+                          title={above ? "Di atas bingkai" : "Di bawah bingkai"}
                           className={cn(
-                            "h-8 rounded-lg px-2 text-xs font-medium ring-1 ring-inset disabled:opacity-40",
-                            slot.shape === sh.key ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface ring-edge-strong hover:bg-canvas",
+                            "inline-flex size-8 items-center justify-center rounded-lg text-sm font-medium ring-1 ring-inset",
+                            i === sel ? (above ? "bg-info text-white ring-info" : "bg-primary text-white ring-primary") : above ? "bg-info-soft text-info ring-info/30" : "bg-surface ring-edge-strong hover:bg-canvas",
                           )}
                         >
-                          {sh.label}
+                          {i + 1}
                         </button>
                       );
                     })}
                   </div>
-                  {slot.shape === "frame" && <p className="text-xs text-subtle">Foto mengikuti bentuk lubang di bingkai (hati, bulat, dll.).</p>}
-                </div>
-                {slot.shape === "rounded" && (
-                  <div className="flex flex-col gap-1.5 text-sm">
-                    <span className="flex items-center justify-between font-medium">
-                      Lengkung sudut <span className="font-normal tabular-nums text-subtle">{Math.round((slot.radius ?? 0) * 200)}%</span>
-                    </span>
-                    <input type="range" min={0} max={0.5} step={0.01} value={slot.radius ?? 0.12} onChange={(e) => update(sel, { radius: Number(e.target.value) })} className="accent-primary" aria-label="Lengkung sudut" />
+                )}
+                {slot && sel !== null && (
+                  <div className="flex flex-col gap-3 border-t border-edge pt-3">
+                    {overlay && (
+                      <div className="flex flex-col gap-1.5 text-sm">
+                        <span className="font-medium">Lapisan</span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(
+                            [
+                              ["below", "Di bawah bingkai", "Terlihat lewat lubang"],
+                              ["above", "Di atas bingkai", "Menempel seperti stiker"],
+                            ] as const
+                          ).map(([k, label, hint]) => {
+                            const on = slotLayer(slot, overlay) === k;
+                            return (
+                              <button
+                                key={k}
+                                type="button"
+                                aria-pressed={on}
+                                onClick={() => setLayer(sel, k)}
+                                className={cn("rounded-lg px-2 py-1.5 text-left ring-1 ring-inset", on ? (k === "above" ? "bg-info-soft ring-info/40" : "bg-primary-soft ring-primary/40") : "bg-surface ring-edge-strong hover:bg-canvas")}
+                              >
+                                <span className={cn("block text-xs font-medium", on && (k === "above" ? "text-info" : "text-primary"))}>{label}</span>
+                                <span className="block text-[11px] text-subtle">{hint}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1.5 text-sm">
+                      <span className="font-medium">Bentuk</span>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {SHAPES.map((sh) => {
+                          const off = sh.key === "frame" && (!overlay || slotLayer(slot, overlay) === "above");
+                          return (
+                            <button
+                              key={sh.key}
+                              type="button"
+                              disabled={off}
+                              title={off ? "Hanya untuk foto di bawah bingkai" : undefined}
+                              aria-pressed={slot.shape === sh.key}
+                              onClick={() => setShape(sel, sh.key)}
+                              className={cn(
+                                "h-8 rounded-lg px-2 text-xs font-medium ring-1 ring-inset disabled:opacity-40",
+                                slot.shape === sh.key ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface ring-edge-strong hover:bg-canvas",
+                              )}
+                            >
+                              {sh.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {slot.shape === "frame" && <p className="text-xs text-subtle">Foto mengikuti bentuk lubang di bingkai — bentuk apa pun, termasuk tidak beraturan.</p>}
+                    </div>
+                    {slot.shape === "rounded" && (
+                      <div className="flex flex-col gap-1.5 text-sm">
+                        <span className="flex items-center justify-between font-medium">
+                          Lengkung sudut <span className="font-normal tabular-nums text-subtle">{Math.round((slot.radius ?? 0) * 200)}%</span>
+                        </span>
+                        <input type="range" min={0} max={0.5} step={0.01} value={slot.radius ?? 0.12} onChange={(e) => update(sel, { radius: Number(e.target.value) })} className="accent-primary" aria-label="Lengkung sudut" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1.5 text-sm">
+                      <span className="flex items-center justify-between font-medium">
+                        Kemiringan <span className="font-normal tabular-nums text-subtle">{slot.rotation}°</span>
+                      </span>
+                      <input
+                        type="range"
+                        min={-180}
+                        max={180}
+                        step={1}
+                        value={slot.rotation}
+                        onChange={(e) => update(sel, { rotation: Number(e.target.value) })}
+                        className="accent-primary"
+                        aria-label="Kemiringan"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5 text-sm">
+                      <span className="font-medium">Rapikan</span>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <Button small onClick={() => update(sel, { x: r4(0.5 - slot.w / 2) })}>
+                          <AlignCenterVertical className="size-4" strokeWidth={2} /> Tengah datar
+                        </Button>
+                        <Button small onClick={() => update(sel, { y: r4(0.5 - slot.h / 2) })}>
+                          <AlignCenterHorizontal className="size-4" strokeWidth={2} /> Tengah tegak
+                        </Button>
+                        <Button small disabled={slots.length < 2} onClick={() => setSlots(slots.map((o) => ({ ...o, w: slot.w, h: slot.h })))} title="Semua slot dibuat seukuran slot ini">
+                          <Scaling className="size-4" strokeWidth={2} /> Samakan ukuran
+                        </Button>
+                        <Button small disabled={slots.length < 2} onClick={() => setSlots(slots.map((o) => ({ ...o, x: r4(0.5 - o.w / 2) })))} title="Semua slot ditengahkan mendatar">
+                          <AlignCenterVertical className="size-4" strokeWidth={2} /> Semua di tengah
+                        </Button>
+                        <Button small disabled={slots.length < 3} onClick={() => setSlots(distribute(slots, "y"))} title="Jarak atas-bawah antar slot dibuat sama">
+                          <StretchVertical className="size-4" strokeWidth={2} /> Jarak rata ↕
+                        </Button>
+                        <Button small disabled={slots.length < 3} onClick={() => setSlots(distribute(slots, "x"))} title="Jarak kiri-kanan antar slot dibuat sama">
+                          <StretchHorizontal className="size-4" strokeWidth={2} /> Jarak rata ↔
+                        </Button>
+                      </div>
+                    </div>
+                    <details className="text-sm">
+                      <summary className="cursor-pointer font-medium text-subtle hover:text-fg">Posisi & ukuran tepat (%)</summary>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <Num label="X (%)" value={slot.x * 100} onChange={(v) => update(sel, { x: r4(v / 100) })} />
+                        <Num label="Y (%)" value={slot.y * 100} onChange={(v) => update(sel, { y: r4(v / 100) })} />
+                        <Num label="Lebar (%)" value={slot.w * 100} min={2} onChange={(v) => update(sel, { w: r4(clamp(v, 2, 150) / 100) })} />
+                        <Num label="Tinggi (%)" value={slot.h * 100} min={2} onChange={(v) => update(sel, { h: r4(clamp(v, 2, 150) / 100) })} />
+                      </div>
+                    </details>
                   </div>
                 )}
-                <div className="flex flex-col gap-1.5 text-sm">
-                  <span className="font-medium">Rapikan</span>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <Button small onClick={() => update(sel, { x: r4(0.5 - slot.w / 2) })}>
-                      <AlignCenterVertical className="size-4" strokeWidth={2} /> Tengah datar
-                    </Button>
-                    <Button small onClick={() => update(sel, { y: r4(0.5 - slot.h / 2) })}>
-                      <AlignCenterHorizontal className="size-4" strokeWidth={2} /> Tengah tegak
-                    </Button>
-                    <Button small disabled={slots.length < 2} onClick={() => setSlots(slots.map((o) => ({ ...o, w: slot.w, h: slot.h })))} title="Semua slot dibuat seukuran slot ini">
-                      <Scaling className="size-4" strokeWidth={2} /> Samakan ukuran
-                    </Button>
-                    <Button small disabled={slots.length < 2} onClick={() => setSlots(slots.map((o) => ({ ...o, x: r4(0.5 - o.w / 2) })))} title="Semua slot ditengahkan mendatar">
-                      <AlignCenterVertical className="size-4" strokeWidth={2} /> Semua di tengah
-                    </Button>
-                    <Button small disabled={slots.length < 3} onClick={() => setSlots(distribute(slots, "y"))} title="Jarak atas-bawah antar slot dibuat sama">
-                      <StretchVertical className="size-4" strokeWidth={2} /> Jarak rata ↕
-                    </Button>
-                    <Button small disabled={slots.length < 3} onClick={() => setSlots(distribute(slots, "x"))} title="Jarak kiri-kanan antar slot dibuat sama">
-                      <StretchHorizontal className="size-4" strokeWidth={2} /> Jarak rata ↔
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    small
-                    onClick={() => {
-                      if (slots.length >= MAX_SLOTS) return;
-                      setSlots([...slots, { ...slot, x: r4(slot.x + 0.03), y: r4(slot.y + 0.03) }]);
-                      setSel(slots.length);
-                    }}
-                    disabled={slots.length >= MAX_SLOTS}
-                  >
-                    <Copy className="size-4" strokeWidth={2} /> Duplikat
-                  </Button>
-                  <Button small tone="yellow" className="text-danger" onClick={() => removeSlot(sel)}>
-                    <Trash2 className="size-4" strokeWidth={2} /> Hapus slot
-                  </Button>
-                </div>
+              </Panel>
+            )}
+
+            {todo.length > 0 && (
+              <div className="rounded-lg bg-canvas px-4 py-3 text-xs text-subtle ring-1 ring-inset ring-edge">
+                <p className="mb-1 font-medium text-fg">Sebelum menyimpan:</p>
+                <ul className="flex flex-col gap-0.5">
+                  {todo.map((t) => (
+                    <li key={t.text}>
+                      <button type="button" onClick={() => setTab(t.tab)} className="text-left hover:text-primary hover:underline">
+                        • {t.text}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
-          </Panel>
-
-          {problems.length > 0 && (
-            <div className="rounded-lg bg-canvas px-4 py-3 text-xs text-subtle">
-              <p className="mb-1 font-medium text-fg">Sebelum menyimpan:</p>
-              <ul className="list-disc pl-4">
-                {problems.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+          </aside>
         )}
       </div>
 
@@ -1134,6 +1307,19 @@ function AdjustPanel({
         </div>
       </Panel>
     </div>
+  );
+}
+
+function NoticeBox({ notice }: { notice: { tone: "ok" | "warn" | "err"; text: string } }) {
+  return (
+    <p
+      className={cn(
+        "rounded-lg px-3 py-2 text-xs",
+        notice.tone === "ok" ? "bg-success-soft text-success" : notice.tone === "warn" ? "bg-warning-soft text-warning" : "bg-danger-soft text-danger",
+      )}
+    >
+      {notice.text}
+    </p>
   );
 }
 

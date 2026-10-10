@@ -16,6 +16,13 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-10** · Claude Opus 5.5 · Editor template lebih mudah: panel kanan **bertab (Slot foto · Gambar · Info)** dan menempel
+  saat digulir (klik slot → tab Slot; titik merah = tab yang perlu diisi; "Sebelum menyimpan" bisa diklik); **toolbar cepat**
+  di atas panggung (bentuk, lapisan, duplikat, hapus / tambah slot); garis slot **mengikuti bentuk**; **area lubang asli
+  diwarnai** lewat masker CSS dari alpha bingkai (lubang tidak beraturan terlihat jelas); **lapisan slot** (di bawah bingkai
+  = lewat lubang, biru · di atas bingkai = seperti stiker, ungu; slot tambahan otomatis di atas); posisi % dipindah ke
+  bagian lipat; input file kini menerima JPG/WEBP. Pratinjau mengikuti urutan lapisan.
+
 - **2026-10-10** · Claude Opus 5.5 · Editor template lebih rapi & jelas: panel **Saran gambar bingkai** (ukuran tiap format,
   tips PNG transparan/area aman/4 MB/Canva, tombol unduh **PNG panduan** per format); **magnet** saat geser & ubah
   ukuran slot (tepi/tengah kanvas, garis aman, tepi/tengah & ukuran slot lain; garis bantu merah; Alt = bebas); alat

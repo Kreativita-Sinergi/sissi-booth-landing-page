@@ -1,4 +1,4 @@
-import type { Slot, SlotShape, TemplateFormat } from "./types";
+import type { Slot, SlotLayer, SlotShape, TemplateFormat } from "./types";
 
 /** Logika template bingkai yang dipakai editor & pratinjau (aman di server maupun browser). */
 
@@ -82,9 +82,18 @@ export function shapePath(slot: Slot, aspect: number): string {
 
 const round = (n: number) => Math.round(n * 10000) / 10000;
 
-/** Susunan slot awal bila bingkai tidak punya lubang transparan. */
+/**
+ * Lapisan efektif slot: bingkai sebagai latar (overlay mati) → semua foto di atas; "Ikuti lubang" selalu di bawah.
+ */
+export function slotLayer(s: Slot, overlay: boolean): SlotLayer {
+  if (!overlay) return "above";
+  if (s.shape === "frame") return "below";
+  return s.layer ?? "below";
+}
+
+/** Susunan slot awal bila bingkai tidak punya lubang transparan (di atas bingkai agar terlihat). */
 export function defaultSlots(format: TemplateFormat): Slot[] {
-  const base = { rotation: 0, shape: "rect" as const };
+  const base = { rotation: 0, shape: "rect" as const, layer: "above" as const };
   if (format === "strip_2x6") {
     return [0, 1, 2].map((i) => ({ ...base, x: 0.08, y: round(0.04 + i * 0.27), w: 0.84, h: 0.24 }));
   }
@@ -146,7 +155,7 @@ export function detectSlots(data: Uint8ClampedArray, width: number, height: numb
     .map((c) => {
       const x = Math.max(-bleed, c.x0 / width - bleed);
       const y = Math.max(-bleed, c.y0 / height - bleed);
-      return { x: round(x), y: round(y), w: round(c.x1 / width + bleed - x), h: round(c.y1 / height + bleed - y), rotation: 0, shape: "frame" as const };
+      return { x: round(x), y: round(y), w: round(c.x1 / width + bleed - x), h: round(c.y1 / height + bleed - y), rotation: 0, shape: "frame" as const, layer: "below" as const };
     });
   return { slots: sortSlots(holes), transparent: true };
 }

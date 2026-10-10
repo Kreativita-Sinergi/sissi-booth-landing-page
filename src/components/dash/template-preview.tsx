@@ -1,11 +1,12 @@
 /* eslint-disable @next/next/no-img-element -- gambar bingkai dari server file (domain dinamis, ukuran asli). */
 import { cn } from "@/components/shared/cn";
-import { SAMPLE_TONES, shapePath } from "@/lib/dash/template";
+import { SAMPLE_TONES, shapePath, slotLayer } from "@/lib/dash/template";
 import type { Slot } from "@/lib/dash/types";
 
 /**
- * Pratinjau template (server-safe): foto contoh berwarna di tiap slot (dipotong sesuai bentuk & diputar),
- * bingkai di atas (`overlay`) atau di bawah foto. `uid` harus unik per halaman (id clipPath SVG).
+ * Pratinjau template (server-safe): foto contoh berwarna di tiap slot (dipotong sesuai bentuk & diputar).
+ * Urutan lapisan sama dengan booth: slot "below" → bingkai → slot "above" (bingkai latar = semua foto di atas).
+ * `uid` harus unik per halaman (id clipPath SVG).
  */
 export function TemplatePreview({
   uid,
@@ -26,17 +27,16 @@ export function TemplatePreview({
   numbers?: boolean;
   className?: string;
 }) {
-  const frame = <img src={src} alt="" draggable={false} className={cn("pointer-events-none absolute inset-0 size-full select-none", overlay ? "z-10" : "z-0")} />;
   return (
     <div className={cn("checker relative overflow-hidden", className)} style={{ aspectRatio: `${width} / ${height}` }}>
-      {!overlay && frame}
+      <img src={src} alt="" draggable={false} className="pointer-events-none absolute inset-0 z-10 size-full select-none" />
       {slots.map((s, i) => {
         const id = `tp-${uid}-${i}`;
         const tone = SAMPLE_TONES[i % SAMPLE_TONES.length];
         return (
           <div
             key={i}
-            className="absolute z-[5]"
+            className={cn("absolute", slotLayer(s, overlay) === "below" ? "z-[5]" : "z-20")}
             style={{ left: `${s.x * 100}%`, top: `${s.y * 100}%`, width: `${s.w * 100}%`, height: `${s.h * 100}%`, transform: `rotate(${s.rotation}deg)` }}
           >
             <svg className="absolute inset-0 size-full" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden>
@@ -62,7 +62,6 @@ export function TemplatePreview({
           </div>
         );
       })}
-      {overlay && frame}
     </div>
   );
 }
