@@ -110,23 +110,31 @@ export function FrameTips() {
   return (
     <div className="flex flex-col gap-3 text-sm">
       <div className="flex flex-col divide-y divide-edge rounded-lg ring-1 ring-inset ring-edge">
-        {FORMAT_KEYS.map((f) => (
-          <div key={f} className="flex items-center justify-between gap-3 px-3 py-2">
-            <span className="min-w-0">
-              <span className="block font-medium">{FORMATS[f].label}</span>
-              <span className="block text-xs text-subtle">
-                {FORMATS[f].size} · {FORMATS[f].hint}
+        {FORMAT_KEYS.map((f) => {
+          const [w, h] = FORMATS[f].px;
+          return (
+            <div key={f} className="flex items-center gap-3 px-3 py-2.5">
+              <span className="flex size-7 shrink-0 items-center justify-center" aria-hidden>
+                <span className="block rounded-[2px] border-2 border-edge-strong" style={{ height: w > h ? 16 : 26, width: ((w > h ? 16 : 26) * w) / h }} />
               </span>
-            </span>
-            <button
-              type="button"
-              onClick={() => void downloadGuide(f)}
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-medium text-primary hover:bg-primary-soft"
-            >
-              <Download className="size-3.5" strokeWidth={2} /> Panduan
-            </button>
-          </div>
-        ))}
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="font-medium">{FORMATS[f].label}</span>
+                <span className="text-xs tabular-nums text-subtle">
+                  {w} × {h} px
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => void downloadGuide(f)}
+                title={`Unduh PNG panduan ${FORMATS[f].label} — ${FORMATS[f].hint}`}
+                aria-label={`Unduh panduan ${FORMATS[f].label}`}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-primary ring-1 ring-inset ring-edge hover:bg-primary-soft"
+              >
+                <Download className="size-4" strokeWidth={2} />
+              </button>
+            </div>
+          );
+        })}
       </div>
       <ul className="flex list-disc flex-col gap-1 pl-4 text-xs text-subtle">
         <li>
@@ -143,7 +151,46 @@ export function FrameTips() {
 }
 
 /** Pilihan format cetak (kartu kecil dengan bentuk kertas). */
-export function FormatPicker({ value, onChange, suggested }: { value: TemplateFormat; onChange: (f: TemplateFormat) => void; suggested?: TemplateFormat }) {
+export function FormatPicker({
+  value,
+  onChange,
+  suggested,
+  list,
+}: {
+  value: TemplateFormat;
+  onChange: (f: TemplateFormat) => void;
+  suggested?: TemplateFormat;
+  /** Daftar bersusun (untuk panel sempit): ikon kiri, nama & ukuran di kanan. */
+  list?: boolean;
+}) {
+  if (list) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        {FORMAT_KEYS.map((f) => {
+          const [w, h] = FORMATS[f].px;
+          const on = f === value;
+          return (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onChange(f)}
+              className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-left ring-1 ring-inset", on ? "bg-primary-soft ring-primary" : "bg-surface ring-edge-strong hover:bg-canvas")}
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center">
+                <span className={cn("block rounded-[2px] border-2", on ? "border-primary bg-surface" : "border-edge-strong")} style={{ height: w > h ? 16 : 26, width: ((w > h ? 16 : 26) * w) / h }} />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className={cn("text-sm font-medium", on && "text-primary")}>{FORMATS[f].label}</span>
+                <span className="text-xs text-subtle">{FORMATS[f].size}</span>
+              </span>
+              {f === suggested && <span className="shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success">Paling pas</span>}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className="grid grid-cols-3 gap-2">
       {FORMAT_KEYS.map((f) => {
@@ -267,7 +314,7 @@ export function AdjustPanel({
         </p>
         <div className="flex flex-col gap-2 text-sm">
           <span className="font-medium">Format cetak</span>
-          <FormatPicker value={adjust.format} onChange={(f) => onChange({ ...adjust, format: f, ox: 0, oy: 0, zoom: 1 })} suggested={closestFormat(img.naturalWidth, img.naturalHeight)} />
+          <FormatPicker list value={adjust.format} onChange={(f) => onChange({ ...adjust, format: f, ox: 0, oy: 0, zoom: 1 })} suggested={closestFormat(img.naturalWidth, img.naturalHeight)} />
         </div>
         <div className="flex flex-col gap-1.5 text-sm">
           <span className="flex items-center justify-between font-medium">

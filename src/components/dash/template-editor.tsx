@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Copy,
   Crop,
+  Download,
   Eye,
   ImageUp,
   Info,
@@ -49,6 +50,7 @@ import {
   detectSlots,
   distribute,
   flatHandle,
+  FORMAT_KEYS,
   FORMATS,
   formatFor,
   isSmooth,
@@ -74,6 +76,7 @@ import {
   AdjustStage,
   clamp,
   coverScale,
+  downloadGuide,
   FormatPicker,
   FrameTips,
   holeMask,
@@ -95,6 +98,8 @@ import { TemplatePreview } from "./template-preview";
 
 type SideTab = "elemen" | "latar" | "info";
 type Notice = { tone: "ok" | "warn" | "err"; text: string };
+/** Satu langkah riwayat urungkan: posisi foto + gambar latar + posisi bingkai. */
+type Snap = { slots: Slot[]; frame: Frame | null; overlay: boolean };
 type Pt = [number, number];
 /** Seret di kanvas: geser (banyak slot), ubah ukuran, putar, kotak pilih, atau titik bentuk bebas. */
 type Drag =
@@ -177,7 +182,7 @@ export function TemplateEditor({
   const [frame, setFrame] = useState<Frame | null>(template ? { src: template.frame_url, width: template.width, height: template.height } : null);
   const [overlay, setOverlay] = useState(template?.frame_overlay ?? true);
   const [slots, setSlots] = useState<Slot[]>(template?.slots ?? []);
-  const [hist, setHist] = useState<{ past: Slot[][]; future: Slot[][] }>({ past: [], future: [] });
+  const [hist, setHist] = useState<{ past: Snap[]; future: Snap[] }>({ past: [], future: [] });
   const [sel, setSel] = useState<number[]>([]);
   const [name, setName] = useState(template?.name ?? "");
   const [cats, setCats] = useState<Set<string>>(new Set(template?.categories.map((c) => c.id) ?? []));
@@ -230,12 +235,15 @@ export function TemplateEditor({
       if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
     };
   }, [source?.url]);
+  // Gambar latar lama masih bisa kembali lewat urungkan → URL-nya baru dilepas saat editor ditutup.
+  const frameUrls = useRef<string[]>([]);
   useEffect(() => {
-    const src = frame?.src;
-    return () => {
-      if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
-    };
+    if (frame?.src.startsWith("blob:") && !frameUrls.current.includes(frame.src)) frameUrls.current.push(frame.src);
   }, [frame?.src]);
+  useEffect(() => {
+    const urls = frameUrls.current;
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, []);
 
   const format = frame ? formatFor(frame.width, frame.height) : null;
   const maxH = areaH > 0 ? Math.max(240, areaH - 8) : typeof window === "undefined" ? 640 : Math.max(380, window.innerHeight * 0.62);
@@ -247,9 +255,21 @@ export function TemplateEditor({
 
   // --- riwayat (urungkan/ulangi) ---
 
+  const snap = (): Snap => ({ slots, frame, overlay });
+  function restore(s: Snap) {
+    setSlots(s.slots);
+    setFrame(s.frame);
+    setOverlay(s.overlay);
+  }
+  /** Ubah isi editor sebagai satu langkah urungkan. */
+  function commit(patch: Partial<Snap>) {
+    setHist({ past: [...hist.past.slice(-99), snap()], future: [] });
+    if (patch.slots) setSlots(patch.slots);
+    if (patch.frame !== undefined) setFrame(patch.frame);
+    if (patch.overlay !== undefined) setOverlay(patch.overlay);
+  }
   function change(next: Slot[]) {
-    setHist({ past: [...hist.past.slice(-99), slots], future: [] });
-    setSlots(next);
+    commit({ slots: next });
   }
   function update(i: number, patch: Partial<Slot>) {
     change(slots.map((s, j) => (j === i ? { ...s, ...patch } : s)));
@@ -260,21 +280,22 @@ export function TemplateEditor({
   function undo() {
     const prev = hist.past[hist.past.length - 1];
     if (!prev) return;
-    setHist({ past: hist.past.slice(0, -1), future: [slots, ...hist.future] });
-    setSlots(prev);
-    setSel((cur) => cur.filter((i) => i < prev.length));
+    setHist({ past: hist.past.slice(0, -1), future: [snap(), ...hist.future] });
+    restore(prev);
+    setSel((cur) => cur.filter((i) => i < prev.slots.length));
     setEditPts(null);
   }
   function redo() {
     const next = hist.future[0];
     if (!next) return;
-    setHist({ past: [...hist.past, slots], future: hist.future.slice(1) });
-    setSlots(next);
-    setSel((cur) => cur.filter((i) => i < next.length));
+    setHist({ past: [...hist.past, snap()], future: hist.future.slice(1) });
+    restore(next);
+    setSel((cur) => cur.filter((i) => i < next.slots.length));
   }
 
   // --- gambar latar / bingkai ---
 
+  /** Pasang gambar latar `f` + hasil deteksi lubang sebagai SATU langkah urungkan. */
   function applyDetection(img: HTMLImageElement, f: Frame, replace: boolean) {
     const fmt = formatFor(f.width, f.height);
     let found: ReturnType<typeof detectSlots>;
@@ -282,18 +303,17 @@ export function TemplateEditor({
       const px = pixels(img);
       found = detectSlots(px.data, px.w, px.h);
     } catch {
+      if (f !== frame) commit({ frame: f });
       setNotice({ tone: "warn", text: "Gambar tidak bisa dibaca untuk deteksi otomatis. Unggah ulang gambarnya untuk mendeteksi lubang." });
       return;
     }
     if (found.slots.length > 0) {
-      setOverlay(true);
-      change(found.slots.slice(0, MAX_SLOTS));
+      commit({ frame: f, overlay: true, slots: found.slots.slice(0, MAX_SLOTS) });
       setSel([0]);
       setSide("elemen");
       setNotice({ tone: "ok", text: `${found.slots.length} lubang foto terdeteksi dan sudah jadi slot. Klik slot untuk mengubahnya.` });
     } else if (replace || slots.length === 0) {
-      setOverlay(found.transparent);
-      change(fmt ? defaultSlots(fmt) : []);
+      commit({ frame: f, overlay: found.transparent, slots: fmt ? defaultSlots(fmt) : [] });
       setSel([]);
       setSide("elemen");
       setNotice({
@@ -303,6 +323,7 @@ export function TemplateEditor({
           : "Gambar dipakai sebagai latar (tidak ada bagian transparan). Slot contoh dipasang — atur sendiri atau gambar bentuk bebas.",
       });
     } else {
+      if (f !== frame) commit({ frame: f });
       setNotice({ tone: "warn", text: "Tidak ada lubang foto yang terdeteksi; slot yang ada tidak diubah." });
     }
   }
@@ -342,7 +363,6 @@ export function TemplateEditor({
     }
     setSource(src);
     const f = { src: URL.createObjectURL(file), width: w, height: h, file };
-    setFrame(f);
     setZoom(1);
     applyDetection(img, f, !template || slots.length === 0);
   }
@@ -403,7 +423,6 @@ export function TemplateEditor({
     const url = URL.createObjectURL(blob);
     const out = await loadImage(url);
     const f = { src: url, width: W, height: H, file: new File([blob], "frame.png", { type: "image/png" }) };
-    setFrame(f);
     setAdjust(null);
     setZoom(1);
     applyDetection(out, f, slots.length === 0);
@@ -610,7 +629,7 @@ export function TemplateEditor({
   function pushOnce(d: { pushed: boolean; before: Slot[] }) {
     if (d.pushed) return;
     d.pushed = true;
-    setHist({ past: [...hist.past.slice(-99), d.before], future: [] });
+    setHist({ past: [...hist.past.slice(-99), { ...snap(), slots: d.before }], future: [] });
   }
 
   function stageMove(e: React.PointerEvent) {
@@ -1183,7 +1202,7 @@ export function TemplateEditor({
                       <span className="font-medium">Bingkai di atas foto</span>
                       <span className="block text-xs text-subtle">Aktif: foto bisa terlihat lewat bagian transparan. Mati: gambar jadi latar, semua foto di atasnya.</span>
                     </span>
-                    <Switch checked={overlay} onChange={setOverlay} label="Bingkai di atas foto" />
+                    <Switch checked={overlay} onChange={(v) => commit({ overlay: v })} label="Bingkai di atas foto" />
                   </label>
                 )}
                 {frame && (
@@ -1489,6 +1508,22 @@ export function TemplateEditor({
                 <span className="text-xs">
                   PNG dengan bagian foto transparan → posisi foto terdeteksi otomatis. JPG juga bisa: posisi foto kamu atur sendiri. Maks. 4 MB.
                 </span>
+                <div className="mt-1 flex w-full flex-col items-center gap-2 border-t border-edge pt-4 text-xs">
+                  <span>Belum punya desain? Unduh panduan ukuran untuk Canva / Photoshop:</span>
+                  <div className="grid w-full grid-cols-3 gap-2">
+                    {FORMAT_KEYS.map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => void downloadGuide(f)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 font-medium text-primary ring-1 ring-inset ring-edge hover:bg-primary-soft"
+                      >
+                        <Download className="size-3.5 shrink-0" strokeWidth={2} />
+                        <span className="truncate">{FORMATS[f].label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : mode === "preview" ? (
               <div className="m-auto shrink-0" style={{ width: stageW }}>
