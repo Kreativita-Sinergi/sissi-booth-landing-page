@@ -235,6 +235,13 @@ export function TemplateEditor({
   const [clip, setClip] = useState<El[]>([]);
   const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [showTodo, setShowTodo] = useState(false);
+  /** Notifikasi singkat "lengkapi data" (hilang sendiri). */
+  const [toast, setToast] = useState<{ id: number; items: string[] } | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const [shapeMenu, setShapeMenu] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -891,9 +898,19 @@ export function TemplateEditor({
   if (!name.trim()) todo.push({ text: "Isi nama template.", name: true });
   if (frame && nPhotos === 0) todo.push({ text: "Tambahkan minimal satu foto.", tab: "elemen" });
 
-  /** Simpan. Ada yang kurang (atau kategori belum dipilih saat pertama kali) → pop-up isian dulu. */
+  /**
+   * Simpan: gambar latar / foto belum ada → notifikasi singkat saja. Selain itu selalu dialog konfirmasi
+   * (nama, kategori, tampil di booth) dulu; `confirmed` = dari tombol di dialog itu.
+   */
   function submit(confirmed = false) {
-    if (todo.length || !frame || !format || (!confirmed && cats.size === 0 && categories.length > 0)) {
+    const blocking = todo.filter((t) => !t.name);
+    if (blocking.length) {
+      setShowTodo(false);
+      // id baru tiap klik → animasi masuk diulang & timer diperpanjang.
+      setToast((cur) => ({ id: (cur?.id ?? 0) + 1, items: blocking.map((t) => t.text) }));
+      return;
+    }
+    if (!confirmed || todo.length || !frame || !format) {
       setShowTodo(true);
       return;
     }
@@ -1269,6 +1286,25 @@ export function TemplateEditor({
               Simpan
             </Button>
             {todo.length > 0 && <span aria-hidden className="absolute -right-1 -top-1 size-2.5 rounded-full bg-danger ring-2 ring-surface" />}
+            {toast && (
+              <div
+                key={toast.id}
+                role="status"
+                className="absolute right-0 top-full z-40 mt-3 flex w-[min(22rem,calc(100vw-2rem))] animate-toast items-start gap-3 rounded-xl border border-warning/30 bg-surface px-4 py-3 shadow-pop"
+              >
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning">
+                  <CircleDashed className="size-4" strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1 text-sm">
+                  <p className="font-semibold">Lengkapi data dulu</p>
+                  <ul className="mt-0.5 text-subtle">
+                    {toast.items.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
