@@ -16,6 +16,14 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-10** · Claude Opus 5.5 · Editor template: **gambar tidak pas → dialog konfirmasi** (alasan dalam bahasa sederhana +
+  pilih format, "Paling pas" disarankan) → **mode Atur gambar** (seret, zoom slider/roda mouse, Penuhi kotak / Tampilkan
+  utuh / Ke tengah, warna bagian kosong, ganti format; bagian terpotong tampil pudar) → Terapkan = dirender ke PNG ukuran
+  cetak di browser lalu lubang dideteksi. JPG/WEBP & ukuran Canva bisa dipakai; tombol "Atur posisi gambar" untuk mengatur
+  ulang. Teks bantuan kosong & daftar "Sebelum menyimpan". Diuji e2e (Story Canva 1080×1920, JPG persegi, PNG 8 MB, HP).
+  **Catatan:** bingkai berupa foto penuh warna bisa tetap > 4 MB sebagai PNG → usul backlog: API menerima JPEG untuk
+  bingkai tanpa transparansi.
+
 - **2026-10-10** · Claude Opus 5.5 · **Template bingkai W2b+W2c**: editor template web (unggah PNG, deteksi lubang
   transparan otomatis termasuk bentuk hati/bulat/miring, slot geser/ubah ukuran/putar/bentuk 6 jenis, pratinjau foto
   contoh, validasi format strip 2×6 / 4R tegak / 4R mendatar), daftar template pemilik (Semua/Buatan saya/Bawaan Sissi,

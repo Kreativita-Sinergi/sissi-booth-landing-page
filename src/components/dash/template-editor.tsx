@@ -3,16 +3,32 @@
 /* eslint-disable @next/next/no-img-element -- gambar bingkai lokal (object URL) / server file. */
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Copy, Eye, ImageUp, Loader2, Pencil, Plus, ScanSearch, SortAsc, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, Crop, Eye, ImageUp, Info, Loader2, Pencil, Plus, ScanSearch, SortAsc, Trash2 } from "lucide-react";
 import { cn } from "@/components/shared/cn";
 import type { ActionState } from "@/lib/dash/action-state";
-import { defaultSlots, detectSlots, FORMATS, formatFor, frameProblem, SHAPES, sortSlots } from "@/lib/dash/template";
-import type { FrameTemplate, Slot, SlotShape, TemplateCategory } from "@/lib/dash/types";
-import { Button, Switch } from "./client";
+import { closestFormat, defaultSlots, detectSlots, FORMAT_KEYS, FORMATS, formatFor, SHAPES, sortSlots } from "@/lib/dash/template";
+import type { FrameTemplate, Slot, SlotShape, TemplateCategory, TemplateFormat } from "@/lib/dash/types";
+import { Button, Dialog, Switch } from "./client";
 import { TemplatePreview } from "./template-preview";
 
 type Frame = { src: string; width: number; height: number; file?: File };
 type Drag = { kind: "move" | "resize" | "rotate"; i: number; x: number; y: number; start: Slot; corner?: [number, number] };
+/** Gambar asli yang diunggah (disimpan agar posisinya bisa diatur ulang). */
+type Source = { img: HTMLImageElement; url: string; name: string; png: boolean };
+/** Pengaturan "Atur gambar": gambar diletakkan di kanvas ukuran cetak (piksel kanvas), zoom 1 = memenuhi kanvas. */
+type Adjust = { src: Source; format: TemplateFormat; zoom: number; ox: number; oy: number; bg: string | null };
+type Ask = { src: Source; reasons: string[]; format: TemplateFormat };
+
+const ACCEPT = ["image/png", "image/jpeg", "image/webp"];
+const BG_CHOICES: { label: string; value: string | null }[] = [
+  { label: "Transparan", value: null },
+  { label: "Putih", value: "#ffffff" },
+  { label: "Hitam", value: "#000000" },
+];
+const mb = (n: number) => (n / 1024 / 1024).toLocaleString("id-ID", { maximumFractionDigits: 1 });
+/** Skala agar gambar memenuhi (cover) atau muat utuh (contain) di kanvas W×H. */
+const coverScale = (W: number, H: number, w: number, h: number) => Math.max(W / w, H / h);
+const containScale = (W: number, H: number, w: number, h: number) => Math.min(W / w, H / h);
 
 const MAX_FILE = 4 * 1024 * 1024; // batas body Server Action di Vercel ±4,5 MB
 const MAX_SLOTS = 12;
@@ -71,6 +87,9 @@ export function TemplateEditor({
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [notice, setNotice] = useState<{ tone: "ok" | "warn" | "err"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [source, setSource] = useState<Source | null>(null);
+  const [ask, setAsk] = useState<Ask | null>(null);
+  const [adjust, setAdjust] = useState<Adjust | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -85,6 +104,14 @@ export function TemplateEditor({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // Lepas object URL gambar asli lama saat diganti / editor ditutup.
+  useEffect(() => {
+    const url = source?.url;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [source?.url]);
 
   // Lepas object URL lama saat gambar diganti / editor ditutup.
   useEffect(() => {
@@ -140,26 +167,81 @@ export function TemplateEditor({
 
   async function pickFile(file: File) {
     setNotice(null);
-    if (file.type !== "image/png") return setNotice({ tone: "err", text: "Bingkai harus berupa file PNG (agar bagian transparan terbaca)." });
-    if (file.size > MAX_FILE) return setNotice({ tone: "err", text: "File terlalu besar (maks 4 MB). Kecilkan dengan TinyPNG atau ekspor ulang dari Canva/Photoshop." });
-    setBusy(true);
-    const src = URL.createObjectURL(file);
-    try {
-      const img = await loadImage(src);
-      const problem = frameProblem(img.naturalWidth, img.naturalHeight);
-      if (problem) {
-        URL.revokeObjectURL(src);
-        return setNotice({ tone: "err", text: problem });
-      }
-      const f = { src, width: img.naturalWidth, height: img.naturalHeight, file };
-      setFrame(f);
-      applyDetection(img, f, !template);
-    } catch {
-      URL.revokeObjectURL(src);
-      setNotice({ tone: "err", text: "Gambar tidak bisa dibuka. Pastikan file PNG tidak rusak." });
-    } finally {
-      setBusy(false);
+    if (!ACCEPT.includes(file.type)) {
+      return setNotice({ tone: "err", text: "Jenis file belum didukung. Pakai PNG (disarankan, agar bagian foto bisa transparan), JPG, atau WEBP." });
     }
+    setBusy(true);
+    const url = URL.createObjectURL(file);
+    let img: HTMLImageElement;
+    try {
+      img = await loadImage(url);
+    } catch {
+      URL.revokeObjectURL(url);
+      setBusy(false);
+      return setNotice({ tone: "err", text: "Gambar tidak bisa dibuka. Pastikan file tidak rusak, lalu coba lagi." });
+    }
+    setBusy(false);
+    const src: Source = { img, url, name: file.name, png: file.type === "image/png" };
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const fmt = formatFor(w, h);
+    const reasons: string[] = [];
+    if (!src.png) reasons.push("File ini bukan PNG, jadi tidak punya bagian transparan. Gambar akan dipakai sebagai latar dan foto diletakkan di atasnya.");
+    if (!fmt) reasons.push(`Ukurannya ${w} × ${h} px — bentuknya tidak sama dengan format cetak mana pun, jadi perlu dipotong atau diberi latar.`);
+    else if (Math.min(w, h) < FORMATS[fmt].minShort) reasons.push(`Gambar lebih kecil dari ukuran cetak ${FORMATS[fmt].label} (${FORMATS[fmt].size}). Masih bisa dipakai, tapi hasil cetak bisa sedikit buram.`);
+    if (Math.max(w, h) > 6000) reasons.push("Gambar sangat besar (lebih dari 6000 px). Akan diperkecil otomatis ke ukuran cetak.");
+    if (file.size > MAX_FILE) reasons.push(`Ukuran file ${mb(file.size)} MB melebihi batas 4 MB. Gambar akan disimpan ulang di ukuran cetak — biasanya jadi lebih kecil. Kalau masih terlalu besar, kecilkan dulu dengan TinyPNG.`);
+    if (reasons.length > 0) {
+      setAsk({ src, reasons, format: fmt ?? closestFormat(w, h) });
+      return;
+    }
+    // Pas: langsung dipakai apa adanya.
+    setSource(src);
+    const f = { src: URL.createObjectURL(file), width: w, height: h, file };
+    setFrame(f);
+    applyDetection(img, f, !template || slots.length === 0);
+  }
+
+  function startAdjust(src: Source, format: TemplateFormat) {
+    setSource(src);
+    setAsk(null);
+    setMode("edit");
+    setNotice(null);
+    // Latar putih bawaan: bagian kosong transparan bisa terbaca sebagai lubang foto.
+    setAdjust({ src, format, zoom: 1, ox: 0, oy: 0, bg: "#ffffff" });
+  }
+
+  async function applyAdjust() {
+    if (!adjust) return;
+    const [W, H] = FORMATS[adjust.format].px;
+    const { img } = adjust.src;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const k = coverScale(W, H, iw, ih) * adjust.zoom;
+    const c = document.createElement("canvas");
+    c.width = W;
+    c.height = H;
+    const ctx = c.getContext("2d")!;
+    if (adjust.bg) {
+      ctx.fillStyle = adjust.bg;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, W / 2 + adjust.ox - (iw * k) / 2, H / 2 + adjust.oy - (ih * k) / 2, iw * k, ih * k);
+    setBusy(true);
+    const blob = await new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
+    setBusy(false);
+    if (!blob) return setNotice({ tone: "err", text: "Gambar gagal diproses. Coba lagi." });
+    if (blob.size > MAX_FILE) {
+      return setNotice({
+        tone: "err",
+        text: `Hasilnya ${mb(blob.size)} MB, masih di atas batas 4 MB (biasanya karena foto penuh warna). Coba pakai gambar dengan warna lebih sederhana, atau kecilkan dulu di TinyPNG.`,
+      });
+    }
+    const url = URL.createObjectURL(blob);
+    const out = await loadImage(url);
+    const f = { src: url, width: W, height: H, file: new File([blob], "frame.png", { type: "image/png" }) };
+    setFrame(f);
+    setAdjust(null);
+    applyDetection(out, f, slots.length === 0);
   }
 
   async function redetect() {
@@ -325,7 +407,7 @@ export function TemplateEditor({
         {/* Panggung */}
         <section className="min-w-0 rounded-xl border border-edge bg-surface shadow-card">
           <header className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-4 py-3">
-            <div className="inline-flex rounded-lg bg-canvas p-0.5" role="tablist" aria-label="Tampilan">
+            <div className={cn("inline-flex rounded-lg bg-canvas p-0.5", adjust && "invisible")} role="tablist" aria-label="Tampilan">
               {(
                 [
                   ["edit", "Atur slot", Pencil],
@@ -345,19 +427,26 @@ export function TemplateEditor({
               ))}
             </div>
             <span className="text-xs text-subtle">
-              {frame && format ? `${FORMATS[format].label} · ${frame.width}×${frame.height} px` : "Belum ada gambar"}
+              {adjust
+                ? `Atur gambar · ${FORMATS[adjust.format].label} · ${FORMATS[adjust.format].size}`
+                : frame && format
+                  ? `${FORMATS[format].label} · ${frame.width}×${frame.height} px`
+                  : "Belum ada gambar"}
             </span>
           </header>
-          <div ref={boxRef} className="flex justify-center p-4 sm:p-6">
-            {!frame ? (
+          <div ref={boxRef} className="flex justify-center overflow-hidden p-4 sm:p-6">
+            {adjust ? (
+              <AdjustStage adjust={adjust} boxW={boxW} maxH={maxH} onChange={setAdjust} />
+            ) : !frame ? (
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 className="flex aspect-[2/3] w-full max-w-sm flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-edge-strong p-6 text-center text-sm text-subtle hover:border-primary hover:bg-primary-soft/40"
               >
                 <ImageUp className="size-10 text-primary" strokeWidth={1.5} />
-                <span className="font-medium text-fg">Unggah bingkai PNG</span>
-                <span>Strip 600×1800 · 4R 1200×1800 / 1800×1200 px. Bagian foto dibuat transparan.</span>
+                <span className="font-medium text-fg">Unggah gambar bingkai</span>
+                <span>PNG dengan bagian foto transparan paling mudah — posisi foto langsung terdeteksi.</span>
+                <span className="text-xs">Ukuran lain atau JPG juga bisa: nanti kamu atur posisinya sendiri.</span>
               </button>
             ) : mode === "preview" ? (
               <div style={{ width: stageW }}>
@@ -418,7 +507,11 @@ export function TemplateEditor({
               </div>
             )}
           </div>
-          {frame && mode === "edit" && (
+          {adjust ? (
+            <p className="border-t border-edge px-4 py-2.5 text-xs text-subtle">
+              Seret gambar untuk menggeser. Kotak bergaris = area cetak; bagian gambar di luar kotak (pudar) akan terpotong.
+            </p>
+          ) : frame && mode === "edit" && (
             <p className="border-t border-edge px-4 py-2.5 text-xs text-subtle">
               Seret slot untuk memindahkan · tarik sudut untuk ubah ukuran (Shift = proporsional) · bulatan atas untuk memutar · panah untuk menggeser halus.
             </p>
@@ -426,6 +519,9 @@ export function TemplateEditor({
         </section>
 
         {/* Panel */}
+        {adjust ? (
+          <AdjustPanel adjust={adjust} onChange={setAdjust} onCancel={() => setAdjust(null)} onApply={applyAdjust} busy={busy} notice={notice} />
+        ) : (
         <div className="flex min-w-0 flex-col gap-4">
           <Panel title="Gambar bingkai">
             <input
@@ -447,6 +543,11 @@ export function TemplateEditor({
               {frame && (
                 <Button small onClick={redetect} disabled={busy}>
                   <ScanSearch className="size-4" strokeWidth={2} /> Deteksi ulang lubang
+                </Button>
+              )}
+              {source && (
+                <Button small onClick={() => startAdjust(source, format ?? closestFormat(source.img.naturalWidth, source.img.naturalHeight))} disabled={busy}>
+                  <Crop className="size-4" strokeWidth={2} /> Atur posisi gambar
                 </Button>
               )}
             </div>
@@ -620,14 +721,242 @@ export function TemplateEditor({
           </Panel>
 
           {problems.length > 0 && (
-            <ul className="list-disc rounded-lg bg-canvas px-4 py-3 pl-8 text-xs text-subtle">
-              {problems.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
+            <div className="rounded-lg bg-canvas px-4 py-3 text-xs text-subtle">
+              <p className="mb-1 font-medium text-fg">Sebelum menyimpan:</p>
+              <ul className="list-disc pl-4">
+                {problems.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
+        )}
       </div>
+
+      <Dialog open={ask !== null} onClose={() => setAsk(null)} title="Gambar perlu disesuaikan" wide>
+        {ask && (
+          <div className="flex flex-col gap-4 text-sm">
+            <div className="flex gap-3 rounded-lg border border-warning/20 bg-warning-soft px-3 py-2.5 text-warning">
+              <Info className="mt-0.5 size-4 shrink-0" strokeWidth={2} />
+              <div>
+                <p className="font-medium">
+                  {ask.src.name} · {ask.src.img.naturalWidth} × {ask.src.img.naturalHeight} px
+                </p>
+                <ul className="mt-1 list-disc pl-4">
+                  {ask.reasons.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 font-medium">Mau dicetak dengan format apa?</p>
+              <FormatPicker value={ask.format} onChange={(f) => setAsk({ ...ask, format: f })} suggested={closestFormat(ask.src.img.naturalWidth, ask.src.img.naturalHeight)} />
+            </div>
+            <p className="text-subtle">
+              Kalau lanjut, gambar diletakkan di kanvas {FORMATS[ask.format].label} ({FORMATS[ask.format].size}). Kamu bisa menggeser, memperbesar, dan memilih warna untuk
+              bagian yang kosong — lalu tekan <b className="font-medium text-fg">Terapkan</b>.
+            </p>
+            <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+              <Button
+                onClick={() => {
+                  URL.revokeObjectURL(ask.src.url);
+                  setAsk(null);
+                  fileRef.current?.click();
+                }}
+              >
+                Pilih gambar lain
+              </Button>
+              <Button tone="blue" onClick={() => startAdjust(ask.src, ask.format)}>
+                <Crop className="size-4" strokeWidth={2} /> Lanjut atur gambar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
+    </div>
+  );
+}
+
+/** Pilihan format cetak (kartu kecil dengan bentuk kertas). */
+function FormatPicker({ value, onChange, suggested }: { value: TemplateFormat; onChange: (f: TemplateFormat) => void; suggested?: TemplateFormat }) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {FORMAT_KEYS.map((f) => {
+        const [w, h] = FORMATS[f].px;
+        const on = f === value;
+        return (
+          <button
+            key={f}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(f)}
+            className={cn("flex flex-col items-center gap-1.5 rounded-lg p-2.5 text-center ring-1 ring-inset", on ? "bg-primary-soft ring-primary" : "bg-surface ring-edge-strong hover:bg-canvas")}
+          >
+            <span className="flex h-10 items-center">
+              <span className={cn("block rounded-[2px] border-2", on ? "border-primary bg-surface" : "border-edge-strong")} style={{ height: w > h ? 24 : 40, width: ((w > h ? 24 : 40) * w) / h }} />
+            </span>
+            <span className={cn("text-xs font-medium", on && "text-primary")}>{FORMATS[f].label}</span>
+            <span className="text-[11px] leading-tight text-subtle">{FORMATS[f].size}</span>
+            {f === suggested && <span className="rounded-full bg-success-soft px-1.5 text-[10px] font-medium text-success">Paling pas</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Panggung "Atur gambar": kanvas ukuran cetak + gambar yang bisa diseret; bagian di luar kanvas tampil pudar. */
+function AdjustStage({
+  adjust,
+  boxW,
+  maxH,
+  onChange,
+}: {
+  adjust: Adjust;
+  boxW: number;
+  maxH: number;
+  onChange: (a: Adjust) => void;
+}) {
+  const pan = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const el = useRef<HTMLDivElement>(null);
+  const latest = useRef({ adjust, onChange });
+  useEffect(() => {
+    latest.current = { adjust, onChange };
+  });
+  // Zoom dengan roda mouse tanpa ikut menggulir halaman (listener non-pasif).
+  useEffect(() => {
+    const node = el.current;
+    if (!node) return;
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const { adjust: a, onChange: set } = latest.current;
+      set({ ...a, zoom: clamp(a.zoom * (e.deltaY < 0 ? 1.06 : 1 / 1.06), 0.1, 4) });
+    };
+    node.addEventListener("wheel", wheel, { passive: false });
+    return () => node.removeEventListener("wheel", wheel);
+  }, []);
+  const [W, H] = FORMATS[adjust.format].px;
+  // Sisakan ruang di sekitar kanvas agar bagian gambar yang terpotong tetap terlihat (pudar).
+  const k = Math.min(((boxW || 1) * 0.8) / W, (maxH * 0.9) / H);
+  const cw = W * k, ch = H * k;
+  const { img } = adjust.src;
+  const s = coverScale(W, H, img.naturalWidth, img.naturalHeight) * adjust.zoom * k;
+  const iw = img.naturalWidth * s, ih = img.naturalHeight * s;
+  const left = cw / 2 + adjust.ox * k - iw / 2, top = ch / 2 + adjust.oy * k - ih / 2;
+  const pic = (cls: string) => (
+    <img src={adjust.src.url} alt="" draggable={false} className={cn("pointer-events-none absolute max-w-none select-none", cls)} style={{ left, top, width: iw, height: ih }} />
+  );
+  return (
+    <div
+      ref={el}
+      className="relative my-6 cursor-grab touch-none select-none active:cursor-grabbing"
+      style={{ width: cw, height: ch }}
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        pan.current = { x: e.clientX, y: e.clientY, ox: adjust.ox, oy: adjust.oy };
+      }}
+      onPointerMove={(e) => {
+        const p = pan.current;
+        if (!p) return;
+        onChange({ ...adjust, ox: Math.round(p.ox + (e.clientX - p.x) / k), oy: Math.round(p.oy + (e.clientY - p.y) / k) });
+      }}
+      onPointerUp={() => (pan.current = null)}
+      onPointerCancel={() => (pan.current = null)}
+    >
+      {pic("opacity-25")}
+      <div className={cn("absolute inset-0 overflow-hidden outline-2 outline-offset-0 outline-primary", !adjust.bg && "checker")} style={adjust.bg ? { background: adjust.bg } : undefined}>
+        {pic("")}
+      </div>
+    </div>
+  );
+}
+
+/** Panel "Atur gambar": format, ukuran (zoom), posisi cepat, warna latar, terapkan. */
+function AdjustPanel({
+  adjust,
+  onChange,
+  onCancel,
+  onApply,
+  busy,
+  notice,
+}: {
+  adjust: Adjust;
+  onChange: (a: Adjust) => void;
+  onCancel: () => void;
+  onApply: () => void;
+  busy: boolean;
+  notice: { tone: "ok" | "warn" | "err"; text: string } | null;
+}) {
+  const [W, H] = FORMATS[adjust.format].px;
+  const { img } = adjust.src;
+  const fit = containScale(W, H, img.naturalWidth, img.naturalHeight) / coverScale(W, H, img.naturalWidth, img.naturalHeight);
+  const custom = adjust.bg !== null && !BG_CHOICES.some((b) => b.value === adjust.bg);
+  return (
+    <div className="flex min-w-0 flex-col gap-4">
+      <Panel title="Atur gambar">
+        <p className="flex gap-2 rounded-lg bg-primary-soft px-3 py-2 text-xs text-primary">
+          <Info className="mt-px size-3.5 shrink-0" strokeWidth={2} />
+          Seret gambar di panggung untuk menggeser, gulir mouse atau pakai slider untuk memperbesar. Yang tercetak hanya isi kotak bergaris.
+        </p>
+        <div className="flex flex-col gap-2 text-sm">
+          <span className="font-medium">Format cetak</span>
+          <FormatPicker value={adjust.format} onChange={(f) => onChange({ ...adjust, format: f, ox: 0, oy: 0, zoom: 1 })} suggested={closestFormat(img.naturalWidth, img.naturalHeight)} />
+        </div>
+        <div className="flex flex-col gap-1.5 text-sm">
+          <span className="flex items-center justify-between font-medium">
+            Ukuran gambar <span className="font-normal tabular-nums text-subtle">{Math.round(adjust.zoom * 100)}%</span>
+          </span>
+          <input
+            type="range"
+            min={0.1}
+            max={4}
+            step={0.01}
+            value={adjust.zoom}
+            onChange={(e) => onChange({ ...adjust, zoom: Number(e.target.value) })}
+            className="accent-primary"
+            aria-label="Ukuran gambar"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            <Button small onClick={() => onChange({ ...adjust, zoom: 1, ox: 0, oy: 0 })}>Penuhi kotak</Button>
+            <Button small onClick={() => onChange({ ...adjust, zoom: fit, ox: 0, oy: 0 })}>Tampilkan utuh</Button>
+            <Button small onClick={() => onChange({ ...adjust, ox: 0, oy: 0 })}>Ke tengah</Button>
+          </div>
+          <p className="text-xs text-subtle">
+            <b className="font-medium">Penuhi kotak</b>: tanpa ruang kosong, sebagian gambar terpotong. <b className="font-medium">Tampilkan utuh</b>: seluruh gambar terlihat, sisa
+            ruang diisi warna latar.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium">Warna bagian kosong</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {BG_CHOICES.map((b) => (
+              <button
+                key={b.label}
+                type="button"
+                aria-pressed={adjust.bg === b.value}
+                onClick={() => onChange({ ...adjust, bg: b.value })}
+                className={cn("h-8 rounded-lg px-3 text-xs font-medium ring-1 ring-inset", adjust.bg === b.value ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface ring-edge-strong hover:bg-canvas")}
+              >
+                {b.label}
+              </button>
+            ))}
+            <label className={cn("inline-flex h-8 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-xs font-medium ring-1 ring-inset", custom ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface ring-edge-strong hover:bg-canvas")}>
+              <input type="color" value={adjust.bg ?? "#ffffff"} onChange={(e) => onChange({ ...adjust, bg: e.target.value })} className="size-5 cursor-pointer rounded border-0 bg-transparent p-0" aria-label="Warna lain" />
+              Warna lain
+            </label>
+          </div>
+          {adjust.bg === null && <p className="text-xs text-warning">Bagian kosong tetap transparan — foto tamu akan terlihat di sana dan bisa terdeteksi sebagai lubang foto.</p>}
+        </div>
+        {notice?.tone === "err" && <p className="rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">{notice.text}</p>}
+        <div className="flex gap-2 border-t border-edge pt-3">
+          <Button onClick={onCancel} className="flex-1">Batal</Button>
+          <Button tone="blue" onClick={onApply} disabled={busy} className="flex-1">
+            {busy && <Loader2 className="size-4 animate-spin" />} Terapkan
+          </Button>
+        </div>
+      </Panel>
     </div>
   );
 }

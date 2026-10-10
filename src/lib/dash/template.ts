@@ -3,10 +3,10 @@ import type { Slot, SlotShape, TemplateFormat } from "./types";
 /** Logika template bingkai yang dipakai editor & pratinjau (aman di server maupun browser). */
 
 /** Format cetak → rasio & ukuran (docs/api.md §8.1). */
-export const FORMATS: Record<TemplateFormat, { label: string; hint: string; ratio: number; minShort: number; size: string }> = {
-  strip_2x6: { label: "Strip 2×6", hint: "Dua strip kembar per lembar 4×6", ratio: 1 / 3, minShort: 600, size: "600 × 1800 px" },
-  "4r_portrait": { label: "4R tegak", hint: "Satu lembar 4×6 tegak", ratio: 2 / 3, minShort: 1200, size: "1200 × 1800 px" },
-  "4r_landscape": { label: "4R mendatar", hint: "Satu lembar 4×6 mendatar", ratio: 3 / 2, minShort: 1200, size: "1800 × 1200 px" },
+export const FORMATS: Record<TemplateFormat, { label: string; hint: string; ratio: number; minShort: number; size: string; px: [number, number] }> = {
+  strip_2x6: { label: "Strip 2×6", hint: "Dua strip kembar per lembar 4×6", ratio: 1 / 3, minShort: 600, size: "600 × 1800 px", px: [600, 1800] },
+  "4r_portrait": { label: "4R tegak", hint: "Satu lembar 4×6 tegak", ratio: 2 / 3, minShort: 1200, size: "1200 × 1800 px", px: [1200, 1800] },
+  "4r_landscape": { label: "4R mendatar", hint: "Satu lembar 4×6 mendatar", ratio: 3 / 2, minShort: 1200, size: "1800 × 1200 px", px: [1800, 1200] },
 };
 
 export const FORMAT_KEYS = Object.keys(FORMATS) as TemplateFormat[];
@@ -15,6 +15,12 @@ export const FORMAT_KEYS = Object.keys(FORMATS) as TemplateFormat[];
 export function formatFor(width: number, height: number): TemplateFormat | null {
   const r = width / height;
   return FORMAT_KEYS.find((f) => Math.abs(r - FORMATS[f].ratio) / FORMATS[f].ratio <= 0.02) ?? null;
+}
+
+/** Format dengan rasio paling dekat (untuk saran saat gambar tidak pas). */
+export function closestFormat(width: number, height: number): TemplateFormat {
+  const r = width / height;
+  return FORMAT_KEYS.reduce((a, b) => (Math.abs(Math.log(r / FORMATS[b].ratio)) < Math.abs(Math.log(r / FORMATS[a].ratio)) ? b : a));
 }
 
 /** Pesan bila gambar tidak memenuhi syarat format; null = boleh dipakai. */
