@@ -16,6 +16,10 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-11** · Claude Opus 5.5 · Editor template: **hijau penanda** — area hijau terang (#00FF00) di JPG/PNG terdeteksi
+  saat unggah (`findGreen` di `lib/dash/template.ts`, area kecil diabaikan, tepi kehijauan ikut dibuang), pengguna ditanya
+  dulu lalu diubah jadi PNG transparan (`keyGreen`) → deteksi lubang biasa. PNG panduan kini memakai kotak hijau; teks
+  Saran gambar & Panduan menyebut cara hijau. Sebelumnya: tab Lapisan, dialog Simpan, notifikasi geser, dll.
 - **2026-10-10** · Claude Opus 5.5 · Editor template: **gambar hiasan** (lapisan gambar di atas foto & bingkai: unggah
   terpisah lewat `uploadOwnerAsset/uploadAdminAsset` → `POST …/template-assets`, geser/ukuran proporsional/putar/magnet/
   urungkan, majukan/mundurkan, pratinjau & kartu daftar ikut menampilkan), elemen editor = foto lalu gambar (`El`);

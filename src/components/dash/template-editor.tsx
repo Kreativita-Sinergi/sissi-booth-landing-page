@@ -63,6 +63,7 @@ import {
   flatHandle,
   FORMAT_KEYS,
   FORMATS,
+  findGreen,
   formatFor,
   isSmooth,
   refitPoints,
@@ -92,6 +93,7 @@ import {
   FrameTips,
   holeMask,
   IconBtn,
+  keyGreen,
   loadImage,
   MAX_FILE,
   MAX_SLOTS,
@@ -235,6 +237,7 @@ export function TemplateEditor({
   const [clip, setClip] = useState<El[]>([]);
   const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [showTodo, setShowTodo] = useState(false);
+  const [greenAsk, setGreenAsk] = useState<{ file: File; img: HTMLImageElement; regions: number } | null>(null);
   /** Notifikasi singkat "lengkapi data" (hilang sendiri). */
   const [toast, setToast] = useState<{ id: number; items: string[] } | null>(null);
   useEffect(() => {
@@ -379,7 +382,8 @@ export function TemplateEditor({
     }
   }
 
-  async function pickFile(file: File) {
+  /** `keyed` = sudah lewat cek hijau penanda (hasil ubah ke transparan, atau pengguna menolak). */
+  async function pickFile(file: File, keyed = false) {
     setNotice(null);
     if (!ACCEPT.includes(file.type)) {
       return setNotice({ tone: "err", text: "Jenis file belum didukung. Pakai PNG (disarankan, agar bagian foto bisa transparan), JPG, atau WEBP." });
@@ -395,6 +399,16 @@ export function TemplateEditor({
       return setNotice({ tone: "err", text: "Gambar tidak bisa dibuka. Pastikan file tidak rusak, lalu coba lagi." });
     }
     setBusy(false);
+    if (!keyed) {
+      // Hijau penanda tempat foto (untuk yang belum paham PNG transparan) → tawarkan jadikan lubang.
+      const px = pixels(img);
+      const { regions } = findGreen(px.data, px.w, px.h);
+      if (regions > 0) {
+        URL.revokeObjectURL(url);
+        setGreenAsk({ file, img, regions });
+        return;
+      }
+    }
     const src: Source = { img, url, name: file.name, png: file.type === "image/png" };
     const w = img.naturalWidth, h = img.naturalHeight;
     const fmt = formatFor(w, h);
@@ -416,6 +430,18 @@ export function TemplateEditor({
     const f = { src: URL.createObjectURL(file), width: w, height: h, file };
     setZoom(1);
     applyDetection(img, f, !template || nPhotos === 0);
+  }
+
+  /** Ya: area hijau → transparan (PNG baru), lalu lanjut unggah biasa (deteksi lubang). */
+  async function applyGreen() {
+    if (!greenAsk) return;
+    const { file, img } = greenAsk;
+    setGreenAsk(null);
+    setBusy(true);
+    const out = await keyGreen(img);
+    setBusy(false);
+    if (!out) return void pickFile(file, true);
+    await pickFile(new File([out.blob], file.name.replace(/\.[^.]+$/, "") + ".png", { type: "image/png" }), true);
   }
 
   function startAdjust(src: Source, fmt: TemplateFormat) {
@@ -941,7 +967,7 @@ export function TemplateEditor({
   function onKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
     if (t && (t.closest("input, textarea, [contenteditable=true]") || t.closest("[role=dialog]"))) return;
-    if (ask || tips || keys || guide || showTodo) return;
+    if (ask || tips || keys || guide || showTodo || greenAsk) return;
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
     if (mod && k === "s") {
@@ -1488,7 +1514,7 @@ export function TemplateEditor({
                     <span className="flex-1">Saran gambar</span>
                     <ChevronRight className="size-4 shrink-0 text-subtle" strokeWidth={2} />
                   </span>
-                  <span className="text-xs text-subtle">Ukuran tiap format, unduh panduan, dan tips PNG transparan.</span>
+                  <span className="text-xs text-subtle">Ukuran tiap format, unduh panduan, dan cara menandai tempat foto.</span>
                 </button>
               </div>
             ) : panel === "info" ? (
@@ -2020,6 +2046,33 @@ export function TemplateEditor({
       </Dialog>
 
       <TemplateGuide open={guide} onOpenChange={setGuide} />
+      <Dialog open={!!greenAsk} onClose={() => setGreenAsk(null)} title="Area hijau terdeteksi">
+        {greenAsk && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <span className="size-10 shrink-0 rounded-lg ring-1 ring-inset ring-edge" style={{ background: "#00ff00" }} aria-hidden />
+              <p className="text-sm text-subtle">
+                Ada <b className="font-medium text-fg">{greenAsk.regions} area hijau</b> di gambarmu. Jadikan tempat foto? Area hijau akan dihapus
+                (jadi transparan) dan posisi fotonya dipasang otomatis.
+              </p>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                onClick={() => {
+                  const f = greenAsk.file;
+                  setGreenAsk(null);
+                  void pickFile(f, true);
+                }}
+              >
+                Tidak, pakai apa adanya
+              </Button>
+              <Button tone="blue" onClick={() => void applyGreen()} disabled={busy}>
+                {busy && <Loader2 className="size-4 animate-spin" />} Ya, jadikan tempat foto
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
       <Dialog open={showTodo} onClose={() => setShowTodo(false)} title={template ? "Simpan perubahan" : "Simpan template"} wide>
         <form
           className="flex flex-col gap-5"

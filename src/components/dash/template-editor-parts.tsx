@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, Info, Loader2 } from "lucide-react";
 import { cn } from "@/components/shared/cn";
-import { closestFormat, defaultSlots, FORMAT_KEYS, FORMATS, SAFE } from "@/lib/dash/template";
+import { closestFormat, defaultSlots, findGreen, FORMAT_KEYS, FORMATS, SAFE } from "@/lib/dash/template";
 import type { TemplateFormat } from "@/lib/dash/types";
 import { Button } from "./client";
 
@@ -66,7 +66,28 @@ export function pixels(img: HTMLImageElement) {
   return { data: ctx.getImageData(0, 0, w, h).data, w, h };
 }
 
-/** PNG panduan ukuran: kanvas ukuran cetak, garis aman, dan contoh lubang foto transparan bernomor. */
+/**
+ * Ubah area hijau penanda jadi transparan → PNG. Gambar sangat besar diperkecil dulu (sisi ≤ 3000 px) agar cepat;
+ * nanti tetap disesuaikan ke ukuran cetak.
+ */
+export async function keyGreen(img: HTMLImageElement): Promise<{ blob: Blob; regions: number } | null> {
+  const scale = Math.min(1, 3000 / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  ctx.drawImage(img, 0, 0, w, h);
+  const id = ctx.getImageData(0, 0, w, h);
+  const { mask, regions } = findGreen(id.data, w, h);
+  if (!regions) return null;
+  for (let p = 0; p < mask.length; p++) if (mask[p]) id.data[p * 4 + 3] = 0;
+  ctx.putImageData(id, 0, 0);
+  const blob = await new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
+  return blob && { blob, regions };
+}
+
+/** PNG panduan ukuran: kanvas ukuran cetak, garis aman, dan contoh tempat foto (hijau penanda) bernomor. */
 export async function downloadGuide(format: TemplateFormat) {
   const [W, H] = FORMATS[format].px;
   const c = document.createElement("canvas");
@@ -82,13 +103,13 @@ export async function downloadGuide(format: TemplateFormat) {
   const u = Math.min(W, H) / 600;
   defaultSlots(format).forEach((sl, i) => {
     const x = sl.x * W, y = sl.y * H, w = sl.w * W, h = sl.h * H;
-    ctx.clearRect(x, y, w, h);
-    ctx.strokeStyle = "#2563eb";
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = "#2563eb";
-    ctx.font = `600 ${28 * u}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(`FOTO ${i + 1} (transparan)`, x + w / 2, y + h / 2);
+    // Hijau penanda polos (tanpa tulisan di dalamnya, agar terdeteksi utuh); label di atas kotak.
+    ctx.fillStyle = "#00ff00";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = "#166534";
+    ctx.font = `600 ${20 * u}px sans-serif`;
+    ctx.textAlign = "left";
+    ctx.fillText(`FOTO ${i + 1} — hijau / transparan`, x, y - 8 * u);
   });
   ctx.fillStyle = "#64748b";
   ctx.font = `${18 * u}px sans-serif`;
@@ -138,8 +159,8 @@ export function FrameTips() {
       </div>
       <ul className="flex list-disc flex-col gap-1 pl-4 text-xs text-subtle">
         <li>
-          Simpan sebagai <b className="font-medium text-fg">PNG</b> dan buat <b className="font-medium text-fg">bagian foto transparan</b> (dihapus) — posisinya terdeteksi
-          otomatis, bentuk apa pun: kotak, bulat, hati.
+          Tandai tempat foto dengan <b className="font-medium text-fg">warna hijau terang (#00FF00)</b> — boleh JPG atau PNG. Atau, kalau terbiasa, buat
+          bagian foto <b className="font-medium text-fg">transparan</b> di PNG. Posisinya terdeteksi otomatis, bentuk apa pun: kotak, bulat, hati.
         </li>
         <li>Pakai ukuran piksel persis seperti di atas. Ukuran lain tetap bisa, nanti diatur posisinya.</li>
         <li>Jauhkan teks & logo penting dari tepi (±3%, garis merah di panduan) — tepi bisa sedikit terpotong saat cetak.</li>

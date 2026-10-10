@@ -51,7 +51,8 @@ const STEPS: Step[] = [
       <Points
         items={[
           <>
-            Klik <B>Pilih gambar</B> atau seret file ke kanvas. Bagian <B>transparan</B> pada PNG langsung jadi tempat foto, apa pun bentuknya.
+            Klik <B>Pilih gambar</B> atau seret file ke kanvas. Area <B>hijau terang (#00FF00)</B> atau bagian <B>transparan</B> pada PNG langsung jadi
+            tempat foto, apa pun bentuknya.
           </>,
           <>Ukuran tidak pas? Editor menawarkan <B>Atur gambar</B>: geser & zoom gambarmu ke ukuran cetak, ruang kosong diberi warna.</>,
           <>JPG / gambar tanpa lubang tetap bisa: gambar dipakai sebagai latar dan foto kamu taruh sendiri di atasnya.</>,

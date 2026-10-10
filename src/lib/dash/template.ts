@@ -432,3 +432,67 @@ export function refitPoints(s: Slot, W: number, H: number): Slot {
     ...(hsLocal ? { handles: hsLocal.map((c) => [round((c[0] - minX) / nw), round((c[1] - minY) / nh), round((c[2] - minX) / nw), round((c[3] - minY) / nh)] as Handle) } : {}),
   };
 }
+
+// --- Hijau penanda (chroma key) ---
+
+/** Hijau penanda tempat foto: hijau terang & jenuh (mis. #00FF00), toleran terhadap kompresi JPG. */
+const isKeyGreen = (r: number, g: number, b: number) => g >= 140 && g - Math.max(r, b) >= 90;
+/** Tepi kehijauan di sekitar area hijau (sisa kompresi / anti-alias) — ikut dibuang agar tidak ada garis hijau. */
+const isGreenish = (r: number, g: number, b: number) => g - Math.max(r, b) >= 35;
+
+/**
+ * Cari area hijau penanda tempat foto pada piksel RGBA. Area kecil (< `minFrac` luas gambar, mis. tulisan / daun hijau)
+ * diabaikan. Hasil `mask` (1 = jadikan transparan) sudah dilebarkan ke tepi kehijauan di sekitarnya.
+ */
+export function findGreen(data: Uint8ClampedArray, w: number, h: number, minFrac = 0.004): { mask: Uint8Array; regions: number } {
+  const n = w * h;
+  const green = new Uint8Array(n);
+  for (let i = 0; i < n; i++) if (isKeyGreen(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]) && data[i * 4 + 3] > 200) green[i] = 1;
+  const mask = new Uint8Array(n);
+  const seen = new Uint8Array(n);
+  const stack = new Int32Array(n);
+  let regions = 0;
+  const min = Math.max(16, n * minFrac);
+  for (let s = 0; s < n; s++) {
+    if (!green[s] || seen[s]) continue;
+    // Isi banjir 4 arah; anggota area ditandai di mask bila cukup besar.
+    let top = 0, len = 0;
+    stack[top++] = s;
+    seen[s] = 1;
+    const members: number[] = [];
+    while (top > 0) {
+      const p = stack[--top];
+      members.push(p);
+      len++;
+      const x = p % w, y = (p - x) / w;
+      const push = (q: number) => {
+        if (green[q] && !seen[q]) {
+          seen[q] = 1;
+          stack[top++] = q;
+        }
+      };
+      if (x > 0) push(p - 1);
+      if (x < w - 1) push(p + 1);
+      if (y > 0) push(p - w);
+      if (y < h - 1) push(p + w);
+    }
+    if (len >= min) {
+      regions++;
+      for (const p of members) mask[p] = 1;
+    }
+  }
+  if (!regions) return { mask, regions };
+  // Lebarkan 3 langkah ke tepi yang masih kehijauan, lalu 1 langkah tanpa syarat (garis anti-alias tipis).
+  for (let pass = 0; pass < 4; pass++) {
+    const loose = pass === 3;
+    const add: number[] = [];
+    for (let p = 0; p < n; p++) {
+      if (mask[p]) continue;
+      const x = p % w;
+      const near = (x > 0 && mask[p - 1]) || (x < w - 1 && mask[p + 1]) || (p >= w && mask[p - w]) || (p < n - w && mask[p + w]);
+      if (near && (loose || isGreenish(data[p * 4], data[p * 4 + 1], data[p * 4 + 2]))) add.push(p);
+    }
+    for (const p of add) mask[p] = 1;
+  }
+  return { mask, regions };
+}
