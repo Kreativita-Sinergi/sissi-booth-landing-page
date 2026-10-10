@@ -16,6 +16,16 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-10** · Claude Opus 5.5 · **Editor template gaya Canva**: bar atas (nama langsung diketik, urungkan/ulangi, zoom
+  50–300% + Ctrl/⌘+roda, pratinjau, simpan dengan daftar "lengkapi dulu"), sidebar ikon **Elemen** (tambah foto 5 bentuk,
+  **bentuk sendiri**: klik titik demi titik / seret bebas, urutan foto), **Latar**, **Info**, **Pintasan**; toolbar kontekstual
+  (satu foto: bentuk, edit titik, lengkung, lapisan, miring, tengah, urutan, duplikat, hapus · banyak foto: rata 6 arah,
+  jarak rata, samakan ukuran, lapisan); pilih banyak (Shift+klik, kotak pilih, ⌘A); pegangan sisi + sudut; **pintasan**
+  ⌘Z/⌘⇧Z, ⌘C/⌘V, ⌘D, Delete, panah, ⌘[ ], P, ⌘± ⌘0, ⌘S, ?; edit titik bentuk bebas (klik dua kali). Bagian pendukung dipisah
+  ke `template-editor-parts.tsx`. Perbaikan: titik coretan di ref (gerakan cepat tidak hilang), penyederhanaan coretan
+  tertutup, klik dua kali saat pointer ditangkap kanvas. Uji e2e (pilih, gambar, edit titik, urungkan, simpan & buka lagi
+  bentuk bebas di API baru, HP tanpa luapan), build + `check:dev` bersih.
+
 - **2026-10-10** · Claude Opus 5.5 · Editor template lebih mudah: panel kanan **bertab (Slot foto · Gambar · Info)** dan menempel
   saat digulir (klik slot → tab Slot; titik merah = tab yang perlu diisi; "Sebelum menyimpan" bisa diklik); **toolbar cepat**
   di atas panggung (bentuk, lapisan, duplikat, hapus / tambah slot); garis slot **mengikuti bentuk**; **area lubang asli

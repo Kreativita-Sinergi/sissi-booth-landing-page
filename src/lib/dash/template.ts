@@ -63,6 +63,9 @@ const STAR = starPath();
  */
 export function shapePath(slot: Slot, aspect: number): string {
   switch (slot.shape) {
+    case "custom":
+      if (slot.points && slot.points.length >= 3) return `M${slot.points.map(([x, y]) => `${round(x)},${round(y)}`).join(" L")} Z`;
+      return "M0,0 H1 V1 H0 Z";
     case "circle":
       return "M0.5,0 A0.5,0.5 0 1,1 0.5,1 A0.5,0.5 0 1,1 0.5,0 Z";
     case "heart":
@@ -208,15 +211,19 @@ export function snapMove(s: Slot, others: Slot[], thrX: number, thrY: number): {
 }
 
 /**
- * Magnet saat mengubah ukuran (slot tidak diputar): tepi yang ditarik menempel ke garis/slot lain;
+ * Magnet saat mengubah ukuran (slot tidak diputar): tepi yang ditarik menempel ke garis/slot lain (corner 0 = sumbu itu
+ * tidak ditarik, mis. pegangan sisi);
  * bila tidak ada, lebar/tinggi menempel ke ukuran slot lain (agar mudah dibuat sama besar).
  */
 export function snapResize(s: Slot, corner: [number, number], others: Slot[], thrX: number, thrY: number): { slot: Slot; guides: Guides } {
   const out = { ...s };
   const guides: Guides = { v: [], h: [] };
   const [sx, sy] = corner;
-  const ex = nearest([sx > 0 ? s.x + s.w : s.x], targets(others, "x"), thrX);
-  if (ex) {
+  // Pegangan sisi (0) tidak menarik sumbu itu → tidak di-magnet.
+  const ex = sx === 0 ? null : nearest([sx > 0 ? s.x + s.w : s.x], targets(others, "x"), thrX);
+  if (sx === 0) {
+    // lewati sumbu x
+  } else if (ex) {
     if (sx > 0) out.w = ex.t - s.x;
     else {
       out.x = ex.t;
@@ -230,8 +237,10 @@ export function snapResize(s: Slot, corner: [number, number], others: Slot[], th
       out.w = same.w;
     }
   }
-  const ey = nearest([sy > 0 ? s.y + s.h : s.y], targets(others, "y"), thrY);
-  if (ey) {
+  const ey = sy === 0 ? null : nearest([sy > 0 ? s.y + s.h : s.y], targets(others, "y"), thrY);
+  if (sy === 0) {
+    // lewati sumbu y
+  } else if (ey) {
     if (sy > 0) out.h = ey.t - s.y;
     else {
       out.y = ey.t;
@@ -265,4 +274,83 @@ export function distribute(slots: Slot[], axis: "x" | "y"): Slot[] {
     cur += size(slots[i]) + gap;
   }
   return out;
+}
+
+// --- Bentuk bebas ---
+
+/** Penyederhanaan garis (Ramer–Douglas–Peucker): buang titik yang hampir segaris (toleransi dalam satuan titik). */
+export function simplify(pts: [number, number][], tol: number): [number, number][] {
+  if (pts.length < 3) return pts;
+  // Coretan tertutup (ujung ≈ awal): belah di titik terjauh dari awal, sederhanakan tiap separuh.
+  const [fx, fy] = pts[0], [lx, ly] = pts[pts.length - 1];
+  if (Math.hypot(lx - fx, ly - fy) <= tol * 2) {
+    let m = 1;
+    for (let i = 1; i < pts.length - 1; i++) if (Math.hypot(pts[i][0] - fx, pts[i][1] - fy) > Math.hypot(pts[m][0] - fx, pts[m][1] - fy)) m = i;
+    if (m > 0 && m < pts.length - 1) return [...simplifyOpen(pts.slice(0, m + 1), tol), ...simplifyOpen(pts.slice(m), tol).slice(1)];
+  }
+  return simplifyOpen(pts, tol);
+}
+
+function simplifyOpen(pts: [number, number][], tol: number): [number, number][] {
+  if (pts.length < 3) return pts;
+  const keep = new Uint8Array(pts.length);
+  keep[0] = keep[pts.length - 1] = 1;
+  const stack: [number, number][] = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop()!;
+    const [ax, ay] = pts[a], [bx, by] = pts[b];
+    const len = Math.hypot(bx - ax, by - ay) || 1;
+    let far = -1, dmax = tol;
+    for (let i = a + 1; i < b; i++) {
+      const d = Math.abs((bx - ax) * (ay - pts[i][1]) - (ax - pts[i][0]) * (by - ay)) / len;
+      if (d > dmax) {
+        dmax = d;
+        far = i;
+      }
+    }
+    if (far >= 0) {
+      keep[far] = 1;
+      stack.push([a, far], [far, b]);
+    }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+
+/**
+ * Slot bentuk bebas dari titik-titik di kanvas (relatif terhadap bingkai 0–1): kotak slot = batas titik,
+ * titik disimpan relatif terhadap kotak itu. null bila kurang dari 3 titik atau terlalu kecil.
+ */
+export function slotFromPoints(pts: [number, number][], layer: SlotLayer): Slot | null {
+  if (pts.length < 3) return null;
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  if (w < 0.02 || h < 0.02) return null;
+  return { x: round(x), y: round(y), w: round(w), h: round(h), rotation: 0, shape: "custom", layer, points: pts.map(([px, py]) => [round((px - x) / w), round((py - y) / h)]) };
+}
+
+/**
+ * Setelah titik bentuk bebas digeser (boleh keluar 0–1), hitung ulang kotak slot agar titik kembali 0–1 tanpa
+ * menggeser tampilan — memperhitungkan rotasi slot. `W`/`H` = ukuran bingkai (piksel apa saja, rasio benar).
+ */
+export function refitPoints(s: Slot, W: number, H: number): Slot {
+  if (!s.points || s.points.length < 3) return s;
+  const w = s.w * W, h = s.h * H;
+  const local = s.points.map(([px, py]) => [px * w, py * h]);
+  const minX = Math.min(...local.map((p) => p[0])), maxX = Math.max(...local.map((p) => p[0]));
+  const minY = Math.min(...local.map((p) => p[1])), maxY = Math.max(...local.map((p) => p[1]));
+  const nw = Math.max(1, maxX - minX), nh = Math.max(1, maxY - minY);
+  // Pergeseran titik tengah di sumbu slot → diputar ke sumbu bingkai.
+  const dx = (minX + maxX) / 2 - w / 2, dy = (minY + maxY) / 2 - h / 2;
+  const t = (s.rotation * Math.PI) / 180;
+  const cx = s.x * W + w / 2 + dx * Math.cos(t) - dy * Math.sin(t);
+  const cy = s.y * H + h / 2 + dx * Math.sin(t) + dy * Math.cos(t);
+  return {
+    ...s,
+    x: round((cx - nw / 2) / W),
+    y: round((cy - nh / 2) / H),
+    w: round(nw / W),
+    h: round(nh / H),
+    points: local.map(([px, py]) => [round((px - minX) / nw), round((py - minY) / nh)] as [number, number]),
+  };
 }

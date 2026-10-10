@@ -3,75 +3,147 @@
 /* eslint-disable @next/next/no-img-element -- gambar bingkai lokal (object URL) / server file. */
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
-import { AlignCenterHorizontal, AlignCenterVertical, ArrowLeft, Copy, Crop, Download, Eye, ImageUp, Info, Lightbulb, Loader2, Pencil, Plus, ScanSearch, SortAsc, StretchHorizontal, StretchVertical, Trash2, Scaling } from "lucide-react";
+import {
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Crop,
+  Eye,
+  ImageUp,
+  Info,
+  Keyboard,
+  Lightbulb,
+  Loader2,
+  Minus,
+  PenLine,
+  Pencil,
+  Plus,
+  Redo2,
+  Scaling,
+  ScanSearch,
+  Shapes,
+  SortAsc,
+  Spline,
+  StretchHorizontal,
+  StretchVertical,
+  Tag,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { cn } from "@/components/shared/cn";
 import type { ActionState } from "@/lib/dash/action-state";
-import { closestFormat, defaultSlots, detectSlots, distribute, FORMAT_KEYS, FORMATS, formatFor, SAFE, SHAPES, shapePath, slotLayer, snapMove, snapResize, sortSlots, type Guides } from "@/lib/dash/template";
+import {
+  closestFormat,
+  defaultSlots,
+  detectSlots,
+  distribute,
+  FORMATS,
+  formatFor,
+  refitPoints,
+  SAFE,
+  SHAPES,
+  shapePath,
+  simplify,
+  slotFromPoints,
+  slotLayer,
+  snapMove,
+  snapResize,
+  sortSlots,
+  type Guides,
+} from "@/lib/dash/template";
 import type { FrameTemplate, Slot, SlotLayer, SlotShape, TemplateCategory, TemplateFormat } from "@/lib/dash/types";
 import { Button, Dialog, Switch } from "./client";
+import {
+  ACCEPT,
+  AdjustPanel,
+  AdjustStage,
+  clamp,
+  coverScale,
+  FormatPicker,
+  FrameTips,
+  holeMask,
+  IconBtn,
+  loadImage,
+  MAX_FILE,
+  MAX_SLOTS,
+  mb,
+  NoticeBox,
+  Num,
+  pixels,
+  r4,
+  type Adjust,
+  type Ask,
+  type Frame,
+  type Source,
+} from "./template-editor-parts";
 import { TemplatePreview } from "./template-preview";
 
-type Frame = { src: string; width: number; height: number; file?: File };
-type Drag = { kind: "move" | "resize" | "rotate"; i: number; x: number; y: number; start: Slot; corner?: [number, number] };
-/** Gambar asli yang diunggah (disimpan agar posisinya bisa diatur ulang). */
-type Source = { img: HTMLImageElement; url: string; name: string; png: boolean };
-/** Pengaturan "Atur gambar": gambar diletakkan di kanvas ukuran cetak (piksel kanvas), zoom 1 = memenuhi kanvas. */
-type Adjust = { src: Source; format: TemplateFormat; zoom: number; ox: number; oy: number; bg: string | null };
-type Ask = { src: Source; reasons: string[]; format: TemplateFormat };
+type SideTab = "elemen" | "latar" | "info" | "pintasan";
+type Notice = { tone: "ok" | "warn" | "err"; text: string };
+type Pt = [number, number];
+/** Seret di kanvas: geser (banyak slot), ubah ukuran, putar, kotak pilih, atau titik bentuk bebas. */
+type Drag =
+  | { kind: "move"; idx: number[]; starts: Slot[]; x: number; y: number; pushed: boolean; before: Slot[] }
+  | { kind: "resize"; i: number; start: Slot; corner: [number, number]; x: number; y: number; pushed: boolean; before: Slot[] }
+  | { kind: "rotate"; i: number; start: Slot; pushed: boolean; before: Slot[] }
+  | { kind: "vertex"; i: number; k: number; start: Slot; x: number; y: number; pushed: boolean; before: Slot[] }
+  | { kind: "marquee"; x0: number; y0: number; add: boolean };
+type Draw = { kind: "pen" | "lasso"; pts: Pt[]; hover?: Pt; down?: boolean };
 
-const ACCEPT = ["image/png", "image/jpeg", "image/webp"];
-type Tab = "slot" | "gambar" | "info";
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+const MOD = isMac ? "⌘" : "Ctrl";
+const zoomStep = (z: number, d: number) => clamp(Math.round((z + d) * 100) / 100, 0.5, 3);
 
-/**
- * Masker CSS: hanya bagian TRANSPARAN bingkai yang terlihat (untuk mewarnai lubang foto sesuai bentuk aslinya,
- * termasuk bentuk tidak beraturan).
- */
-const holeMask = (src: string): React.CSSProperties => {
-  const img = `linear-gradient(#000, #000), url("${src}")`;
-  return { maskImage: img, WebkitMaskImage: img, maskSize: "100% 100%", WebkitMaskSize: "100% 100%", maskComposite: "exclude", WebkitMaskComposite: "xor" };
-};
-const BG_CHOICES: { label: string; value: string | null }[] = [
-  { label: "Transparan", value: null },
-  { label: "Putih", value: "#ffffff" },
-  { label: "Hitam", value: "#000000" },
+const SHORTCUTS: [string, string][] = [
+  [`${MOD} Z`, "Urungkan"],
+  [`${MOD} ⇧ Z / ${MOD} Y`, "Ulangi"],
+  [`${MOD} C / ${MOD} V`, "Salin / tempel foto"],
+  [`${MOD} D`, "Duplikat foto"],
+  ["Delete / Backspace", "Hapus foto (saat menggambar: hapus titik terakhir)"],
+  [`${MOD} A`, "Pilih semua foto"],
+  ["Shift + klik", "Pilih beberapa foto"],
+  ["Seret di area kosong", "Pilih beberapa foto sekaligus"],
+  ["Panah (Shift = jauh)", "Geser foto"],
+  [`${MOD} [ / ${MOD} ]`, "Urutan foto lebih awal / lebih akhir"],
+  ["Klik dua kali bentuk bebas", "Edit titik bentuk"],
+  ["Enter", "Selesai menggambar / edit titik"],
+  ["Esc", "Batal menggambar / lepas pilihan"],
+  ["Shift saat tarik sudut", "Ubah ukuran proporsional"],
+  ["Alt saat menyeret", "Matikan magnet"],
+  ["P", "Pratinjau / kembali mengatur"],
+  [`${MOD} + / ${MOD} − / ${MOD} 0`, "Perbesar / perkecil / pas layar (atau Ctrl + roda mouse)"],
+  [`${MOD} S`, "Simpan template"],
+  ["?", "Tampilkan pintasan"],
 ];
-const mb = (n: number) => (n / 1024 / 1024).toLocaleString("id-ID", { maximumFractionDigits: 1 });
-/** Skala agar gambar memenuhi (cover) atau muat utuh (contain) di kanvas W×H. */
-const coverScale = (W: number, H: number, w: number, h: number) => Math.max(W / w, H / h);
-const containScale = (W: number, H: number, w: number, h: number) => Math.min(W / w, H / h);
 
-const MAX_FILE = 4 * 1024 * 1024; // batas body Server Action di Vercel ±4,5 MB
-const MAX_SLOTS = 12;
-const r4 = (n: number) => Math.round(n * 10000) / 10000;
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
-
-function loadImage(src: string, cors = false): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    if (cors) img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    // Jangan pakai salinan cache dari <img> biasa (tanpa CORS) → kanvas akan "tercemar" & tidak bisa dibaca.
-    img.src = cors ? `${src}${src.includes("?") ? "&" : "?"}cors=1` : src;
-  });
-}
-
-/** Piksel bingkai yang diperkecil (sisi terpanjang 400 px) untuk deteksi lubang. */
-function pixels(img: HTMLImageElement) {
-  const scale = Math.min(1, 400 / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.max(1, Math.round(img.naturalWidth * scale));
-  const h = Math.max(1, Math.round(img.naturalHeight * scale));
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext("2d", { willReadFrequently: true })!;
-  ctx.drawImage(img, 0, 0, w, h);
-  return { data: ctx.getImageData(0, 0, w, h).data, w, h };
+/** Ikon kecil bentuk slot (untuk tombol pilih bentuk). */
+function ShapeIcon({ shape, points, className }: { shape: SlotShape; points?: Pt[]; className?: string }) {
+  const s: Slot = { x: 0, y: 0, w: 1, h: 1, rotation: 0, shape, radius: 0.25, points };
+  return (
+    <svg viewBox="-0.1 -0.1 1.2 1.2" className={cn("size-4", className)} aria-hidden>
+      <path
+        d={shapePath(s, 1)}
+        fill="currentColor"
+        fillOpacity={shape === "frame" ? 0 : 0.25}
+        stroke="currentColor"
+        strokeWidth={0.09}
+        strokeDasharray={shape === "frame" ? "0.15 0.1" : undefined}
+      />
+    </svg>
+  );
 }
 
 /**
- * Editor template bingkai (dashboard pemilik & admin Sissi): unggah PNG → lubang transparan dideteksi
- * otomatis jadi slot → atur posisi/ukuran/rotasi/bentuk tiap slot → simpan (multipart lewat aksi server).
+ * Editor template bingkai bergaya Canva (dashboard pemilik & admin Sissi): kanvas besar + toolbar kontekstual,
+ * sidebar Elemen/Latar/Info/Pintasan, pilih banyak, urungkan/ulangi, salin-tempel, pintasan keyboard, zoom,
+ * magnet, dan bentuk foto bebas buatan sendiri (klik titik demi titik atau seret bebas).
  */
 export function TemplateEditor({
   template,
@@ -91,44 +163,53 @@ export function TemplateEditor({
   const [frame, setFrame] = useState<Frame | null>(template ? { src: template.frame_url, width: template.width, height: template.height } : null);
   const [overlay, setOverlay] = useState(template?.frame_overlay ?? true);
   const [slots, setSlots] = useState<Slot[]>(template?.slots ?? []);
-  const [sel, setSel] = useState<number | null>(template?.slots.length ? 0 : null);
+  const [hist, setHist] = useState<{ past: Slot[][]; future: Slot[][] }>({ past: [], future: [] });
+  const [sel, setSel] = useState<number[]>([]);
   const [name, setName] = useState(template?.name ?? "");
   const [cats, setCats] = useState<Set<string>>(new Set(template?.categories.map((c) => c.id) ?? []));
   const [active, setActive] = useState(template?.active ?? true);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
-  const [notice, setNotice] = useState<{ tone: "ok" | "warn" | "err"; text: string } | null>(null);
+  const [side, setSide] = useState<SideTab>(template ? "elemen" : "latar");
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
   const [guides, setGuides] = useState<Guides>({ v: [], h: [] });
   const [showSafe, setShowSafe] = useState(true);
   const [tips, setTips] = useState(false);
-  const [tab, setTab] = useState<Tab>(template ? "slot" : "gambar");
+  const [keys, setKeys] = useState(false);
   const [source, setSource] = useState<Source | null>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [adjust, setAdjust] = useState<Adjust | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [draw, setDraw] = useState<Draw | null>(null);
+  const [editPts, setEditPts] = useState<number | null>(null);
+  const [clip, setClip] = useState<Slot[]>([]);
+  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [showTodo, setShowTodo] = useState(false);
+  const [shapeMenu, setShapeMenu] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
-  const boxRef = useRef<HTMLDivElement>(null);
+  const areaRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
-  const [boxW, setBoxW] = useState(0);
+  // Titik coretan "seret bebas" dikumpulkan di ref: gerakan mouse cepat tidak boleh tertimpa render yang tertunda.
+  const lasso = useRef<Pt[] | null>(null);
+  const [areaW, setAreaW] = useState(0);
 
   useEffect(() => {
-    const el = boxRef.current;
+    const el = areaRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setBoxW(e.contentRect.width));
+    const ro = new ResizeObserver(([e]) => setAreaW(e.contentRect.width));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  // Lepas object URL gambar asli lama saat diganti / editor ditutup.
+  // Lepas object URL lama (gambar asli & bingkai) saat diganti / editor ditutup.
   useEffect(() => {
     const url = source?.url;
     return () => {
-      if (url) URL.revokeObjectURL(url);
+      if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
     };
   }, [source?.url]);
-
-  // Lepas object URL lama saat gambar diganti / editor ditutup.
   useEffect(() => {
     const src = frame?.src;
     return () => {
@@ -137,44 +218,66 @@ export function TemplateEditor({
   }, [frame?.src]);
 
   const format = frame ? formatFor(frame.width, frame.height) : null;
-  // Ukuran panggung: muat di lebar kolom & tinggi ±70% layar.
-  const maxH = typeof window === "undefined" ? 640 : Math.max(360, window.innerHeight * 0.7);
-  const stageW = frame ? Math.min(boxW || 1, (maxH * frame.width) / frame.height) : 0;
+  const maxH = typeof window === "undefined" ? 640 : Math.max(380, window.innerHeight * 0.7);
+  const fitW = frame ? Math.max(120, Math.min((areaW || 600) - 48, (maxH * frame.width) / frame.height)) : 0;
+  const stageW = fitW * zoom;
   const stageH = frame ? (stageW * frame.height) / frame.width : 0;
-  const slot = sel !== null ? slots[sel] : undefined;
+  const one = sel.length === 1 ? sel[0] : null;
+  const slot = one !== null ? slots[one] : undefined;
 
-  const update = (i: number, patch: Partial<Slot>) => setSlots((all) => all.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  // --- riwayat (urungkan/ulangi) ---
+
+  function change(next: Slot[]) {
+    setHist({ past: [...hist.past.slice(-99), slots], future: [] });
+    setSlots(next);
+  }
+  function update(i: number, patch: Partial<Slot>) {
+    change(slots.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  }
+  function undo() {
+    const prev = hist.past[hist.past.length - 1];
+    if (!prev) return;
+    setHist({ past: hist.past.slice(0, -1), future: [slots, ...hist.future] });
+    setSlots(prev);
+    setSel((cur) => cur.filter((i) => i < prev.length));
+    setEditPts(null);
+  }
+  function redo() {
+    const next = hist.future[0];
+    if (!next) return;
+    setHist({ past: [...hist.past, slots], future: hist.future.slice(1) });
+    setSlots(next);
+    setSel((cur) => cur.filter((i) => i < next.length));
+  }
+
+  // --- gambar latar / bingkai ---
 
   function applyDetection(img: HTMLImageElement, f: Frame, replace: boolean) {
-    setTab("slot");
     const fmt = formatFor(f.width, f.height);
     let found: ReturnType<typeof detectSlots>;
     try {
       const px = pixels(img);
       found = detectSlots(px.data, px.w, px.h);
     } catch {
-      setNotice({ tone: "warn", text: "Gambar tidak bisa dibaca untuk deteksi otomatis. Unggah ulang PNG-nya untuk mendeteksi lubang." });
+      setNotice({ tone: "warn", text: "Gambar tidak bisa dibaca untuk deteksi otomatis. Unggah ulang gambarnya untuk mendeteksi lubang." });
       return;
     }
     if (found.slots.length > 0) {
-      const list = found.slots.slice(0, MAX_SLOTS);
       setOverlay(true);
-      setSlots(list);
-      setSel(0);
-      setNotice({
-        tone: "ok",
-        text: `${found.slots.length} lubang foto terdeteksi${found.slots.length > MAX_SLOTS ? ` (dipakai ${MAX_SLOTS} pertama)` : ""}. Geser, ubah ukuran, atau putar bila perlu.`,
-      });
+      change(found.slots.slice(0, MAX_SLOTS));
+      setSel([0]);
+      setSide("elemen");
+      setNotice({ tone: "ok", text: `${found.slots.length} lubang foto terdeteksi dan sudah jadi slot. Klik slot untuk mengubahnya.` });
     } else if (replace || slots.length === 0) {
       setOverlay(found.transparent);
-      const list = fmt ? defaultSlots(fmt) : [];
-      setSlots(list);
-      setSel(list.length ? 0 : null);
+      change(fmt ? defaultSlots(fmt) : []);
+      setSel([]);
+      setSide("elemen");
       setNotice({
         tone: "warn",
         text: found.transparent
-          ? "Tidak ada lubang foto yang cukup besar. Slot contoh dipasang — atur posisinya sendiri."
-          : "Gambar tidak punya bagian transparan, jadi dipakai sebagai latar (foto di atas gambar). Slot contoh dipasang — atur posisinya.",
+          ? "Tidak ada lubang foto yang cukup besar. Slot contoh dipasang — geser, ubah, atau gambar bentuk sendiri."
+          : "Gambar dipakai sebagai latar (tidak ada bagian transparan). Slot contoh dipasang — atur sendiri atau gambar bentuk bebas.",
       });
     } else {
       setNotice({ tone: "warn", text: "Tidak ada lubang foto yang terdeteksi; slot yang ada tidak diubah." });
@@ -201,32 +304,36 @@ export function TemplateEditor({
     const w = img.naturalWidth, h = img.naturalHeight;
     const fmt = formatFor(w, h);
     const reasons: string[] = [];
-    if (!src.png) reasons.push("File ini bukan PNG, jadi tidak punya bagian transparan. Gambar akan dipakai sebagai latar dan foto diletakkan di atasnya.");
+    if (!src.png) reasons.push("File ini bukan PNG, jadi tidak punya bagian transparan. Gambar dipakai sebagai latar dan slot foto kamu atur sendiri di atasnya.");
     if (!fmt) reasons.push(`Ukurannya ${w} × ${h} px — bentuknya tidak sama dengan format cetak mana pun, jadi perlu dipotong atau diberi latar.`);
-    else if (Math.min(w, h) < FORMATS[fmt].minShort) reasons.push(`Gambar lebih kecil dari ukuran cetak ${FORMATS[fmt].label} (${FORMATS[fmt].size}). Masih bisa dipakai, tapi hasil cetak bisa sedikit buram.`);
+    else if (Math.min(w, h) < FORMATS[fmt].minShort) {
+      reasons.push(`Gambar lebih kecil dari ukuran cetak ${FORMATS[fmt].label} (${FORMATS[fmt].size}). Masih bisa dipakai, tapi hasil cetak bisa sedikit buram.`);
+    }
     if (Math.max(w, h) > 6000) reasons.push("Gambar sangat besar (lebih dari 6000 px). Akan diperkecil otomatis ke ukuran cetak.");
-    if (file.size > MAX_FILE) reasons.push(`Ukuran file ${mb(file.size)} MB melebihi batas 4 MB. Gambar akan disimpan ulang di ukuran cetak — biasanya jadi lebih kecil. Kalau masih terlalu besar, kecilkan dulu dengan TinyPNG.`);
+    if (file.size > MAX_FILE) {
+      reasons.push(`Ukuran file ${mb(file.size)} MB melebihi batas 4 MB. Gambar akan disimpan ulang di ukuran cetak — biasanya jadi lebih kecil. Kalau masih terlalu besar, kecilkan dulu dengan TinyPNG.`);
+    }
     if (reasons.length > 0) {
       setAsk({ src, reasons, format: fmt ?? closestFormat(w, h) });
       return;
     }
-    // Pas: langsung dipakai apa adanya.
     setSource(src);
     const f = { src: URL.createObjectURL(file), width: w, height: h, file };
     setFrame(f);
+    setZoom(1);
     applyDetection(img, f, !template || slots.length === 0);
   }
 
-  function startAdjust(src: Source, format: TemplateFormat) {
+  function startAdjust(src: Source, fmt: TemplateFormat) {
     setSource(src);
     setAsk(null);
     setMode("edit");
     setNotice(null);
+    setSide("latar");
     // Latar putih bawaan: bagian kosong transparan bisa terbaca sebagai lubang foto.
-    setAdjust({ src, format, zoom: 1, ox: 0, oy: 0, bg: "#ffffff" });
+    setAdjust({ src, format: fmt, zoom: 1, ox: 0, oy: 0, bg: "#ffffff" });
   }
 
-  /** Atur posisi gambar yang sedang dipakai (unggahan baru atau gambar template tersimpan). */
   async function adjustCurrent() {
     if (source) return startAdjust(source, format ?? closestFormat(source.img.naturalWidth, source.img.naturalHeight));
     if (!frame) return;
@@ -275,6 +382,7 @@ export function TemplateEditor({
     const f = { src: url, width: W, height: H, file: new File([blob], "frame.png", { type: "image/png" }) };
     setFrame(f);
     setAdjust(null);
+    setZoom(1);
     applyDetection(out, f, slots.length === 0);
   }
 
@@ -284,65 +392,257 @@ export function TemplateEditor({
     try {
       applyDetection(await loadImage(frame.src, !frame.src.startsWith("blob:")), frame, true);
     } catch {
-      setNotice({ tone: "warn", text: "Gambar tidak bisa dibaca untuk deteksi otomatis. Unggah ulang PNG-nya untuk mendeteksi lubang." });
+      setNotice({ tone: "warn", text: "Gambar tidak bisa dibaca untuk deteksi otomatis. Unggah ulang gambarnya untuk mendeteksi lubang." });
     } finally {
       setBusy(false);
     }
   }
 
-  function addSlot() {
-    if (slots.length >= MAX_SLOTS) return;
-    // Slot tambahan default DI ATAS bingkai agar terlihat walau diletakkan di area bingkai yang tidak transparan.
-    const s: Slot = { x: 0.3, y: 0.35, w: 0.4, h: format === "strip_2x6" ? 0.15 : 0.3, rotation: 0, shape: "rect", layer: "above" };
-    setSlots([...slots, s]);
-    setSel(slots.length);
+  // --- slot ---
+
+  /** Slot baru di tengah, kira-kira persegi di layar; di atas bingkai agar langsung terlihat. */
+  function addShape(shape: SlotShape) {
+    if (!frame || slots.length >= MAX_SLOTS) return;
+    const w = format === "strip_2x6" ? 0.6 : 0.36;
+    const h = r4(Math.min(0.8, (w * frame.width) / frame.height));
+    const s: Slot = { x: r4(0.5 - w / 2), y: r4(0.5 - h / 2), w, h, rotation: 0, shape, layer: "above", radius: shape === "rounded" ? 0.15 : undefined };
+    change([...slots, s]);
+    setSel([slots.length]);
+    setDraw(null);
+    setEditPts(null);
+    setMode("edit");
   }
 
-  // --- interaksi panggung (geser / ubah ukuran / putar) ---
+  function setShape(i: number, shape: SlotShape) {
+    const cur = slots[i];
+    update(i, {
+      shape,
+      radius: shape === "rounded" ? (cur.radius ?? 0.12) : undefined,
+      layer: shape === "frame" ? "below" : cur.layer,
+      points: shape === "custom" ? cur.points : undefined,
+    });
+  }
 
-  function begin(e: React.PointerEvent, i: number, kind: Drag["kind"], corner?: [number, number]) {
+  function setLayer(idx: number[], layer: SlotLayer) {
+    change(slots.map((s, j) => (idx.includes(j) ? { ...s, layer, shape: layer === "above" && s.shape === "frame" ? "rect" : s.shape } : s)));
+  }
+
+  function duplicate(idx: number[]) {
+    if (!idx.length || slots.length + idx.length > MAX_SLOTS) return;
+    const copies = idx.map((i) => ({ ...slots[i], x: r4(slots[i].x + 0.03), y: r4(slots[i].y + 0.03) }));
+    change([...slots, ...copies]);
+    setSel(copies.map((_, k) => slots.length + k));
+  }
+
+  function remove(idx: number[]) {
+    if (!idx.length) return;
+    change(slots.filter((_, j) => !idx.includes(j)));
+    setSel([]);
+    setEditPts(null);
+  }
+
+  function paste() {
+    if (!clip.length || slots.length + clip.length > MAX_SLOTS) return;
+    const copies = clip.map((s) => ({ ...s, x: r4(s.x + 0.03), y: r4(s.y + 0.03) }));
+    change([...slots, ...copies]);
+    setSel(copies.map((_, k) => slots.length + k));
+    setClip(copies);
+  }
+
+  /** Urutan foto (= urutan jepret & tumpukan antar foto): pindahkan lebih awal/akhir. */
+  function reorder(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= slots.length) return;
+    const next = [...slots];
+    [next[i], next[j]] = [next[j], next[i]];
+    change(next);
+    setSel([j]);
+  }
+
+  /** Rata: beberapa foto → patokan kotak gabungan pilihan; satu foto → patokan halaman. */
+  function align(kind: "l" | "c" | "r" | "t" | "m" | "b") {
+    const ss = sel.map((i) => slots[i]);
+    const [lx, rx, ty, by] =
+      sel.length === 1
+        ? [0, 1, 0, 1]
+        : [Math.min(...ss.map((s) => s.x)), Math.max(...ss.map((s) => s.x + s.w)), Math.min(...ss.map((s) => s.y)), Math.max(...ss.map((s) => s.y + s.h))];
+    change(
+      slots.map((s, j) => {
+        if (!sel.includes(j)) return s;
+        if (kind === "l") return { ...s, x: r4(lx) };
+        if (kind === "c") return { ...s, x: r4((lx + rx) / 2 - s.w / 2) };
+        if (kind === "r") return { ...s, x: r4(rx - s.w) };
+        if (kind === "t") return { ...s, y: r4(ty) };
+        if (kind === "m") return { ...s, y: r4((ty + by) / 2 - s.h / 2) };
+        return { ...s, y: r4(by - s.h) };
+      }),
+    );
+  }
+
+  function spread(axis: "x" | "y") {
+    const picked = distribute(sel.map((i) => slots[i]), axis);
+    change(slots.map((s, j) => (sel.includes(j) ? picked[sel.indexOf(j)] : s)));
+  }
+
+  function sameSize() {
+    const ref = slots[sel[sel.length - 1]];
+    change(slots.map((s, j) => (sel.includes(j) ? { ...s, w: ref.w, h: ref.h } : s)));
+  }
+
+  // --- bentuk bebas ---
+
+  function finishDraw(pts: Pt[]) {
+    setDraw(null);
+    const s = slotFromPoints(pts, "above");
+    if (!s) return setNotice({ tone: "warn", text: "Bentuk terlalu kecil atau kurang dari 3 titik. Coba gambar lagi." });
+    if (slots.length >= MAX_SLOTS) return setNotice({ tone: "warn", text: `Maksimal ${MAX_SLOTS} foto.` });
+    change([...slots, s]);
+    setSel([slots.length]);
+    setNotice({ tone: "ok", text: "Bentuk bebas jadi slot foto. Klik dua kali bentuknya untuk mengedit titik." });
+  }
+
+  function startDraw(kind: Draw["kind"]) {
+    setMode("edit");
+    setSel([]);
+    setEditPts(null);
+    setDraw(draw?.kind === kind ? null : { kind, pts: [] });
+  }
+
+  // --- interaksi kanvas ---
+
+  const toLocal = (e: { clientX: number; clientY: number }): Pt => {
+    const r = stageRef.current!.getBoundingClientRect();
+    return [(e.clientX - r.left) / stageW, (e.clientY - r.top) / stageH];
+  };
+
+  function beginSlot(e: React.PointerEvent, i: number) {
+    if (draw) return;
     e.stopPropagation();
-    e.preventDefault();
-    setSel(i);
-    setTab("slot");
-    drag.current = { kind, i, x: e.clientX, y: e.clientY, start: slots[i], corner };
+    if (e.shiftKey) {
+      setSel(sel.includes(i) ? sel.filter((j) => j !== i) : [...sel, i]);
+      return;
+    }
+    const idx = sel.includes(i) ? sel : [i];
+    if (!sel.includes(i)) setSel([i]);
+    if (editPts !== null && editPts !== i) setEditPts(null);
+    drag.current = { kind: "move", idx, starts: idx.map((j) => slots[j]), x: e.clientX, y: e.clientY, pushed: false, before: slots };
     stageRef.current?.setPointerCapture(e.pointerId);
     stageRef.current?.focus({ preventScroll: true });
   }
 
-  function onMove(e: React.PointerEvent) {
+  function beginHandle(e: React.PointerEvent, i: number, kind: "resize" | "rotate", corner: [number, number] = [0, 0]) {
+    e.stopPropagation();
+    e.preventDefault();
+    drag.current =
+      kind === "rotate"
+        ? { kind, i, start: slots[i], pushed: false, before: slots }
+        : { kind, i, start: slots[i], corner, x: e.clientX, y: e.clientY, pushed: false, before: slots };
+    stageRef.current?.setPointerCapture(e.pointerId);
+  }
+
+  function beginVertex(e: React.PointerEvent, i: number, k: number) {
+    e.stopPropagation();
+    e.preventDefault();
+    drag.current = { kind: "vertex", i, k, start: slots[i], x: e.clientX, y: e.clientY, pushed: false, before: slots };
+    stageRef.current?.setPointerCapture(e.pointerId);
+  }
+
+  function stageDown(e: React.PointerEvent) {
+    stageRef.current?.focus({ preventScroll: true });
+    setShapeMenu(false);
+    if (draw) {
+      const p = toLocal(e);
+      if (draw.kind === "lasso") {
+        stageRef.current?.setPointerCapture(e.pointerId);
+        lasso.current = [p];
+        setDraw({ kind: "lasso", pts: [p], down: true });
+        return;
+      }
+      const first = draw.pts[0];
+      if (first && draw.pts.length >= 3 && Math.hypot((p[0] - first[0]) * stageW, (p[1] - first[1]) * stageH) < 10) return finishDraw(draw.pts);
+      setDraw({ ...draw, pts: [...draw.pts, p] });
+      return;
+    }
+    if (editPts !== null) setEditPts(null);
+    const [x, y] = toLocal(e);
+    drag.current = { kind: "marquee", x0: x, y0: y, add: e.shiftKey };
+    stageRef.current?.setPointerCapture(e.pointerId);
+    if (!e.shiftKey) setSel([]);
+  }
+
+  /** Simpan riwayat sekali di awal seretan (satu seretan = satu langkah urungkan). */
+  function pushOnce(d: { pushed: boolean; before: Slot[] }) {
+    if (d.pushed) return;
+    d.pushed = true;
+    setHist({ past: [...hist.past.slice(-99), d.before], future: [] });
+  }
+
+  function stageMove(e: React.PointerEvent) {
+    if (draw) {
+      const p = toLocal(e);
+      if (draw.kind === "lasso") {
+        const pts = lasso.current;
+        if (!pts) return;
+        const last = pts[pts.length - 1];
+        if (Math.hypot((p[0] - last[0]) * stageW, (p[1] - last[1]) * stageH) >= 3) {
+          pts.push(p);
+          setDraw({ kind: "lasso", pts: [...pts], down: true });
+        }
+      } else setDraw((d) => (d ? { ...d, hover: p } : d));
+      return;
+    }
     const d = drag.current;
     if (!d || !stageW) return;
-    const s = d.start;
-    const dx = e.clientX - d.x, dy = e.clientY - d.y;
-    const others = slots.filter((_, j) => j !== d.i);
-    const thrX = 6 / stageW, thrY = 6 / stageH; // ambang magnet ±6 px layar
-    if (d.kind === "move") {
-      const moved = { ...s, x: clamp(s.x + dx / stageW, -0.5, 1.5 - s.w), y: clamp(s.y + dy / stageH, -0.5, 1.5 - s.h) };
-      // Magnet ke tepi/tengah kanvas & slot lain (tahan Alt untuk bebas).
-      const snapped = e.altKey ? { x: moved.x, y: moved.y, guides: { v: [], h: [] } } : snapMove(moved, others, thrX, thrY);
-      setGuides(snapped.guides);
-      update(d.i, { x: r4(snapped.x), y: r4(snapped.y) });
+    const thrX = 6 / stageW, thrY = 6 / stageH;
+    if (d.kind === "marquee") {
+      const [x, y] = toLocal(e);
+      setMarquee({ x: Math.min(d.x0, x), y: Math.min(d.y0, y), w: Math.abs(x - d.x0), h: Math.abs(y - d.y0) });
       return;
     }
-    const t = (s.rotation * Math.PI) / 180;
-    const cos = Math.cos(t), sin = Math.sin(t);
+    if (d.kind === "move") {
+      const dx = (e.clientX - d.x) / stageW, dy = (e.clientY - d.y) / stageH;
+      if (!d.pushed && Math.abs(dx * stageW) < 2 && Math.abs(dy * stageH) < 2) return; // klik biasa, bukan seret
+      pushOnce(d);
+      // Magnet untuk kotak gabungan foto yang diseret.
+      const gx = Math.min(...d.starts.map((s) => s.x)), gy = Math.min(...d.starts.map((s) => s.y));
+      const g: Slot = { x: gx, y: gy, w: Math.max(...d.starts.map((s) => s.x + s.w)) - gx, h: Math.max(...d.starts.map((s) => s.y + s.h)) - gy, rotation: 0, shape: "rect" };
+      const moved = { ...g, x: g.x + dx, y: g.y + dy };
+      const snapped = e.altKey ? { x: moved.x, y: moved.y, guides: { v: [], h: [] } } : snapMove(moved, slots.filter((_, j) => !d.idx.includes(j)), thrX, thrY);
+      setGuides(snapped.guides);
+      const ox = snapped.x - g.x, oy = snapped.y - g.y;
+      setSlots(
+        slots.map((s, j) => {
+          const k = d.idx.indexOf(j);
+          return k < 0 ? s : { ...s, x: r4(clamp(d.starts[k].x + ox, -0.5, 1.5 - s.w)), y: r4(clamp(d.starts[k].y + oy, -0.5, 1.5 - s.h)) };
+        }),
+      );
+      return;
+    }
+    pushOnce(d);
+    const s = d.start;
+    const t = (s.rotation * Math.PI) / 180, cos = Math.cos(t), sin = Math.sin(t);
     const w0 = s.w * stageW, h0 = s.h * stageH;
     const cx0 = s.x * stageW + w0 / 2, cy0 = s.y * stageH + h0 / 2;
+    const set = (patch: Partial<Slot>) => setSlots(slots.map((o, j) => (j === d.i ? { ...o, ...patch } : o)));
     if (d.kind === "rotate") {
-      const rect = stageRef.current!.getBoundingClientRect();
-      let deg = (Math.atan2(e.clientY - (rect.top + cy0), e.clientX - (rect.left + cx0)) * 180) / Math.PI + 90;
+      const r = stageRef.current!.getBoundingClientRect();
+      let deg = (Math.atan2(e.clientY - (r.top + cy0), e.clientX - (r.left + cx0)) * 180) / Math.PI + 90;
       if (deg > 180) deg -= 360;
       const snap = Math.round(deg / 15) * 15;
-      if (!e.altKey && Math.abs(deg - snap) < 4) deg = snap; // menempel ke kelipatan 15° (tahan Alt untuk bebas)
-      update(d.i, { rotation: Math.round(deg * 10) / 10 });
+      if (!e.altKey && Math.abs(deg - snap) < 4) deg = snap; // menempel ke kelipatan 15°
+      set({ rotation: Math.round(deg * 10) / 10 });
       return;
     }
-    const [sx, sy] = d.corner!;
-    // Selisih pointer di sumbu slot (sebelum rotasi), lalu sudut seberang tetap di tempat.
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    // Selisih pointer di sumbu foto (sebelum rotasi).
     const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;
+    if (d.kind === "vertex") {
+      set({ points: (s.points ?? []).map((p, k) => (k === d.k ? ([r4(p[0] + lx / w0), r4(p[1] + ly / h0)] as Pt) : p)) });
+      return;
+    }
+    const [sx, sy] = d.corner;
     let w = Math.max(12, w0 + sx * lx), h = Math.max(12, h0 + sy * ly);
-    if (e.shiftKey) {
+    if (e.shiftKey && sx !== 0 && sy !== 0) {
       const k = Math.max(w / w0, h / h0);
       w = w0 * k;
       h = h0 * k;
@@ -350,73 +650,164 @@ export function TemplateEditor({
     const ox = (sx * (w - w0)) / 2, oy = (sy * (h - h0)) / 2;
     const cx = cx0 + ox * cos - oy * sin, cy = cy0 + ox * sin + oy * cos;
     const resized = { ...s, x: (cx - w / 2) / stageW, y: (cy - h / 2) / stageH, w: w / stageW, h: h / stageH };
-    // Magnet ukuran hanya untuk slot tegak lurus (tanpa rotasi) & tanpa Shift/Alt.
     if (s.rotation === 0 && !e.shiftKey && !e.altKey) {
-      const snapped = snapResize(resized, [sx, sy], others, thrX, thrY);
+      const snapped = snapResize(resized, [sx, sy], slots.filter((_, j) => j !== d.i), thrX, thrY);
       setGuides(snapped.guides);
       const o = snapped.slot;
-      update(d.i, { x: r4(o.x), y: r4(o.y), w: r4(Math.max(0.02, o.w)), h: r4(Math.max(0.02, o.h)) });
+      set({ x: r4(o.x), y: r4(o.y), w: r4(Math.max(0.02, o.w)), h: r4(Math.max(0.02, o.h)) });
       return;
     }
     setGuides({ v: [], h: [] });
-    update(d.i, { x: r4(resized.x), y: r4(resized.y), w: r4(resized.w), h: r4(resized.h) });
+    set({ x: r4(resized.x), y: r4(resized.y), w: r4(resized.w), h: r4(resized.h) });
   }
 
-  function onKey(e: React.KeyboardEvent) {
-    if (sel === null || mode !== "edit") return;
-    const step = e.shiftKey ? 0.01 : 0.002;
-    const s = slots[sel];
-    const moves: Record<string, Partial<Slot>> = {
-      ArrowLeft: { x: r4(s.x - step) },
-      ArrowRight: { x: r4(s.x + step) },
-      ArrowUp: { y: r4(s.y - step) },
-      ArrowDown: { y: r4(s.y + step) },
-    };
-    if (moves[e.key]) {
-      e.preventDefault();
-      update(sel, moves[e.key]);
-    } else if (e.key === "Delete" || e.key === "Backspace") {
-      e.preventDefault();
-      removeSlot(sel);
+  function stageUp() {
+    if (draw?.kind === "lasso" && lasso.current) {
+      const raw = lasso.current;
+      lasso.current = null;
+      // Sederhanakan coretan (dalam piksel layar) agar titiknya ringkas (≤ 200).
+      let tol = 1.5;
+      let px = simplify(raw.map(([x, y]) => [x * stageW, y * stageH] as Pt), tol);
+      while (px.length > 200) px = simplify(px, (tol *= 1.6));
+      finishDraw(px.map(([x, y]) => [x / stageW, y / stageH] as Pt));
+      return;
+    }
+    const d = drag.current;
+    drag.current = null;
+    setGuides({ v: [], h: [] });
+    if (!d) return;
+    if (d.kind === "marquee") {
+      const m = marquee;
+      setMarquee(null);
+      if (!m || (m.w * stageW < 4 && m.h * stageH < 4)) return;
+      const hit = slots.flatMap((s, j) => (s.x < m.x + m.w && s.x + s.w > m.x && s.y < m.y + m.h && s.y + s.h > m.y ? [j] : []));
+      setSel(d.add ? [...new Set([...sel, ...hit])] : hit);
+      return;
+    }
+    if (d.kind === "vertex" && frame) {
+      // Titik boleh keluar kotak saat diseret; setelah dilepas, kotak foto disesuaikan.
+      setSlots((cur) => cur.map((s, j) => (j === d.i ? refitPoints(s, frame.width, frame.height) : s)));
     }
   }
 
-  /** Ganti bentuk: "Ikuti lubang" selalu di bawah bingkai. */
-  function setShape(i: number, shape: SlotShape) {
-    const cur = slots[i];
-    update(i, { shape, radius: shape === "rounded" ? (cur.radius ?? 0.12) : undefined, layer: shape === "frame" ? "below" : cur.layer });
-  }
+  // --- pintasan keyboard ---
 
-  /** Ganti lapisan: di atas bingkai tidak bisa "Ikuti lubang" → jadi kotak. */
-  function setLayer(i: number, layer: SlotLayer) {
-    const cur = slots[i];
-    update(i, { layer, shape: layer === "above" && cur.shape === "frame" ? "rect" : cur.shape });
+  function onKey(e: KeyboardEvent) {
+    const t = e.target as HTMLElement | null;
+    if (t && (t.closest("input, textarea, [contenteditable=true]") || t.closest("[role=dialog]"))) return;
+    if (ask || tips || keys) return;
+    const mod = e.metaKey || e.ctrlKey;
+    const k = e.key.toLowerCase();
+    if (mod && k === "s") {
+      e.preventDefault();
+      return submit();
+    }
+    if (e.key === "?") return setKeys(true);
+    if (adjust) return;
+    if (mod && (k === "=" || k === "+")) {
+      e.preventDefault();
+      return setZoom((z) => zoomStep(z, 0.25));
+    }
+    if (mod && k === "-") {
+      e.preventDefault();
+      return setZoom((z) => zoomStep(z, -0.25));
+    }
+    if (mod && k === "0") {
+      e.preventDefault();
+      return setZoom(1);
+    }
+    if (!mod && k === "p" && frame) return setMode((m) => (m === "edit" ? "preview" : "edit"));
+    if (mode !== "edit") return;
+    if (draw) {
+      if (e.key === "Escape") setDraw(null);
+      else if (e.key === "Enter") finishDraw(draw.pts);
+      else if (e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        setDraw({ ...draw, pts: draw.pts.slice(0, -1) });
+      }
+      return;
+    }
+    if (e.key === "Escape" || (e.key === "Enter" && editPts !== null)) {
+      if (editPts !== null) return setEditPts(null);
+      return setSel([]);
+    }
+    if (mod && k === "z") {
+      e.preventDefault();
+      return e.shiftKey ? redo() : undo();
+    }
+    if (mod && k === "y") {
+      e.preventDefault();
+      return redo();
+    }
+    if (mod && k === "a") {
+      e.preventDefault();
+      return setSel(slots.map((_, i) => i));
+    }
+    if (mod && k === "v") {
+      e.preventDefault();
+      return paste();
+    }
+    if (!sel.length) return;
+    if (mod && k === "c") {
+      e.preventDefault();
+      return setClip(sel.map((i) => slots[i]));
+    }
+    if (mod && k === "d") {
+      e.preventDefault();
+      return duplicate(sel);
+    }
+    if (mod && (e.key === "[" || e.key === "]") && one !== null) {
+      e.preventDefault();
+      return reorder(one, e.key === "[" ? -1 : 1);
+    }
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      return remove(sel);
+    }
+    const step = e.shiftKey ? 0.01 : 0.002;
+    const moves: Record<string, Pt> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    if (moves[e.key]) {
+      e.preventDefault();
+      const [dx, dy] = moves[e.key];
+      change(slots.map((s, j) => (sel.includes(j) ? { ...s, x: r4(s.x + dx), y: r4(s.y + dy) } : s)));
+    }
   }
+  const keyRef = useRef(onKey);
+  useEffect(() => {
+    keyRef.current = onKey;
+  });
+  useEffect(() => {
+    const f = (e: KeyboardEvent) => keyRef.current(e);
+    window.addEventListener("keydown", f);
+    return () => window.removeEventListener("keydown", f);
+  }, []);
 
-  function duplicate(i: number) {
-    if (slots.length >= MAX_SLOTS) return;
-    const cur = slots[i];
-    setSlots([...slots, { ...cur, x: r4(cur.x + 0.03), y: r4(cur.y + 0.03) }]);
-    setSel(slots.length);
-  }
-
-  function removeSlot(i: number) {
-    const next = slots.filter((_, j) => j !== i);
-    setSlots(next);
-    setSel(next.length ? Math.min(i, next.length - 1) : null);
-  }
+  // Ctrl/⌘ + roda mouse = zoom kanvas (tanpa ikut menggulir halaman).
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    const wheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      setZoom((z) => clamp(z * (e.deltaY < 0 ? 1.08 : 1 / 1.08), 0.5, 3));
+    };
+    el.addEventListener("wheel", wheel, { passive: false });
+    return () => el.removeEventListener("wheel", wheel);
+  }, []);
 
   // --- simpan ---
 
-  const todo: { text: string; tab: Tab }[] = [];
-  if (!frame) todo.push({ text: "Unggah gambar bingkai.", tab: "gambar" });
-  else if (!format) todo.push({ text: "Ukuran gambar tidak cocok dengan format cetak — atur posisi gambar.", tab: "gambar" });
-  if (!name.trim()) todo.push({ text: "Isi nama template (tab Info).", tab: "info" });
-  if (slots.length === 0) todo.push({ text: "Tambahkan minimal satu slot foto.", tab: "slot" });
-  const problems = todo.map((t) => t.text);
+  const todo: { text: string; tab?: SideTab }[] = [];
+  if (!frame) todo.push({ text: "Unggah gambar latar / bingkai.", tab: "latar" });
+  else if (!format) todo.push({ text: "Ukuran gambar tidak cocok dengan format cetak — atur posisi gambar.", tab: "latar" });
+  if (!name.trim()) todo.push({ text: "Isi nama template (kolom di atas)." });
+  if (slots.length === 0) todo.push({ text: "Tambahkan minimal satu foto.", tab: "elemen" });
 
   function submit() {
-    if (problems.length || !frame || !format) return;
+    if (todo.length || !frame || !format) {
+      setShowTodo(true);
+      return;
+    }
     const f = new FormData();
     if (template) f.set("id", template.id);
     f.set(
@@ -425,7 +816,6 @@ export function TemplateEditor({
         name: name.trim(),
         format,
         frame_overlay: overlay,
-        // "Ikuti lubang" hanya sah bila bingkai di atas foto.
         slots: slots.map((s) => {
           const shape = !overlay && s.shape === "frame" ? "rect" : s.shape;
           return { ...s, shape, layer: slotLayer({ ...s, shape }, overlay), x: r4(s.x), y: r4(s.y), w: r4(s.w), h: r4(s.h) };
@@ -439,29 +829,88 @@ export function TemplateEditor({
   }
 
   const serverFields = Object.entries(state.fields ?? {});
+  const color = (s: Slot) => (slotLayer(s, overlay) === "above" ? "var(--color-info)" : "var(--color-primary)");
 
   return (
-    <div>
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="min-w-0">
-          <Link href={backHref} className="mb-2 inline-flex items-center gap-1 text-sm text-subtle hover:text-fg">
-            <ArrowLeft className="size-4" strokeWidth={2} /> Template
-          </Link>
-          <h1 className="text-xl font-semibold leading-tight tracking-tight md:text-2xl">{template ? "Ubah template" : builtin ? "Template bawaan baru" : "Template baru"}</h1>
-          <p className="mt-1 text-sm text-subtle">
-            Unggah bingkai PNG dengan lubang transparan — posisi foto terdeteksi otomatis.{builtin && " Tampil untuk semua pemilik booth."}
-          </p>
+    <div className="flex flex-col gap-3">
+      {/* Bar atas */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-edge bg-surface px-3 py-2 shadow-card">
+        <Link href={backHref} className="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-subtle hover:bg-canvas hover:text-fg" title="Kembali ke daftar template">
+          <ArrowLeft className="size-4" strokeWidth={2} /> <span className="hidden sm:inline">Template</span>
+        </Link>
+        <span className="hidden h-6 w-px bg-edge sm:block" />
+        <input
+          value={name}
+          maxLength={60}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={builtin ? "Nama template bawaan…" : "Nama template…"}
+          aria-label="Nama template"
+          className={cn(
+            "order-last h-9 min-w-0 basis-full rounded-lg border border-edge bg-transparent px-2 text-base font-semibold outline-none placeholder:font-normal placeholder:text-subtle hover:border-edge focus:border-primary focus:ring-3 focus:ring-primary/15 sm:order-none sm:max-w-xs sm:flex-1 sm:basis-auto sm:border-transparent",
+            showTodo && !name.trim() && "border-danger",
+          )}
+        />
+        <div className="flex items-center gap-0.5">
+          <IconBtn label={`Urungkan (${MOD} Z)`} onClick={undo} disabled={!hist.past.length}>
+            <Undo2 className="size-4" strokeWidth={2} />
+          </IconBtn>
+          <IconBtn label={`Ulangi (${MOD} ⇧ Z)`} onClick={redo} disabled={!hist.future.length}>
+            <Redo2 className="size-4" strokeWidth={2} />
+          </IconBtn>
         </div>
-        <div className="flex gap-2">
-          <Button tone="blue" onClick={submit} disabled={saving || problems.length > 0} title={problems.join(" ")}>
-            {saving && <Loader2 className="size-4 animate-spin" />}
-            Simpan template
+        <span className="hidden h-6 w-px bg-edge md:block" />
+        <div className="hidden items-center gap-0.5 md:flex">
+          <IconBtn label={`Perkecil (${MOD} −)`} onClick={() => setZoom((z) => zoomStep(z, -0.25))} disabled={!frame}>
+            <Minus className="size-4" strokeWidth={2} />
+          </IconBtn>
+          <button type="button" onClick={() => setZoom(1)} disabled={!frame} title={`Pas layar (${MOD} 0)`} className="h-8 min-w-12 rounded-lg px-1 text-xs tabular-nums text-subtle hover:bg-canvas disabled:opacity-40">
+            {Math.round(zoom * 100)}%
+          </button>
+          <IconBtn label={`Perbesar (${MOD} +)`} onClick={() => setZoom((z) => zoomStep(z, 0.25))} disabled={!frame}>
+            <Plus className="size-4" strokeWidth={2} />
+          </IconBtn>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Button small onClick={() => setMode(mode === "edit" ? "preview" : "edit")} disabled={!frame || !!adjust} title="Pratinjau (P)">
+            {mode === "edit" ? <Eye className="size-4" strokeWidth={2} /> : <Pencil className="size-4" strokeWidth={2} />}
+            {mode === "edit" ? "Pratinjau" : "Kembali atur"}
           </Button>
+          <div className="relative">
+            <Button tone="blue" small onClick={submit} disabled={saving} title={`Simpan (${MOD} S)`}>
+              {saving && <Loader2 className="size-4 animate-spin" />}
+              Simpan
+            </Button>
+            {todo.length > 0 && <span aria-hidden className="absolute -right-1 -top-1 size-2.5 rounded-full bg-danger ring-2 ring-surface" />}
+            {showTodo && todo.length > 0 && (
+              <div className="absolute right-0 top-full z-40 mt-2 w-72 rounded-xl border border-edge bg-surface p-3 text-xs shadow-pop">
+                <p className="mb-1.5 font-medium text-fg">Lengkapi dulu sebelum menyimpan:</p>
+                <ul className="flex flex-col gap-1 text-subtle">
+                  {todo.map((t) => (
+                    <li key={t.text}>
+                      <button
+                        type="button"
+                        className="text-left hover:text-primary hover:underline"
+                        onClick={() => {
+                          if (t.tab) setSide(t.tab);
+                          setShowTodo(false);
+                        }}
+                      >
+                        • {t.text}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button type="button" onClick={() => setShowTodo(false)} className="mt-2 text-subtle hover:text-fg">
+                  Tutup
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {state.message && !state.ok && (
-        <div role="alert" className="mb-4 rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
+        <div role="alert" className="rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
           <p className="font-medium">{state.message}</p>
           {serverFields.length > 0 && (
             <ul className="mt-1 list-disc pl-5">
@@ -475,328 +924,196 @@ export function TemplateEditor({
         </div>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Panggung */}
-        <section className="min-w-0 rounded-xl border border-edge bg-surface shadow-card">
-          <header className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-4 py-3">
-            <div className={cn("inline-flex rounded-lg bg-canvas p-0.5", adjust && "invisible")} role="tablist" aria-label="Tampilan">
-              {(
-                [
-                  ["edit", "Atur slot", Pencil],
-                  ["preview", "Pratinjau", Eye],
-                ] as const
-              ).map(([k, label, Icon]) => (
-                <button
-                  key={k}
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === k}
-                  onClick={() => setMode(k)}
-                  className={cn("inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium", mode === k ? "bg-surface text-fg shadow-card" : "text-subtle hover:text-fg")}
-                >
-                  <Icon className="size-3.5" strokeWidth={2} /> {label}
-                </button>
-              ))}
-            </div>
-            {frame && !adjust && mode === "edit" && (
-              <label className="flex items-center gap-2 text-xs text-subtle">
-                <Switch checked={showSafe} onChange={setShowSafe} label="Garis aman cetak" /> Garis aman
-              </label>
-            )}
-            <span className="text-xs text-subtle">
-              {adjust
-                ? `Atur gambar · ${FORMATS[adjust.format].label} · ${FORMATS[adjust.format].size}`
-                : frame && format
-                  ? `${FORMATS[format].label} · ${frame.width}×${frame.height} px`
-                  : "Belum ada gambar"}
-            </span>
-          </header>
-          {frame && !adjust && mode === "edit" && (
-            <div className="flex min-h-11 flex-wrap items-center gap-1.5 border-b border-edge bg-canvas/60 px-4 py-2 text-xs">
-              {slot && sel !== null ? (
-                <>
-                  <span className="mr-1 font-semibold">Slot {sel + 1}</span>
-                  {SHAPES.map((sh) => {
-                    const off = sh.key === "frame" && (!overlay || slotLayer(slot, overlay) === "above");
-                    return (
-                      <button
-                        key={sh.key}
-                        type="button"
-                        disabled={off}
-                        aria-pressed={slot.shape === sh.key}
-                        onClick={() => setShape(sel, sh.key)}
-                        className={cn("h-7 rounded-md px-2 font-medium ring-1 ring-inset disabled:opacity-40", slot.shape === sh.key ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface ring-edge-strong hover:bg-canvas")}
-                      >
-                        {sh.label}
-                      </button>
-                    );
-                  })}
-                  {overlay && (
-                    <span className="ml-1 inline-flex rounded-md bg-surface p-0.5 ring-1 ring-inset ring-edge-strong">
-                      {(
-                        [
-                          ["below", "Bawah bingkai"],
-                          ["above", "Atas bingkai"],
-                        ] as const
-                      ).map(([k, label]) => (
-                        <button
-                          key={k}
-                          type="button"
-                          aria-pressed={slotLayer(slot, overlay) === k}
-                          onClick={() => setLayer(sel, k)}
-                          className={cn("h-6 rounded px-2 font-medium", slotLayer(slot, overlay) === k ? (k === "above" ? "bg-info-soft text-info" : "bg-primary-soft text-primary") : "text-subtle hover:text-fg")}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </span>
-                  )}
-                  <span className="flex gap-0.5 border-l border-edge pl-1.5">
-                    <IconBtn label="Duplikat slot" onClick={() => duplicate(sel)} disabled={slots.length >= MAX_SLOTS}>
-                      <Copy className="size-4" strokeWidth={2} />
-                    </IconBtn>
-                    <IconBtn label="Hapus slot" onClick={() => removeSlot(sel)}>
-                      <Trash2 className="size-4 text-danger" strokeWidth={2} />
-                    </IconBtn>
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-subtle">Klik slot untuk mengubahnya, atau</span>
-                  <Button small onClick={addSlot} disabled={slots.length >= MAX_SLOTS}>
-                    <Plus className="size-4" strokeWidth={2} /> Tambah slot foto
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
-          <div ref={boxRef} className="flex justify-center overflow-hidden p-4 sm:p-6">
-            {adjust ? (
-              <AdjustStage adjust={adjust} boxW={boxW} maxH={maxH} onChange={setAdjust} />
-            ) : !frame ? (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="flex aspect-[2/3] w-full max-w-sm flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-edge-strong p-6 text-center text-sm text-subtle hover:border-primary hover:bg-primary-soft/40"
-              >
-                <ImageUp className="size-10 text-primary" strokeWidth={1.5} />
-                <span className="font-medium text-fg">Unggah gambar bingkai</span>
-                <span>PNG dengan bagian foto transparan paling mudah — posisi foto langsung terdeteksi.</span>
-                <span className="text-xs">Ukuran lain atau JPG juga bisa: nanti kamu atur posisinya sendiri.</span>
-              </button>
-            ) : mode === "preview" ? (
-              <div style={{ width: stageW }}>
-                <TemplatePreview uid="editor" src={frame.src} width={frame.width} height={frame.height} overlay={overlay} slots={slots} className="rounded-md shadow-card" />
-              </div>
-            ) : (
-              <div
-                ref={stageRef}
-                tabIndex={0}
-                aria-label="Panggung template: klik slot untuk memilih, seret untuk memindahkan, panah untuk menggeser"
-                onPointerMove={onMove}
-                onPointerUp={() => {
-                  drag.current = null;
-                  setGuides({ v: [], h: [] });
-                }}
-                onPointerCancel={() => {
-                  drag.current = null;
-                  setGuides({ v: [], h: [] });
-                }}
-                onPointerDown={() => setSel(null)}
-                onKeyDown={onKey}
-                className="checker relative touch-none select-none rounded-md shadow-card outline-none focus-visible:ring-3 focus-visible:ring-primary/30"
-                style={{ width: stageW, height: stageH }}
-              >
-                <img src={frame.src} alt="" draggable={false} className="pointer-events-none absolute inset-0 size-full" />
-                {showSafe && (
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute z-[15] border border-dashed border-danger/60"
-                    style={{ left: `${SAFE * 100}%`, top: `${SAFE * 100}%`, right: `${SAFE * 100}%`, bottom: `${SAFE * 100}%` }}
-                  />
-                )}
-                {guides.v.map((x) => (
-                  <div key={`v${x}`} aria-hidden className="pointer-events-none absolute inset-y-0 z-30 w-px bg-danger" style={{ left: `${x * 100}%` }} />
-                ))}
-                {guides.h.map((y) => (
-                  <div key={`h${y}`} aria-hidden className="pointer-events-none absolute inset-x-0 z-30 h-px bg-danger" style={{ top: `${y * 100}%` }} />
-                ))}
-                {/* Lubang foto asli (bentuk apa pun, termasuk tidak beraturan) diwarnai biru muda. */}
-                {overlay && <div aria-hidden className="pointer-events-none absolute inset-0 z-[5] bg-primary/25" style={holeMask(frame.src)} />}
-                {slots.map((s, i) => {
-                  const isSel = i === sel;
-                  const above = slotLayer(s, overlay) === "above";
-                  const color = above ? "var(--color-info)" : "var(--color-primary)";
-                  const hole = s.shape === "frame";
-                  return (
-                    <div
-                      key={i}
-                      onPointerDown={(e) => begin(e, i, "move")}
-                      title={above ? "Di atas bingkai" : "Di bawah bingkai (lewat lubang)"}
-                      className={cn("absolute cursor-move", isSel ? "z-20" : "z-10")}
-                      style={{ left: s.x * stageW, top: s.y * stageH, width: s.w * stageW, height: s.h * stageH, transform: `rotate(${s.rotation}deg)` }}
-                    >
-                      {/* Garis mengikuti bentuk slot; "Ikuti lubang" cukup kotak tipis (bentuknya = warna lubang). */}
-                      <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden>
-                        <path
-                          d={shapePath(s, (s.w * stageW) / (s.h * stageH))}
-                          fill={hole ? "transparent" : color}
-                          fillOpacity={isSel ? 0.25 : 0.15}
-                          stroke={color}
-                          strokeOpacity={hole && !isSel ? 0.6 : 1}
-                          strokeWidth={isSel ? 2 : 1.5}
-                          strokeDasharray={isSel ? undefined : "4 3"}
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      </svg>
-                      {isSel && !hole && s.shape !== "rect" && (
-                        <span aria-hidden className="pointer-events-none absolute inset-0 border border-dashed" style={{ borderColor: color, opacity: 0.5 }} />
-                      )}
-                      <span
-                        className="pointer-events-none absolute left-1 top-1 inline-flex h-5 min-w-5 items-center justify-center gap-0.5 rounded px-1 text-[11px] font-semibold text-white"
-                        style={{ background: color }}
-                      >
-                        {i + 1}
-                        {above && <span className="text-[9px] font-medium">atas</span>}
-                      </span>
-                      {isSel && (
-                        <>
-                          {(
-                            [
-                              [-1, -1],
-                              [1, -1],
-                              [1, 1],
-                              [-1, 1],
-                            ] as [number, number][]
-                          ).map(([cx, cy]) => (
-                            <span
-                              key={`${cx}${cy}`}
-                              onPointerDown={(e) => begin(e, i, "resize", [cx, cy])}
-                              className="absolute size-3 rounded-sm border-2 bg-white"
-                              style={{ borderColor: color, left: cx < 0 ? -7 : undefined, right: cx > 0 ? -7 : undefined, top: cy < 0 ? -7 : undefined, bottom: cy > 0 ? -7 : undefined, cursor: cx === cy ? "nwse-resize" : "nesw-resize" }}
-                            />
-                          ))}
-                          <span className="pointer-events-none absolute -top-6 left-1/2 h-5 w-px -translate-x-1/2" style={{ background: color }} />
-                          <span
-                            onPointerDown={(e) => begin(e, i, "rotate")}
-                            title="Putar (tahan Alt untuk tanpa tempel 15°)"
-                            className="absolute -top-8 left-1/2 size-3.5 -translate-x-1/2 cursor-grab rounded-full border-2 bg-white"
-                            style={{ borderColor: color }}
-                          />
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          {adjust ? (
-            <p className="border-t border-edge px-4 py-2.5 text-xs text-subtle">
-              Seret gambar untuk menggeser. Kotak bergaris = area cetak; bagian gambar di luar kotak (pudar) akan terpotong.
-            </p>
-          ) : frame && mode === "edit" && (
-            <p className="border-t border-edge px-4 py-2.5 text-xs text-subtle">
-              <span className="font-medium text-primary">Biru</span> = foto di bawah bingkai (terlihat lewat lubang, area lubang diwarnai) ·{" "}
-              <span className="font-medium text-info">ungu</span> = foto di atas bingkai. Seret untuk memindahkan — menempel otomatis ke tengah, tepi, dan
-              slot lain (garis merah; Alt = bebas). Tarik sudut untuk ubah ukuran (Shift = proporsional), bulatan atas untuk memutar, panah untuk
-              menggeser halus. Garis putus-putus merah = batas aman cetak.
-            </p>
-          )}
-        </section>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void pickFile(f);
+        }}
+      />
 
-        {/* Panel */}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = "";
-            if (f) void pickFile(f);
-          }}
-        />
-        {adjust ? (
-          <AdjustPanel adjust={adjust} onChange={setAdjust} onCancel={() => setAdjust(null)} onApply={applyAdjust} busy={busy} notice={notice} />
-        ) : (
-          <aside className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:pb-1">
-            <div role="tablist" aria-label="Pengaturan" className="grid grid-cols-3 gap-1 rounded-xl bg-surface p-1 shadow-card ring-1 ring-inset ring-edge">
-              {(
-                [
-                  ["slot", `Slot foto${slots.length ? ` (${slots.length})` : ""}`],
-                  ["gambar", "Gambar"],
-                  ["info", "Info"],
-                ] as [Tab, string][]
-              ).map(([k, label]) => (
+      <div className="grid items-start gap-3 lg:grid-cols-[300px_minmax(0,1fr)]">
+        {/* Sidebar */}
+        <aside className="order-2 flex min-w-0 overflow-hidden rounded-xl border border-edge bg-surface shadow-card lg:sticky lg:top-4 lg:order-none lg:max-h-[calc(100dvh-2rem)]">
+          <nav className="flex w-16 shrink-0 flex-col gap-1 border-r border-edge bg-canvas/50 p-1.5" aria-label="Panel editor">
+            {(
+              [
+                ["elemen", "Elemen", Shapes],
+                ["latar", "Latar", ImageUp],
+                ["info", "Info", Tag],
+                ["pintasan", "Pintasan", Keyboard],
+              ] as [SideTab, string, typeof Shapes][]
+            ).map(([k, label, Icon]) => {
+              const on = adjust ? k === "latar" : side === k;
+              return (
                 <button
                   key={k}
                   type="button"
-                  role="tab"
-                  aria-selected={tab === k}
-                  onClick={() => setTab(k)}
-                  className={cn("relative h-8 rounded-lg text-xs font-medium", tab === k ? "bg-primary-soft text-primary" : "text-subtle hover:bg-canvas hover:text-fg")}
+                  aria-pressed={on}
+                  onClick={() => setSide(k)}
+                  className={cn("relative flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium", on ? "bg-surface text-primary shadow-card" : "text-subtle hover:bg-surface hover:text-fg")}
                 >
+                  <Icon className="size-5" strokeWidth={1.75} />
                   {label}
-                  {todo.some((t) => t.tab === k) && <span aria-label="perlu diisi" className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-danger" />}
+                  {todo.some((t) => t.tab === k) && <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-danger" />}
                 </button>
-              ))}
-            </div>
-
-            {tab === "gambar" && (
-              <>
-                <Panel title="Gambar bingkai">
-                  <div className="flex flex-wrap gap-2">
-                    <Button small onClick={() => fileRef.current?.click()} disabled={busy}>
-                      {busy ? <Loader2 className="size-4 animate-spin" /> : <ImageUp className="size-4" strokeWidth={2} />}
-                      {frame ? "Ganti gambar" : "Unggah gambar"}
-                    </Button>
-                    {frame && (
-                      <Button small onClick={redetect} disabled={busy}>
-                        <ScanSearch className="size-4" strokeWidth={2} /> Deteksi ulang lubang
-                      </Button>
-                    )}
-                    {frame && (
-                      <Button small onClick={adjustCurrent} disabled={busy}>
-                        <Crop className="size-4" strokeWidth={2} /> Atur posisi gambar
-                      </Button>
-                    )}
+              );
+            })}
+          </nav>
+          <div className="min-w-0 flex-1 overflow-y-auto p-3">
+            {adjust ? (
+              <AdjustPanel adjust={adjust} onChange={setAdjust} onCancel={() => setAdjust(null)} onApply={applyAdjust} busy={busy} notice={notice} />
+            ) : side === "elemen" ? (
+              <div className="flex flex-col gap-4 text-sm">
+                {notice && <NoticeBox notice={notice} />}
+                <section className="flex flex-col gap-2">
+                  <h3 className="font-semibold">Tambah foto</h3>
+                  {!frame && <p className="text-xs text-subtle">Unggah gambar latar dulu di panel Latar.</p>}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {SHAPES.filter((s) => s.key !== "frame").map((s) => (
+                      <button
+                        key={s.key}
+                        type="button"
+                        disabled={!frame || slots.length >= MAX_SLOTS}
+                        onClick={() => addShape(s.key)}
+                        className="flex flex-col items-center gap-1 rounded-lg bg-canvas py-2.5 text-xs text-subtle ring-1 ring-inset ring-edge hover:text-primary hover:ring-primary/40 disabled:opacity-40"
+                      >
+                        <ShapeIcon shape={s.key} className="size-7 text-primary" />
+                        {s.label}
+                      </button>
+                    ))}
                   </div>
-                  {notice && <NoticeBox notice={notice} />}
-                  {frame && (
-                    <button type="button" onClick={() => setTips(true)} className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-                      <Lightbulb className="size-3.5" strokeWidth={2} /> Saran gambar bingkai & unduh panduan ukuran
-                    </button>
+                </section>
+                <section className="flex flex-col gap-2">
+                  <h3 className="font-semibold">Bentuk sendiri</h3>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(
+                      [
+                        ["pen", "Klik titik demi titik", PenLine],
+                        ["lasso", "Seret bebas", Spline],
+                      ] as const
+                    ).map(([k, label, Icon]) => (
+                      <button
+                        key={k}
+                        type="button"
+                        disabled={!frame || slots.length >= MAX_SLOTS}
+                        aria-pressed={draw?.kind === k}
+                        onClick={() => startDraw(k)}
+                        className={cn(
+                          "flex flex-col items-center gap-1 rounded-lg py-2.5 text-xs ring-1 ring-inset disabled:opacity-40",
+                          draw?.kind === k ? "bg-primary-soft text-primary ring-primary/40" : "bg-canvas text-subtle ring-edge hover:text-primary",
+                        )}
+                      >
+                        <Icon className="size-6" strokeWidth={1.75} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-subtle">
+                    Gambar bentuk foto apa pun langsung di kanvas (awan, siluet, bintang miring…). Titik demi titik: klik titik pertama atau tekan Enter untuk menutup.
+                    Seret bebas: tahan & seret seperti spidol. Setelah jadi, klik dua kali untuk mengedit titiknya.
+                  </p>
+                </section>
+                <section className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">
+                      Urutan foto <span className="font-normal text-subtle">({slots.length}/{MAX_SLOTS})</span>
+                    </h3>
+                    <IconBtn label="Urutkan otomatis (atas → bawah, kiri → kanan)" onClick={() => change(sortSlots(slots))} disabled={slots.length < 2}>
+                      <SortAsc className="size-4" strokeWidth={2} />
+                    </IconBtn>
+                  </div>
+                  {slots.length === 0 ? (
+                    <p className="text-xs text-subtle">Belum ada foto.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {slots.map((o, i) => {
+                        const above = slotLayer(o, overlay) === "above";
+                        const on = sel.includes(i);
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={(e) => setSel(e.shiftKey ? (on ? sel.filter((j) => j !== i) : [...sel, i]) : [i])}
+                            aria-pressed={on}
+                            title={`Foto ke-${i + 1} · ${above ? "di atas bingkai" : "di bawah bingkai"}`}
+                            className={cn(
+                              "inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-lg px-1.5 text-sm font-medium ring-1 ring-inset",
+                              on ? (above ? "bg-info text-white ring-info" : "bg-primary text-white ring-primary") : above ? "bg-info-soft text-info ring-info/30" : "bg-surface ring-edge-strong hover:bg-canvas",
+                            )}
+                          >
+                            <ShapeIcon shape={o.shape} points={o.points} className="size-3.5" />
+                            {i + 1}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
-                  <label className="flex items-start justify-between gap-3 text-sm">
+                  <p className="text-xs text-subtle">
+                    Nomor = urutan foto diambil. <span className="text-primary">Biru</span>: di bawah bingkai (lewat lubang) · <span className="text-info">ungu</span>: di atas
+                    bingkai.
+                  </p>
+                </section>
+              </div>
+            ) : side === "latar" ? (
+              <div className="flex flex-col gap-3 text-sm">
+                <h3 className="font-semibold">Gambar latar / bingkai</h3>
+                <div className="flex flex-col gap-1.5">
+                  <Button small onClick={() => fileRef.current?.click()} disabled={busy}>
+                    {busy ? <Loader2 className="size-4 animate-spin" /> : <ImageUp className="size-4" strokeWidth={2} />}
+                    {frame ? "Ganti gambar" : "Unggah gambar"}
+                  </Button>
+                  {frame && (
+                    <Button small onClick={adjustCurrent} disabled={busy}>
+                      <Crop className="size-4" strokeWidth={2} /> Atur posisi & ukuran gambar
+                    </Button>
+                  )}
+                  {frame && (
+                    <Button small onClick={redetect} disabled={busy}>
+                      <ScanSearch className="size-4" strokeWidth={2} /> Deteksi lubang transparan
+                    </Button>
+                  )}
+                </div>
+                {notice && <NoticeBox notice={notice} />}
+                {frame && (
+                  <label className="flex items-start justify-between gap-3">
                     <span>
                       <span className="font-medium">Bingkai di atas foto</span>
-                      <span className="block text-xs text-subtle">Aktif: foto terlihat lewat bagian transparan. Mati: gambar jadi latar, semua foto di atasnya.</span>
+                      <span className="block text-xs text-subtle">Aktif: foto bisa terlihat lewat bagian transparan. Mati: gambar jadi latar, semua foto di atasnya.</span>
                     </span>
                     <Switch checked={overlay} onChange={setOverlay} label="Bingkai di atas foto" />
                   </label>
-                </Panel>
-                {!frame && (
-                  <Panel title="Saran gambar bingkai">
-                    <FrameTips />
-                  </Panel>
                 )}
-              </>
-            )}
-
-            {tab === "info" && (
-              <Panel title="Info template">
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  Nama
-                  <input
-                    value={name}
-                    maxLength={60}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="mis. Pink Wedding"
-                    className="h-10 rounded-lg border border-edge-strong bg-surface px-3 text-sm font-normal shadow-card outline-none placeholder:text-subtle focus:border-primary focus:ring-3 focus:ring-primary/15"
-                  />
-                </label>
-                <div className="flex flex-col gap-1.5 text-sm">
+                {frame && (
+                  <label className="flex items-center justify-between gap-3">
+                    <span className="font-medium">Garis aman cetak</span>
+                    <Switch checked={showSafe} onChange={setShowSafe} label="Garis aman cetak" />
+                  </label>
+                )}
+                {frame ? (
+                  <button type="button" onClick={() => setTips(true)} className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                    <Lightbulb className="size-3.5" strokeWidth={2} /> Saran gambar bingkai & panduan ukuran
+                  </button>
+                ) : (
+                  <>
+                    <h3 className="mt-1 font-semibold">Saran gambar</h3>
+                    <FrameTips />
+                  </>
+                )}
+              </div>
+            ) : side === "info" ? (
+              <div className="flex flex-col gap-3 text-sm">
+                <h3 className="font-semibold">Info template</h3>
+                {frame && format && (
+                  <p className="text-xs text-subtle">
+                    {FORMATS[format].label} · {frame.width}×{frame.height} px · {FORMATS[format].hint}
+                  </p>
+                )}
+                <div className="flex flex-col gap-1.5">
                   <span className="font-medium">Kategori</span>
                   <div className="flex flex-wrap gap-1.5">
                     {categories.map((c) => {
@@ -820,188 +1137,401 @@ export function TemplateEditor({
                     })}
                     {categories.length === 0 && <span className="text-xs text-subtle">Belum ada kategori.</span>}
                   </div>
-                  <span className="text-xs text-subtle">Dipakai pemilik untuk memilih template sesuai tema acara.</span>
+                  <span className="text-xs text-subtle">Dipakai untuk memilih template sesuai tema acara.</span>
                 </div>
-                <label className="flex items-center justify-between gap-3 text-sm">
+                <label className="flex items-center justify-between gap-3">
                   <span className="font-medium">{builtin ? "Aktif untuk semua pemilik" : "Tampil di booth"}</span>
                   <Switch checked={active} onChange={setActive} label="Aktif" />
                 </label>
-              </Panel>
-            )}
-
-            {tab === "slot" && (
-              <Panel
-                title={`Slot foto (${slots.length}/${MAX_SLOTS})`}
-                action={
-                  <div className="flex gap-1">
-                    <IconBtn label="Urutkan otomatis (atas → bawah, kiri → kanan)" onClick={() => setSlots(sortSlots(slots))} disabled={slots.length < 2}>
-                      <SortAsc className="size-4" strokeWidth={2} />
-                    </IconBtn>
-                    <IconBtn label="Tambah slot" onClick={addSlot} disabled={!frame || slots.length >= MAX_SLOTS}>
-                      <Plus className="size-4" strokeWidth={2} />
-                    </IconBtn>
-                  </div>
-                }
-              >
-                {notice && frame && <NoticeBox notice={notice} />}
-                {slots.length === 0 ? (
-                  <p className="text-sm text-subtle">{frame ? "Belum ada slot. Tambah slot atau deteksi ulang lubang (tab Gambar)." : "Unggah gambar bingkai dulu di tab Gambar."}</p>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {slots.map((o, i) => {
-                      const above = slotLayer(o, overlay) === "above";
-                      return (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => setSel(i)}
-                          aria-pressed={i === sel}
-                          title={above ? "Di atas bingkai" : "Di bawah bingkai"}
-                          className={cn(
-                            "inline-flex size-8 items-center justify-center rounded-lg text-sm font-medium ring-1 ring-inset",
-                            i === sel ? (above ? "bg-info text-white ring-info" : "bg-primary text-white ring-primary") : above ? "bg-info-soft text-info ring-info/30" : "bg-surface ring-edge-strong hover:bg-canvas",
-                          )}
-                        >
-                          {i + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                {slot && sel !== null && (
-                  <div className="flex flex-col gap-3 border-t border-edge pt-3">
-                    {overlay && (
-                      <div className="flex flex-col gap-1.5 text-sm">
-                        <span className="font-medium">Lapisan</span>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {(
-                            [
-                              ["below", "Di bawah bingkai", "Terlihat lewat lubang"],
-                              ["above", "Di atas bingkai", "Menempel seperti stiker"],
-                            ] as const
-                          ).map(([k, label, hint]) => {
-                            const on = slotLayer(slot, overlay) === k;
-                            return (
-                              <button
-                                key={k}
-                                type="button"
-                                aria-pressed={on}
-                                onClick={() => setLayer(sel, k)}
-                                className={cn("rounded-lg px-2 py-1.5 text-left ring-1 ring-inset", on ? (k === "above" ? "bg-info-soft ring-info/40" : "bg-primary-soft ring-primary/40") : "bg-surface ring-edge-strong hover:bg-canvas")}
-                              >
-                                <span className={cn("block text-xs font-medium", on && (k === "above" ? "text-info" : "text-primary"))}>{label}</span>
-                                <span className="block text-[11px] text-subtle">{hint}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1.5 text-sm">
-                      <span className="font-medium">Bentuk</span>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {SHAPES.map((sh) => {
-                          const off = sh.key === "frame" && (!overlay || slotLayer(slot, overlay) === "above");
-                          return (
-                            <button
-                              key={sh.key}
-                              type="button"
-                              disabled={off}
-                              title={off ? "Hanya untuk foto di bawah bingkai" : undefined}
-                              aria-pressed={slot.shape === sh.key}
-                              onClick={() => setShape(sel, sh.key)}
-                              className={cn(
-                                "h-8 rounded-lg px-2 text-xs font-medium ring-1 ring-inset disabled:opacity-40",
-                                slot.shape === sh.key ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface ring-edge-strong hover:bg-canvas",
-                              )}
-                            >
-                              {sh.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {slot.shape === "frame" && <p className="text-xs text-subtle">Foto mengikuti bentuk lubang di bingkai — bentuk apa pun, termasuk tidak beraturan.</p>}
-                    </div>
-                    {slot.shape === "rounded" && (
-                      <div className="flex flex-col gap-1.5 text-sm">
-                        <span className="flex items-center justify-between font-medium">
-                          Lengkung sudut <span className="font-normal tabular-nums text-subtle">{Math.round((slot.radius ?? 0) * 200)}%</span>
-                        </span>
-                        <input type="range" min={0} max={0.5} step={0.01} value={slot.radius ?? 0.12} onChange={(e) => update(sel, { radius: Number(e.target.value) })} className="accent-primary" aria-label="Lengkung sudut" />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1.5 text-sm">
-                      <span className="flex items-center justify-between font-medium">
-                        Kemiringan <span className="font-normal tabular-nums text-subtle">{slot.rotation}°</span>
-                      </span>
-                      <input
-                        type="range"
-                        min={-180}
-                        max={180}
-                        step={1}
-                        value={slot.rotation}
-                        onChange={(e) => update(sel, { rotation: Number(e.target.value) })}
-                        className="accent-primary"
-                        aria-label="Kemiringan"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5 text-sm">
-                      <span className="font-medium">Rapikan</span>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <Button small onClick={() => update(sel, { x: r4(0.5 - slot.w / 2) })}>
-                          <AlignCenterVertical className="size-4" strokeWidth={2} /> Tengah datar
-                        </Button>
-                        <Button small onClick={() => update(sel, { y: r4(0.5 - slot.h / 2) })}>
-                          <AlignCenterHorizontal className="size-4" strokeWidth={2} /> Tengah tegak
-                        </Button>
-                        <Button small disabled={slots.length < 2} onClick={() => setSlots(slots.map((o) => ({ ...o, w: slot.w, h: slot.h })))} title="Semua slot dibuat seukuran slot ini">
-                          <Scaling className="size-4" strokeWidth={2} /> Samakan ukuran
-                        </Button>
-                        <Button small disabled={slots.length < 2} onClick={() => setSlots(slots.map((o) => ({ ...o, x: r4(0.5 - o.w / 2) })))} title="Semua slot ditengahkan mendatar">
-                          <AlignCenterVertical className="size-4" strokeWidth={2} /> Semua di tengah
-                        </Button>
-                        <Button small disabled={slots.length < 3} onClick={() => setSlots(distribute(slots, "y"))} title="Jarak atas-bawah antar slot dibuat sama">
-                          <StretchVertical className="size-4" strokeWidth={2} /> Jarak rata ↕
-                        </Button>
-                        <Button small disabled={slots.length < 3} onClick={() => setSlots(distribute(slots, "x"))} title="Jarak kiri-kanan antar slot dibuat sama">
-                          <StretchHorizontal className="size-4" strokeWidth={2} /> Jarak rata ↔
-                        </Button>
-                      </div>
-                    </div>
-                    <details className="text-sm">
-                      <summary className="cursor-pointer font-medium text-subtle hover:text-fg">Posisi & ukuran tepat (%)</summary>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <Num label="X (%)" value={slot.x * 100} onChange={(v) => update(sel, { x: r4(v / 100) })} />
-                        <Num label="Y (%)" value={slot.y * 100} onChange={(v) => update(sel, { y: r4(v / 100) })} />
-                        <Num label="Lebar (%)" value={slot.w * 100} min={2} onChange={(v) => update(sel, { w: r4(clamp(v, 2, 150) / 100) })} />
-                        <Num label="Tinggi (%)" value={slot.h * 100} min={2} onChange={(v) => update(sel, { h: r4(clamp(v, 2, 150) / 100) })} />
-                      </div>
-                    </details>
-                  </div>
-                )}
-              </Panel>
-            )}
-
-            {todo.length > 0 && (
-              <div className="rounded-lg bg-canvas px-4 py-3 text-xs text-subtle ring-1 ring-inset ring-edge">
-                <p className="mb-1 font-medium text-fg">Sebelum menyimpan:</p>
-                <ul className="flex flex-col gap-0.5">
-                  {todo.map((t) => (
-                    <li key={t.text}>
-                      <button type="button" onClick={() => setTab(t.tab)} className="text-left hover:text-primary hover:underline">
-                        • {t.text}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 text-sm">
+                <h3 className="font-semibold">Pintasan keyboard</h3>
+                <ShortcutList />
               </div>
             )}
-          </aside>
-        )}
+          </div>
+        </aside>
+
+        {/* Kanvas */}
+        <section className="order-1 min-w-0 overflow-hidden rounded-xl border border-edge bg-surface shadow-card lg:order-none">
+          {/* Toolbar kontekstual */}
+          <div className="flex min-h-12 flex-wrap items-center gap-1 border-b border-edge px-3 py-1.5 text-xs">
+            {adjust ? (
+              <span className="text-subtle">Atur gambar · {FORMATS[adjust.format].label} · seret gambar untuk menggeser, roda mouse untuk zoom.</span>
+            ) : !frame ? (
+              <span className="text-subtle">Mulai dengan mengunggah gambar latar atau bingkai.</span>
+            ) : mode === "preview" ? (
+              <span className="text-subtle">Pratinjau dengan foto contoh · tekan P untuk kembali mengatur.</span>
+            ) : draw ? (
+              <>
+                <span className="font-medium text-primary">{draw.kind === "pen" ? "Menggambar titik demi titik" : "Seret bebas"}</span>
+                <span className="text-subtle">
+                  {draw.kind === "pen" ? `· ${draw.pts.length} titik — klik titik pertama / Enter untuk selesai, Backspace hapus titik terakhir` : "· tahan & seret di kanvas"}
+                </span>
+                <span className="ml-auto flex gap-1">
+                  {draw.kind === "pen" && (
+                    <Button small tone="blue" onClick={() => finishDraw(draw.pts)} disabled={draw.pts.length < 3}>
+                      Selesai
+                    </Button>
+                  )}
+                  <Button small onClick={() => setDraw(null)}>
+                    Batal (Esc)
+                  </Button>
+                </span>
+              </>
+            ) : slot && one !== null ? (
+              <>
+                <span className="mr-1 font-semibold">Foto {one + 1}</span>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShapeMenu(!shapeMenu)}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 ring-1 ring-inset ring-edge-strong hover:bg-canvas"
+                    aria-expanded={shapeMenu}
+                  >
+                    <ShapeIcon shape={slot.shape} points={slot.points} />
+                    {slot.shape === "custom" ? "Bentuk bebas" : (SHAPES.find((s) => s.key === slot.shape)?.label ?? slot.shape)}
+                  </button>
+                  {shapeMenu && (
+                    <div className="absolute left-0 top-full z-40 mt-1 grid w-60 grid-cols-3 gap-1 rounded-xl border border-edge bg-surface p-2 shadow-pop">
+                      {SHAPES.map((sh) => {
+                        const off = sh.key === "frame" && (!overlay || slotLayer(slot, overlay) === "above");
+                        return (
+                          <button
+                            key={sh.key}
+                            type="button"
+                            disabled={off}
+                            title={off ? "Hanya untuk foto di bawah bingkai yang punya lubang" : sh.label}
+                            onClick={() => {
+                              setShape(one, sh.key);
+                              setShapeMenu(false);
+                            }}
+                            className={cn("flex flex-col items-center gap-1 rounded-lg p-1.5 text-[11px] disabled:opacity-30", slot.shape === sh.key ? "bg-primary-soft text-primary" : "hover:bg-canvas")}
+                          >
+                            <ShapeIcon shape={sh.key} className="size-5" />
+                            {sh.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                {slot.shape === "custom" && (
+                  <Button small onClick={() => setEditPts(editPts === one ? null : one)} title="Edit titik (atau klik dua kali bentuknya)">
+                    <PenLine className="size-4" strokeWidth={2} /> {editPts === one ? "Selesai edit titik" : "Edit titik"}
+                  </Button>
+                )}
+                {slot.shape === "rounded" && (
+                  <label className="inline-flex items-center gap-1.5 px-1 text-subtle" title="Lengkung sudut">
+                    Lengkung
+                    <input
+                      type="range"
+                      min={0}
+                      max={0.5}
+                      step={0.01}
+                      value={slot.radius ?? 0.12}
+                      onChange={(e) => update(one, { radius: Number(e.target.value) })}
+                      className="w-20 accent-primary"
+                      aria-label="Lengkung sudut"
+                    />
+                  </label>
+                )}
+                {overlay && (
+                  <span className="inline-flex rounded-lg p-0.5 ring-1 ring-inset ring-edge-strong" title="Lapisan foto terhadap bingkai">
+                    {(
+                      [
+                        ["below", "Bawah bingkai"],
+                        ["above", "Atas bingkai"],
+                      ] as const
+                    ).map(([k, label]) => (
+                      <button
+                        key={k}
+                        type="button"
+                        aria-pressed={slotLayer(slot, overlay) === k}
+                        onClick={() => setLayer([one], k)}
+                        className={cn(
+                          "h-7 rounded-md px-2 font-medium",
+                          slotLayer(slot, overlay) === k ? (k === "above" ? "bg-info-soft text-info" : "bg-primary-soft text-primary") : "text-subtle hover:text-fg",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </span>
+                )}
+                <label className="inline-flex items-center gap-1 px-1 text-subtle" title="Kemiringan (derajat)">
+                  Miring
+                  <input
+                    type="number"
+                    min={-180}
+                    max={180}
+                    value={Math.round(slot.rotation)}
+                    onChange={(e) => update(one, { rotation: clamp(Number(e.target.value) || 0, -180, 180) })}
+                    className="h-7 w-14 rounded-md border border-edge-strong px-1.5 text-xs tabular-nums text-fg outline-none focus:border-primary"
+                  />
+                  °
+                </label>
+                <span className="mx-0.5 h-5 w-px bg-edge" />
+                <IconBtn label="Tengah mendatar di halaman" onClick={() => align("c")}>
+                  <AlignCenterVertical className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Tengah tegak di halaman" onClick={() => align("m")}>
+                  <AlignCenterHorizontal className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label={`Urutan foto lebih awal (${MOD} [)`} onClick={() => reorder(one, -1)} disabled={one === 0}>
+                  <ChevronLeft className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label={`Urutan foto lebih akhir (${MOD} ])`} onClick={() => reorder(one, 1)} disabled={one === slots.length - 1}>
+                  <ChevronRight className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <span className="mx-0.5 h-5 w-px bg-edge" />
+                <IconBtn label={`Duplikat (${MOD} D)`} onClick={() => duplicate([one])} disabled={slots.length >= MAX_SLOTS}>
+                  <Copy className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Hapus (Delete)" onClick={() => remove([one])}>
+                  <Trash2 className="size-4 text-danger" strokeWidth={2} />
+                </IconBtn>
+              </>
+            ) : sel.length > 1 ? (
+              <>
+                <span className="mr-1 font-semibold">{sel.length} foto dipilih</span>
+                <IconBtn label="Rata kiri" onClick={() => align("l")}>
+                  <AlignStartVertical className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Rata tengah mendatar" onClick={() => align("c")}>
+                  <AlignCenterVertical className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Rata kanan" onClick={() => align("r")}>
+                  <AlignEndVertical className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Rata atas" onClick={() => align("t")}>
+                  <AlignStartHorizontal className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Rata tengah tegak" onClick={() => align("m")}>
+                  <AlignCenterHorizontal className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Rata bawah" onClick={() => align("b")}>
+                  <AlignEndHorizontal className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <span className="mx-0.5 h-5 w-px bg-edge" />
+                <IconBtn label="Jarak atas-bawah sama (min. 3 foto)" onClick={() => spread("y")} disabled={sel.length < 3}>
+                  <StretchVertical className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Jarak kiri-kanan sama (min. 3 foto)" onClick={() => spread("x")} disabled={sel.length < 3}>
+                  <StretchHorizontal className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Samakan ukuran (seperti foto terakhir dipilih)" onClick={sameSize}>
+                  <Scaling className="size-4" strokeWidth={2} />
+                </IconBtn>
+                {overlay && (
+                  <>
+                    <span className="mx-0.5 h-5 w-px bg-edge" />
+                    <Button small onClick={() => setLayer(sel, "below")}>
+                      Bawah bingkai
+                    </Button>
+                    <Button small onClick={() => setLayer(sel, "above")}>
+                      Atas bingkai
+                    </Button>
+                  </>
+                )}
+                <span className="mx-0.5 h-5 w-px bg-edge" />
+                <IconBtn label={`Duplikat (${MOD} D)`} onClick={() => duplicate(sel)} disabled={slots.length + sel.length > MAX_SLOTS}>
+                  <Copy className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Hapus (Delete)" onClick={() => remove(sel)}>
+                  <Trash2 className="size-4 text-danger" strokeWidth={2} />
+                </IconBtn>
+              </>
+            ) : (
+              <span className="flex flex-wrap items-center gap-1.5 text-subtle">
+                <Info className="size-3.5" strokeWidth={2} />
+                Klik foto untuk mengubah · Shift + klik / seret area kosong untuk memilih beberapa · tekan{" "}
+                <kbd className="rounded bg-canvas px-1 font-mono ring-1 ring-inset ring-edge">?</kbd> untuk pintasan
+              </span>
+            )}
+          </div>
+
+          <div ref={areaRef} className="flex max-h-[78dvh] min-h-[420px] overflow-auto bg-canvas/60 p-6">
+            {adjust ? (
+              <div className="m-auto">
+                <AdjustStage adjust={adjust} boxW={areaW - 48} maxH={maxH} onChange={setAdjust} />
+              </div>
+            ) : !frame ? (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="m-auto flex aspect-[2/3] w-full max-w-sm flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-edge-strong bg-surface p-6 text-center text-sm text-subtle hover:border-primary hover:bg-primary-soft/40"
+              >
+                <ImageUp className="size-10 text-primary" strokeWidth={1.5} />
+                <span className="font-medium text-fg">Unggah gambar latar / bingkai</span>
+                <span>PNG dengan bagian foto transparan → posisi foto terdeteksi otomatis.</span>
+                <span className="text-xs">Gambar biasa (JPG) juga bisa: foto kamu atur atau gambar bentuknya sendiri.</span>
+              </button>
+            ) : mode === "preview" ? (
+              <div className="m-auto shrink-0" style={{ width: stageW }}>
+                <TemplatePreview uid="editor" src={frame.src} width={frame.width} height={frame.height} overlay={overlay} slots={slots} className="rounded-md shadow-card" />
+              </div>
+            ) : (
+              <div
+                ref={stageRef}
+                tabIndex={0}
+                aria-label="Kanvas template: klik foto untuk memilih, seret untuk memindahkan"
+                onPointerDown={stageDown}
+                onPointerMove={stageMove}
+                onPointerUp={stageUp}
+                onPointerCancel={stageUp}
+                onDoubleClick={() => {
+                  if (draw?.kind === "pen") return finishDraw(draw.pts);
+                  // Pointer ditangkap kanvas saat slot ditekan → klik dua kali sampai di sini: edit titik bentuk bebas terpilih.
+                  if (one !== null && slots[one]?.shape === "custom") setEditPts(one);
+                }}
+                className={cn("checker relative m-auto shrink-0 touch-none select-none shadow-card outline-none", draw && "cursor-crosshair")}
+                style={{ width: stageW, height: stageH }}
+              >
+                <img src={frame.src} alt="" draggable={false} className="pointer-events-none absolute inset-0 size-full" />
+                {/* Lubang foto asli (bentuk apa pun) diwarnai biru muda. */}
+                {overlay && <div aria-hidden className="pointer-events-none absolute inset-0 z-[5] bg-primary/25" style={holeMask(frame.src)} />}
+                {showSafe && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute z-[15] border border-dashed border-danger/60"
+                    style={{ left: `${SAFE * 100}%`, top: `${SAFE * 100}%`, right: `${SAFE * 100}%`, bottom: `${SAFE * 100}%` }}
+                  />
+                )}
+                {guides.v.map((x) => (
+                  <div key={`v${x}`} aria-hidden className="pointer-events-none absolute inset-y-0 z-30 w-px bg-danger" style={{ left: `${x * 100}%` }} />
+                ))}
+                {guides.h.map((y) => (
+                  <div key={`h${y}`} aria-hidden className="pointer-events-none absolute inset-x-0 z-30 h-px bg-danger" style={{ top: `${y * 100}%` }} />
+                ))}
+                {slots.map((s, i) => {
+                  const on = sel.includes(i);
+                  const c = color(s);
+                  const hole = s.shape === "frame";
+                  const pointEdit = editPts === i && s.shape === "custom";
+                  return (
+                    <div
+                      key={i}
+                      onPointerDown={(e) => beginSlot(e, i)}
+                      className={cn("absolute", draw ? "pointer-events-none" : "cursor-move", on ? "z-20" : "z-10")}
+                      style={{ left: s.x * stageW, top: s.y * stageH, width: s.w * stageW, height: s.h * stageH, transform: `rotate(${s.rotation}deg)` }}
+                    >
+                      <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden>
+                        <path
+                          d={shapePath(s, (s.w * stageW) / (s.h * stageH))}
+                          fill={hole ? "transparent" : c}
+                          fillOpacity={on ? 0.28 : 0.16}
+                          stroke={c}
+                          strokeOpacity={hole && !on ? 0.6 : 1}
+                          strokeWidth={on ? 2 : 1.5}
+                          strokeDasharray={on ? undefined : "4 3"}
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      </svg>
+                      {on && one === i && !hole && s.shape !== "rect" && !pointEdit && (
+                        <span aria-hidden className="pointer-events-none absolute inset-0 border border-dashed" style={{ borderColor: c, opacity: 0.45 }} />
+                      )}
+                      <span
+                        className="pointer-events-none absolute left-1 top-1 inline-flex h-5 min-w-5 items-center justify-center gap-0.5 rounded px-1 text-[11px] font-semibold text-white"
+                        style={{ background: c }}
+                      >
+                        {i + 1}
+                        {slotLayer(s, overlay) === "above" && <span className="text-[9px] font-medium">atas</span>}
+                      </span>
+                      {pointEdit &&
+                        (s.points ?? []).map(([px, py], k) => (
+                          <span
+                            key={k}
+                            onPointerDown={(e) => beginVertex(e, i, k)}
+                            className="absolute size-3 -translate-x-1/2 -translate-y-1/2 cursor-move rounded-full border-2 bg-white"
+                            style={{ left: `${px * 100}%`, top: `${py * 100}%`, borderColor: c }}
+                          />
+                        ))}
+                      {on && one === i && !pointEdit && (
+                        <>
+                          {(
+                            [
+                              [-1, -1],
+                              [0, -1],
+                              [1, -1],
+                              [1, 0],
+                              [1, 1],
+                              [0, 1],
+                              [-1, 1],
+                              [-1, 0],
+                            ] as [number, number][]
+                          ).map(([cx, cy]) => (
+                            <span
+                              key={`${cx}${cy}`}
+                              onPointerDown={(e) => beginHandle(e, i, "resize", [cx, cy])}
+                              className={cn("absolute border-2 bg-white", cx !== 0 && cy !== 0 ? "size-3 rounded-sm" : cx === 0 ? "h-2 w-4 rounded-full" : "h-4 w-2 rounded-full")}
+                              style={{
+                                borderColor: c,
+                                left: cx < 0 ? -7 : cx === 0 ? "50%" : undefined,
+                                right: cx > 0 ? -7 : undefined,
+                                top: cy < 0 ? -7 : cy === 0 ? "50%" : undefined,
+                                bottom: cy > 0 ? -7 : undefined,
+                                translate: cx === 0 ? "-50% 0" : cy === 0 ? "0 -50%" : undefined,
+                                cursor: cx === 0 ? "ns-resize" : cy === 0 ? "ew-resize" : cx === cy ? "nwse-resize" : "nesw-resize",
+                              }}
+                            />
+                          ))}
+                          <span className="pointer-events-none absolute -top-6 left-1/2 h-5 w-px -translate-x-1/2" style={{ background: c }} />
+                          <span
+                            onPointerDown={(e) => beginHandle(e, i, "rotate")}
+                            title="Putar (Alt = tanpa tempel 15°)"
+                            className="absolute -top-8 left-1/2 size-3.5 -translate-x-1/2 cursor-grab rounded-full border-2 bg-white"
+                            style={{ borderColor: c }}
+                          />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+                {marquee && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute z-40 border border-primary bg-primary/10"
+                    style={{ left: `${marquee.x * 100}%`, top: `${marquee.y * 100}%`, width: `${marquee.w * 100}%`, height: `${marquee.h * 100}%` }}
+                  />
+                )}
+                {draw && draw.pts.length > 0 && (
+                  <svg className="pointer-events-none absolute inset-0 z-40 size-full overflow-visible" aria-hidden>
+                    <polyline
+                      points={[...draw.pts, ...(draw.kind === "pen" && draw.hover ? [draw.hover] : [])].map(([x, y]) => `${x * stageW},${y * stageH}`).join(" ")}
+                      fill="var(--color-primary)"
+                      fillOpacity={0.12}
+                      stroke="var(--color-primary)"
+                      strokeWidth={2}
+                    />
+                    {draw.kind === "pen" &&
+                      draw.pts.map(([x, y], k) => <circle key={k} cx={x * stageW} cy={y * stageH} r={k === 0 ? 6 : 3.5} fill="white" stroke="var(--color-primary)" strokeWidth={2} />)}
+                  </svg>
+                )}
+              </div>
+            )}
+          </div>
+          {frame && !adjust && mode === "edit" && slot && one !== null && (
+            <details className="border-t border-edge px-3 py-2 text-xs">
+              <summary className="cursor-pointer text-subtle hover:text-fg">Posisi & ukuran tepat (%)</summary>
+              <div className="mt-2 grid max-w-md grid-cols-4 gap-2">
+                <Num label="X" value={slot.x * 100} onChange={(v) => update(one, { x: r4(v / 100) })} />
+                <Num label="Y" value={slot.y * 100} onChange={(v) => update(one, { y: r4(v / 100) })} />
+                <Num label="Lebar" value={slot.w * 100} min={2} onChange={(v) => update(one, { w: r4(clamp(v, 2, 150) / 100) })} />
+                <Num label="Tinggi" value={slot.h * 100} min={2} onChange={(v) => update(one, { h: r4(clamp(v, 2, 150) / 100) })} />
+              </div>
+            </details>
+          )}
+        </section>
       </div>
 
       <Dialog open={tips} onClose={() => setTips(false)} title="Saran gambar bingkai" wide>
         <FrameTips />
+      </Dialog>
+
+      <Dialog open={keys} onClose={() => setKeys(false)} title="Pintasan keyboard" wide>
+        <ShortcutList />
       </Dialog>
 
       <Dialog open={ask !== null} onClose={() => setAsk(null)} title="Gambar perlu disesuaikan" wide>
@@ -1049,326 +1579,17 @@ export function TemplateEditor({
   );
 }
 
-/** PNG panduan ukuran: kanvas ukuran cetak, garis aman, dan contoh lubang foto transparan bernomor. */
-async function downloadGuide(format: TemplateFormat) {
-  const [W, H] = FORMATS[format].px;
-  const c = document.createElement("canvas");
-  c.width = W;
-  c.height = H;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#eef2ff";
-  ctx.fillRect(0, 0, W, H);
-  ctx.setLineDash([18, 12]);
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = "#ef4444";
-  ctx.strokeRect(W * SAFE, H * SAFE, W * (1 - 2 * SAFE), H * (1 - 2 * SAFE));
-  const u = Math.min(W, H) / 600;
-  defaultSlots(format).forEach((sl, i) => {
-    const x = sl.x * W, y = sl.y * H, w = sl.w * W, h = sl.h * H;
-    ctx.clearRect(x, y, w, h);
-    ctx.strokeStyle = "#2563eb";
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = "#2563eb";
-    ctx.font = `600 ${28 * u}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(`FOTO ${i + 1} (transparan)`, x + w / 2, y + h / 2);
-  });
-  ctx.fillStyle = "#64748b";
-  ctx.font = `${18 * u}px sans-serif`;
-  ctx.textAlign = "center";
-  ctx.fillText(`Panduan Sissi Booth · ${FORMATS[format].label} · ${FORMATS[format].size}`, W / 2, H - H * SAFE - 14 * u);
-  ctx.fillStyle = "#ef4444";
-  ctx.fillText("Garis merah = batas aman (jangan taruh teks penting di luar)", W / 2, H * SAFE + 30 * u);
-  const blob = await new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
-  if (!blob) return;
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `panduan-sissi-booth-${format}.png`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-/** Saran membuat gambar bingkai + tombol unduh PNG panduan per format. */
-function FrameTips() {
+function ShortcutList() {
   return (
-    <div className="flex flex-col gap-3 text-sm">
-      <div className="flex flex-col divide-y divide-edge rounded-lg ring-1 ring-inset ring-edge">
-        {FORMAT_KEYS.map((f) => (
-          <div key={f} className="flex items-center justify-between gap-3 px-3 py-2">
-            <span className="min-w-0">
-              <span className="block font-medium">{FORMATS[f].label}</span>
-              <span className="block text-xs text-subtle">
-                {FORMATS[f].size} · {FORMATS[f].hint}
-              </span>
-            </span>
-            <button
-              type="button"
-              onClick={() => void downloadGuide(f)}
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-medium text-primary hover:bg-primary-soft"
-            >
-              <Download className="size-3.5" strokeWidth={2} /> Panduan
-            </button>
-          </div>
-        ))}
-      </div>
-      <ul className="flex list-disc flex-col gap-1 pl-4 text-xs text-subtle">
-        <li>
-          Simpan sebagai <b className="font-medium text-fg">PNG</b> dan buat <b className="font-medium text-fg">bagian foto transparan</b> (dihapus) — posisinya terdeteksi
-          otomatis, bentuk apa pun: kotak, bulat, hati.
-        </li>
-        <li>Pakai ukuran piksel persis seperti di atas. Ukuran lain tetap bisa, nanti diatur posisinya.</li>
-        <li>Jauhkan teks & logo penting dari tepi (±3%, garis merah di panduan) — tepi bisa sedikit terpotong saat cetak.</li>
-        <li>Ukuran file maksimal 4 MB. Desain dengan warna rata lebih kecil daripada foto penuh.</li>
-        <li>Di Canva: Buat desain → Ukuran khusus (px) → unduh PNG dengan &quot;Latar belakang transparan&quot;.</li>
-      </ul>
-    </div>
-  );
-}
-
-/** Pilihan format cetak (kartu kecil dengan bentuk kertas). */
-function FormatPicker({ value, onChange, suggested }: { value: TemplateFormat; onChange: (f: TemplateFormat) => void; suggested?: TemplateFormat }) {
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      {FORMAT_KEYS.map((f) => {
-        const [w, h] = FORMATS[f].px;
-        const on = f === value;
-        return (
-          <button
-            key={f}
-            type="button"
-            aria-pressed={on}
-            onClick={() => onChange(f)}
-            className={cn("flex flex-col items-center gap-1.5 rounded-lg p-2.5 text-center ring-1 ring-inset", on ? "bg-primary-soft ring-primary" : "bg-surface ring-edge-strong hover:bg-canvas")}
-          >
-            <span className="flex h-10 items-center">
-              <span className={cn("block rounded-[2px] border-2", on ? "border-primary bg-surface" : "border-edge-strong")} style={{ height: w > h ? 24 : 40, width: ((w > h ? 24 : 40) * w) / h }} />
-            </span>
-            <span className={cn("text-xs font-medium", on && "text-primary")}>{FORMATS[f].label}</span>
-            <span className="text-[11px] leading-tight text-subtle">{FORMATS[f].size}</span>
-            {f === suggested && <span className="rounded-full bg-success-soft px-1.5 text-[10px] font-medium text-success">Paling pas</span>}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/** Panggung "Atur gambar": kanvas ukuran cetak + gambar yang bisa diseret; bagian di luar kanvas tampil pudar. */
-function AdjustStage({
-  adjust,
-  boxW,
-  maxH,
-  onChange,
-}: {
-  adjust: Adjust;
-  boxW: number;
-  maxH: number;
-  onChange: (a: Adjust) => void;
-}) {
-  const pan = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const el = useRef<HTMLDivElement>(null);
-  const latest = useRef({ adjust, onChange });
-  useEffect(() => {
-    latest.current = { adjust, onChange };
-  });
-  // Zoom dengan roda mouse tanpa ikut menggulir halaman (listener non-pasif).
-  useEffect(() => {
-    const node = el.current;
-    if (!node) return;
-    const wheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const { adjust: a, onChange: set } = latest.current;
-      set({ ...a, zoom: clamp(a.zoom * (e.deltaY < 0 ? 1.06 : 1 / 1.06), 0.1, 4) });
-    };
-    node.addEventListener("wheel", wheel, { passive: false });
-    return () => node.removeEventListener("wheel", wheel);
-  }, []);
-  const [W, H] = FORMATS[adjust.format].px;
-  // Sisakan ruang di sekitar kanvas agar bagian gambar yang terpotong tetap terlihat (pudar).
-  const k = Math.min(((boxW || 1) * 0.8) / W, (maxH * 0.9) / H);
-  const cw = W * k, ch = H * k;
-  const { img } = adjust.src;
-  const s = coverScale(W, H, img.naturalWidth, img.naturalHeight) * adjust.zoom * k;
-  const iw = img.naturalWidth * s, ih = img.naturalHeight * s;
-  const left = cw / 2 + adjust.ox * k - iw / 2, top = ch / 2 + adjust.oy * k - ih / 2;
-  const pic = (cls: string) => (
-    <img src={adjust.src.url} alt="" draggable={false} className={cn("pointer-events-none absolute max-w-none select-none", cls)} style={{ left, top, width: iw, height: ih }} />
-  );
-  return (
-    <div
-      ref={el}
-      className="relative my-6 cursor-grab touch-none select-none active:cursor-grabbing"
-      style={{ width: cw, height: ch }}
-      onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
-        pan.current = { x: e.clientX, y: e.clientY, ox: adjust.ox, oy: adjust.oy };
-      }}
-      onPointerMove={(e) => {
-        const p = pan.current;
-        if (!p) return;
-        onChange({ ...adjust, ox: Math.round(p.ox + (e.clientX - p.x) / k), oy: Math.round(p.oy + (e.clientY - p.y) / k) });
-      }}
-      onPointerUp={() => (pan.current = null)}
-      onPointerCancel={() => (pan.current = null)}
-    >
-      {pic("opacity-25")}
-      <div className="checker absolute inset-0 overflow-hidden outline-2 outline-offset-0 outline-primary">
-        {/* Warna latar hanya di luar gambar (bayangan raksasa di sekeliling area gambar). */}
-        {adjust.bg && <div aria-hidden className="pointer-events-none absolute" style={{ left, top, width: iw, height: ih, boxShadow: `0 0 0 100000px ${adjust.bg}` }} />}
-        {pic("")}
-      </div>
-    </div>
-  );
-}
-
-/** Panel "Atur gambar": format, ukuran (zoom), posisi cepat, warna latar, terapkan. */
-function AdjustPanel({
-  adjust,
-  onChange,
-  onCancel,
-  onApply,
-  busy,
-  notice,
-}: {
-  adjust: Adjust;
-  onChange: (a: Adjust) => void;
-  onCancel: () => void;
-  onApply: () => void;
-  busy: boolean;
-  notice: { tone: "ok" | "warn" | "err"; text: string } | null;
-}) {
-  const [W, H] = FORMATS[adjust.format].px;
-  const { img } = adjust.src;
-  const fit = containScale(W, H, img.naturalWidth, img.naturalHeight) / coverScale(W, H, img.naturalWidth, img.naturalHeight);
-  const custom = adjust.bg !== null && !BG_CHOICES.some((b) => b.value === adjust.bg);
-  return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <Panel title="Atur gambar">
-        <p className="flex gap-2 rounded-lg bg-primary-soft px-3 py-2 text-xs text-primary">
-          <Info className="mt-px size-3.5 shrink-0" strokeWidth={2} />
-          Seret gambar di panggung untuk menggeser, gulir mouse atau pakai slider untuk memperbesar. Yang tercetak hanya isi kotak bergaris.
-        </p>
-        <div className="flex flex-col gap-2 text-sm">
-          <span className="font-medium">Format cetak</span>
-          <FormatPicker value={adjust.format} onChange={(f) => onChange({ ...adjust, format: f, ox: 0, oy: 0, zoom: 1 })} suggested={closestFormat(img.naturalWidth, img.naturalHeight)} />
+    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+      {SHORTCUTS.map(([k, v]) => (
+        <div key={k} className="contents">
+          <dt>
+            <kbd className="whitespace-nowrap rounded-md bg-canvas px-1.5 py-0.5 font-mono text-[11px] ring-1 ring-inset ring-edge">{k}</kbd>
+          </dt>
+          <dd className="text-subtle">{v}</dd>
         </div>
-        <div className="flex flex-col gap-1.5 text-sm">
-          <span className="flex items-center justify-between font-medium">
-            Ukuran gambar <span className="font-normal tabular-nums text-subtle">{Math.round(adjust.zoom * 100)}%</span>
-          </span>
-          <input
-            type="range"
-            min={0.1}
-            max={4}
-            step={0.01}
-            value={adjust.zoom}
-            onChange={(e) => onChange({ ...adjust, zoom: Number(e.target.value) })}
-            className="accent-primary"
-            aria-label="Ukuran gambar"
-          />
-          <div className="flex flex-wrap gap-1.5">
-            <Button small onClick={() => onChange({ ...adjust, zoom: 1, ox: 0, oy: 0 })}>Penuhi kotak</Button>
-            <Button small onClick={() => onChange({ ...adjust, zoom: fit, ox: 0, oy: 0 })}>Tampilkan utuh</Button>
-            <Button small onClick={() => onChange({ ...adjust, ox: 0, oy: 0 })}>Ke tengah</Button>
-          </div>
-          <p className="text-xs text-subtle">
-            <b className="font-medium">Penuhi kotak</b>: tanpa ruang kosong, sebagian gambar terpotong. <b className="font-medium">Tampilkan utuh</b>: seluruh gambar terlihat, sisa
-            ruang diisi warna latar.
-          </p>
-        </div>
-        <div className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium">Warna ruang kosong di luar gambar</span>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {BG_CHOICES.map((b) => (
-              <button
-                key={b.label}
-                type="button"
-                aria-pressed={adjust.bg === b.value}
-                onClick={() => onChange({ ...adjust, bg: b.value })}
-                className={cn("h-8 rounded-lg px-3 text-xs font-medium ring-1 ring-inset", adjust.bg === b.value ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface ring-edge-strong hover:bg-canvas")}
-              >
-                {b.label}
-              </button>
-            ))}
-            <label className={cn("inline-flex h-8 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-xs font-medium ring-1 ring-inset", custom ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface ring-edge-strong hover:bg-canvas")}>
-              <input type="color" value={adjust.bg ?? "#ffffff"} onChange={(e) => onChange({ ...adjust, bg: e.target.value })} className="size-5 cursor-pointer rounded border-0 bg-transparent p-0" aria-label="Warna lain" />
-              Warna lain
-            </label>
-          </div>
-          <p className="text-xs text-subtle">Lubang foto (bagian transparan) di dalam gambar tetap transparan.</p>
-          {adjust.bg === null && <p className="text-xs text-warning">Ruang kosong di luar gambar juga dibiarkan transparan — bisa terdeteksi sebagai lubang foto.</p>}
-        </div>
-        {notice?.tone === "err" && <p className="rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">{notice.text}</p>}
-        <div className="flex gap-2 border-t border-edge pt-3">
-          <Button onClick={onCancel} className="flex-1">Batal</Button>
-          <Button tone="blue" onClick={onApply} disabled={busy} className="flex-1">
-            {busy && <Loader2 className="size-4 animate-spin" />} Terapkan
-          </Button>
-        </div>
-      </Panel>
-    </div>
-  );
-}
-
-function NoticeBox({ notice }: { notice: { tone: "ok" | "warn" | "err"; text: string } }) {
-  return (
-    <p
-      className={cn(
-        "rounded-lg px-3 py-2 text-xs",
-        notice.tone === "ok" ? "bg-success-soft text-success" : notice.tone === "warn" ? "bg-warning-soft text-warning" : "bg-danger-soft text-danger",
-      )}
-    >
-      {notice.text}
-    </p>
-  );
-}
-
-function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section className="rounded-xl border border-edge bg-surface shadow-card">
-      <header className="flex items-center justify-between gap-2 border-b border-edge px-4 py-3">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {action}
-      </header>
-      <div className="flex flex-col gap-3 p-4">{children}</div>
-    </section>
-  );
-}
-
-function IconBtn({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
-  return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} disabled={disabled} className="inline-flex size-8 items-center justify-center rounded-lg text-subtle hover:bg-canvas hover:text-fg disabled:opacity-40">
-      {children}
-    </button>
-  );
-}
-
-/** Isian angka 1 desimal; nilai diterapkan saat diketik (bila sah). */
-function Num({ label, value, onChange, min }: { label: string; value: number; onChange: (v: number) => void; min?: number }) {
-  const shown = Math.round(value * 10) / 10;
-  const [text, setText] = useState(String(shown));
-  const [last, setLast] = useState(shown);
-  if (shown !== last) {
-    // Nilai berubah dari luar (seret di panggung) → tampilkan nilai terbaru.
-    setLast(shown);
-    setText(String(shown));
-  }
-  return (
-    <label className="flex flex-col gap-1 text-xs font-medium text-subtle">
-      {label}
-      <input
-        inputMode="decimal"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          const v = Number(e.target.value.replace(",", "."));
-          if (e.target.value.trim() !== "" && Number.isFinite(v) && (min === undefined || v >= min)) {
-            setLast(Math.round(v * 10) / 10);
-            onChange(v);
-          }
-        }}
-        className="h-9 rounded-lg border border-edge-strong bg-surface px-2.5 text-sm font-normal tabular-nums text-fg shadow-card outline-none focus:border-primary focus:ring-3 focus:ring-primary/15"
-      />
-    </label>
+      ))}
+    </dl>
   );
 }

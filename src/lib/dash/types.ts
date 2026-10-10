@@ -182,7 +182,7 @@ export type AdminAccount = { id: string; name: string; email: string; created_at
 // --- Template bingkai (docs/api.md §8) ---
 
 export type TemplateFormat = "strip_2x6" | "4r_portrait" | "4r_landscape";
-export type SlotShape = "rect" | "rounded" | "circle" | "heart" | "star" | "frame";
+export type SlotShape = "rect" | "rounded" | "circle" | "heart" | "star" | "frame" | "custom";
 
 export type SlotLayer = "below" | "above";
 
@@ -190,7 +190,10 @@ export type SlotLayer = "below" | "above";
  * Slot foto: posisi & ukuran relatif terhadap bingkai (0–1), rotasi derajat di titik tengah. `layer`: di bawah
  * bingkai (terlihat lewat lubang) atau di atas bingkai (seperti stiker); kosong = di bawah.
  */
-export type Slot = { x: number; y: number; w: number; h: number; rotation: number; shape: SlotShape; radius?: number; layer?: SlotLayer };
+export type Slot = { x: number; y: number; w: number; h: number; rotation: number; shape: SlotShape; radius?: number; layer?: SlotLayer;
+  /** Hanya "custom": poligon bentuk bebas, titik relatif terhadap kotak slot (0–1). */
+  points?: [number, number][];
+};
 
 export type TemplateCategory = { id: string; slug: string; name: string; sort: number; templates: number };
 
