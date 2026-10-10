@@ -36,6 +36,7 @@ import {
   PenTool,
   Plus,
   Redo2,
+  Save,
   Scaling,
   ScanSearch,
   Shapes,
@@ -883,17 +884,20 @@ export function TemplateEditor({
 
   // --- simpan ---
 
-  const todo: { text: string; tab?: SideTab }[] = [];
+  // name = diisi langsung di pop-up simpan (bukan dibuka lewat panel).
+  const todo: { text: string; tab?: SideTab; name?: true }[] = [];
   if (!frame) todo.push({ text: "Unggah gambar latar / bingkai.", tab: "latar" });
   else if (!format) todo.push({ text: "Ukuran gambar tidak cocok dengan format cetak — atur posisi gambar.", tab: "latar" });
-  if (!name.trim()) todo.push({ text: "Isi nama template (kolom di atas)." });
+  if (!name.trim()) todo.push({ text: "Isi nama template.", name: true });
   if (frame && nPhotos === 0) todo.push({ text: "Tambahkan minimal satu foto.", tab: "elemen" });
 
-  function submit() {
-    if (todo.length || !frame || !format) {
+  /** Simpan. Ada yang kurang (atau kategori belum dipilih saat pertama kali) → pop-up isian dulu. */
+  function submit(confirmed = false) {
+    if (todo.length || !frame || !format || (!confirmed && cats.size === 0 && categories.length > 0)) {
       setShowTodo(true);
       return;
     }
+    setShowTodo(false);
     const f = new FormData();
     if (template) f.set("id", template.id);
     f.set(
@@ -926,7 +930,7 @@ export function TemplateEditor({
     const k = e.key.toLowerCase();
     if (mod && k === "s") {
       e.preventDefault();
-      return submit();
+      return submit(showTodo);
     }
     if (e.key === "?") return setKeys(true);
     if (adjust) return;
@@ -1134,6 +1138,35 @@ export function TemplateEditor({
   }
 
   /** Pegangan ubah ukuran (8) & putar untuk elemen terpilih — dipakai foto & gambar. */
+  function toggleCat(id: string) {
+    const next = new Set(cats);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setCats(next);
+  }
+
+  function catChips() {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {categories.map((c) => {
+          const on = cats.has(c.id);
+          return (
+            <button
+              key={c.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggleCat(c.id)}
+              className={cn("h-7 rounded-full px-3 text-xs font-medium ring-1 ring-inset", on ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface text-subtle ring-edge-strong hover:text-fg")}
+            >
+              {c.name}
+            </button>
+          );
+        })}
+        {categories.length === 0 && <span className="text-xs text-subtle">Belum ada kategori.</span>}
+      </div>
+    );
+  }
+
   function selHandles(i: number, c: string) {
     return (
     <>
@@ -1176,6 +1209,7 @@ export function TemplateEditor({
   }
 
   const serverFields = Object.entries(state.fields ?? {});
+  const blockers = todo.filter((t) => !t.name);
   const color = (s: Slot) => (slotLayer(s, overlay) === "above" ? "var(--color-info)" : "var(--color-primary)");
 
   return (
@@ -1231,49 +1265,86 @@ export function TemplateEditor({
             {mode === "edit" ? "Pratinjau" : "Kembali atur"}
           </Button>
           <div className="relative">
-            <Button tone="blue" small onClick={submit} disabled={saving} title={`Simpan (${MOD} S)`}>
+            <Button tone="blue" small onClick={() => submit()} disabled={saving} title={`Simpan (${MOD} S)`}>
               {saving && <Loader2 className="size-4 animate-spin" />}
               Simpan
             </Button>
             {todo.length > 0 && <span aria-hidden className="absolute -right-1 -top-1 size-2.5 rounded-full bg-danger ring-2 ring-surface" />}
-            {showTodo && todo.length > 0 && (
+            {showTodo && (
               <>
                 {/* Klik di luar = tutup. */}
                 <div aria-hidden className="fixed inset-0 z-30" onClick={() => setShowTodo(false)} />
-                <div role="alertdialog" aria-labelledby="todo-title" className="absolute right-0 top-full z-40 mt-2 w-80 rounded-xl border border-edge bg-surface shadow-pop">
+                <div
+                  role="dialog"
+                  aria-labelledby="todo-title"
+                  onKeyDown={(e) => e.key === "Escape" && setShowTodo(false)}
+                  className="absolute right-0 top-full z-40 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] rounded-xl border border-edge bg-surface shadow-pop">
                   <div className="flex items-start gap-2.5 border-b border-edge px-4 py-3">
-                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning">
-                      <CircleAlert className="size-4" strokeWidth={2} />
+                    <span className={cn("mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full", blockers.length ? "bg-warning-soft text-warning" : "bg-primary-soft text-primary")}>
+                      {blockers.length ? <CircleAlert className="size-4" strokeWidth={2} /> : <Save className="size-4" strokeWidth={2} />}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p id="todo-title" className="text-sm font-semibold text-fg">
-                        Lengkapi dulu
+                        {blockers.length ? "Lengkapi dulu" : "Simpan template"}
                       </p>
-                      <p className="text-xs text-subtle">Template belum bisa disimpan.</p>
+                      <p className="text-xs text-subtle">{blockers.length ? "Template belum bisa disimpan." : "Beri nama & pilih kategori agar mudah dicari."}</p>
                     </div>
                     <button type="button" onClick={() => setShowTodo(false)} aria-label="Tutup" className="-mr-1 rounded-lg p-1 text-subtle hover:bg-canvas hover:text-fg">
                       <X className="size-4" strokeWidth={2} />
                     </button>
                   </div>
-                  <ul className="flex flex-col p-1.5">
-                    {todo.map((t) => (
-                      <li key={t.text}>
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-fg hover:bg-canvas"
-                          onClick={() => {
-                            if (t.tab) setSide(t.tab);
-                            else document.getElementById("tpl-name")?.focus();
-                            setShowTodo(false);
-                          }}
-                        >
-                          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
-                          <span className="flex-1">{t.text}</span>
-                          <ChevronRight className="size-4 shrink-0 text-subtle" strokeWidth={2} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  {blockers.length > 0 && (
+                    <ul className="flex flex-col border-b border-edge p-1.5">
+                      {blockers.map((t) => (
+                        <li key={t.text}>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-fg hover:bg-canvas"
+                            onClick={() => {
+                              if (t.tab) setSide(t.tab);
+                              setShowTodo(false);
+                            }}
+                          >
+                            <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
+                            <span className="flex-1">{t.text}</span>
+                            <ChevronRight className="size-4 shrink-0 text-subtle" strokeWidth={2} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <form
+                    className="flex flex-col gap-3 p-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      submit(true);
+                    }}
+                  >
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-sm font-medium">Nama template</span>
+                      <input
+                        autoFocus
+                        value={name}
+                        maxLength={60}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="mis. Wedding Tiara & Latif"
+                        className={cn(
+                          "h-9 rounded-lg border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20",
+                          name.trim() ? "border-edge-strong" : "border-warning",
+                        )}
+                      />
+                    </label>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-sm font-medium">
+                        Kategori <span className="font-normal text-subtle">(opsional)</span>
+                      </span>
+                      {catChips()}
+                    </div>
+                    <Button type="submit" tone="blue" disabled={saving || todo.length > 0}>
+                      {saving && <Loader2 className="size-4 animate-spin" />}
+                      {blockers.length ? "Lengkapi dulu yang di atas" : cats.size === 0 && categories.length > 0 ? "Simpan tanpa kategori" : "Simpan"}
+                    </Button>
+                  </form>
                 </div>
               </>
             )}
@@ -1476,28 +1547,7 @@ export function TemplateEditor({
                 )}
                 <div className="flex flex-col gap-1.5">
                   <span className="font-medium">Kategori</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {categories.map((c) => {
-                      const on = cats.has(c.id);
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          aria-pressed={on}
-                          onClick={() => {
-                            const next = new Set(cats);
-                            if (on) next.delete(c.id);
-                            else next.add(c.id);
-                            setCats(next);
-                          }}
-                          className={cn("h-7 rounded-full px-3 text-xs font-medium ring-1 ring-inset", on ? "bg-primary-soft text-primary ring-primary/30" : "bg-surface text-subtle ring-edge-strong hover:text-fg")}
-                        >
-                          {c.name}
-                        </button>
-                      );
-                    })}
-                    {categories.length === 0 && <span className="text-xs text-subtle">Belum ada kategori.</span>}
-                  </div>
+                  {catChips()}
                   <span className="text-xs text-subtle">Dipakai untuk memilih template sesuai tema acara.</span>
                 </div>
                 <label className="flex items-center justify-between gap-3">
