@@ -73,6 +73,11 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
   halaman masuk; landing tetap ikon Sissi Booth). Dialog: judul & X tetap, isi bergulir; tombol bawah `DialogFooter`
   ikut bergulir bersama isi. `Table` menempel ke tepi `Card`; `Pagination` bernomor (‹ 1 2 … 6 7 ›),
   `inCard={false}` bila di luar kartu. Keluar = dialog konfirmasi.
+- **Template bingkai** (W2, api.md §8): `/dashboard/template` (pemilik: buatan sendiri + bawaan Sissi, sakelar tampil) &
+  `/admin/template` (bawaan + kategori). Editor `components/dash/template-editor.tsx` (unggah PNG → deteksi lubang
+  transparan di browser → slot geser/ukuran/putar/bentuk → simpan multipart lewat `lib/dash/template-actions.ts`);
+  logika slot & deteksi di `lib/dash/template.ts`; pratinjau `template-preview.tsx` (server-safe). Body Server Action
+  5 MB (`next.config.ts`); di Vercel batasnya ±4,5 MB → editor menolak PNG > 4 MB.
 - Komponen: `src/components/dash/` — `ui.tsx` (server-safe: Card, Stat, Table, BarChart SVG, Bars, Badge…),
   `client.tsx` (dialog kustom, ActionForm, Field, ConfirmAction, PeriodPicker, FilterSelect), `pickers.tsx`
   (**dropdown & kalender kustom — dilarang `<select>`/`<input type=date>` bawaan**), `shell.tsx` (sidebar),

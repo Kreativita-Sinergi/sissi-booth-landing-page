@@ -16,6 +16,12 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-10** · Claude Opus 5.5 · **Template bingkai W2b+W2c**: editor template web (unggah PNG, deteksi lubang
+  transparan otomatis termasuk bentuk hati/bulat/miring, slot geser/ubah ukuran/putar/bentuk 6 jenis, pratinjau foto
+  contoh, validasi format strip 2×6 / 4R tegak / 4R mendatar), daftar template pemilik (Semua/Buatan saya/Bawaan Sissi,
+  kategori, cari, sakelar tampil, ubah, hapus) dan admin (template bawaan + kelola kategori). Uji e2e Chrome headless
+  (pemilik buat & ubah, admin buat bawaan, bawaan tampil di pemilik, seret/ukuran/putar), `check:dev` bersih, build hijau.
+
 - **2026-10-10** · Claude Opus 5.5 · Logo dashboard diganti **SVG resmi Sissi** dari pemilik; favicon dashboard ikon Sissi
   (kotak putih); tombol Batal/Simpan di dialog kembali ikut bergulir (judul & X tetap). Hijau + `check:dev` bersih.
 

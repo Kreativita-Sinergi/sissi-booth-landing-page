@@ -12,6 +12,7 @@ import {
   Images,
   KeyRound,
   LayoutDashboard,
+  LayoutTemplate,
   LogOut,
   Menu,
   MonitorSmartphone,
@@ -36,6 +37,7 @@ const NAV: Record<"admin" | "owner", NavItem[]> = {
     { href: "/admin/pembayaran", label: "Pembayaran langganan", icon: WalletCards },
     { href: "/admin/transaksi", label: "Transaksi booth", icon: ReceiptText },
     { href: "/admin/booth", label: "Booth", icon: MonitorSmartphone },
+    { href: "/admin/template", label: "Template bawaan", icon: LayoutTemplate },
     { href: "/admin/aktivitas", label: "Log aktivitas", icon: Activity },
     { href: "/admin/pengaturan", label: "Pengaturan", icon: Settings },
     { href: "/admin/panduan", label: "Panduan admin", icon: BookOpen },
@@ -43,6 +45,7 @@ const NAV: Record<"admin" | "owner", NavItem[]> = {
   owner: [
     { href: "/dashboard", label: "Ringkasan", icon: LayoutDashboard },
     { href: "/dashboard/transaksi", label: "Transaksi", icon: ReceiptText },
+    { href: "/dashboard/template", label: "Template", icon: LayoutTemplate },
     { href: "/dashboard/acara", label: "Acara", icon: CalendarHeart },
     { href: "/dashboard/galeri", label: "Galeri online", icon: Images },
     { href: "/dashboard/booth", label: "Booth saya", icon: MonitorSmartphone },

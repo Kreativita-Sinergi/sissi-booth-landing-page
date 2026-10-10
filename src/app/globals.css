@@ -71,6 +71,13 @@ body:has(.dash) {
   color: var(--color-fg);
 }
 
+/* Latar papan catur = area transparan bingkai template (editor & pratinjau dashboard). */
+.checker {
+  background-color: var(--color-surface);
+  background-image: conic-gradient(var(--color-edge) 25%, transparent 0 50%, var(--color-edge) 0 75%, transparent 0);
+  background-size: 16px 16px;
+}
+
 button, a, summary, [role="button"] {
   cursor: pointer;
 }

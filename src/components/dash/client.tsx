@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, Check, Copy, Loader2, X } from "lucide-react";
@@ -372,5 +372,53 @@ export function FilterSelect({ name, value, options, label }: { name: string; va
         router.push(`${path}?${next}`);
       }}
     />
+  );
+}
+
+/** Sakelar hidup/mati (role="switch"). */
+export function Switch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50",
+        checked ? "bg-primary" : "bg-edge-strong",
+      )}
+    >
+      <span className={cn("inline-block size-4 rounded-full bg-white shadow-card transition-transform", checked ? "translate-x-[18px]" : "translate-x-0.5")} />
+    </button>
+  );
+}
+
+/**
+ * Sakelar yang langsung menjalankan aksi server (mis. aktif/nonaktif template). Tampilan berubah
+ * seketika; bila aksi gagal, kembali ke nilai awal & pesan galat tampil sebagai `title`.
+ */
+export function ActionSwitch({ action, id, active, label }: { action: Action; id: string; active: boolean; label: string }) {
+  const [state, run, pending] = useActionState(action, {} as ActionState);
+  const [value, setValue] = useState(active);
+  const failedNow = state.ok === false;
+  const shown = failedNow && !pending ? active : value;
+  return (
+    <span className="inline-flex items-center gap-2" title={failedNow ? state.message : undefined}>
+      <Switch
+        checked={shown}
+        label={label}
+        disabled={pending}
+        onChange={(v) => {
+          setValue(v);
+          const f = new FormData();
+          f.set("id", id);
+          f.set("active", v ? "1" : "0");
+          startTransition(() => run(f));
+        }}
+      />
+      <span className={cn("text-xs", shown ? "text-fg" : "text-subtle")}>{shown ? "Tampil" : "Disembunyikan"}</span>
+    </span>
   );
 }

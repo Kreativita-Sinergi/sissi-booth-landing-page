@@ -50,6 +50,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/s/:code/files/:path*", destination: `${galleryOrigin}/s/:code/files/:path*` }];
   },
+  experimental: {
+    // Unggah PNG bingkai template lewat Server Action (bawaan 1 MB). Catatan: Vercel membatasi body ±4,5 MB.
+    serverActions: { bodySizeLimit: "5mb" },
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {

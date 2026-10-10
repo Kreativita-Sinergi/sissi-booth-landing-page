@@ -48,7 +48,8 @@ export async function call<T>(path: string, init: RequestInit & { token?: string
       cache: "no-store",
       headers: {
         Accept: "application/json",
-        ...(rest.body ? { "Content-Type": "application/json" } : {}),
+        // FormData (unggah file) → biarkan fetch mengisi Content-Type multipart beserta boundary.
+        ...(typeof rest.body === "string" ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },

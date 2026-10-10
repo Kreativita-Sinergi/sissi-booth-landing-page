@@ -178,3 +178,31 @@ export type GallerySession = {
 export type AuditEntry = { id: string; actor_kind: string; actor_name: string; action: string; target: string; detail: string; created_at: string };
 
 export type AdminAccount = { id: string; name: string; email: string; created_at: string };
+
+// --- Template bingkai (docs/api.md §8) ---
+
+export type TemplateFormat = "strip_2x6" | "4r_portrait" | "4r_landscape";
+export type SlotShape = "rect" | "rounded" | "circle" | "heart" | "star" | "frame";
+
+/** Slot foto: posisi & ukuran relatif terhadap bingkai (0–1), rotasi derajat di titik tengah. */
+export type Slot = { x: number; y: number; w: number; h: number; rotation: number; shape: SlotShape; radius?: number };
+
+export type TemplateCategory = { id: string; slug: string; name: string; sort: number; templates: number };
+
+export type FrameTemplate = {
+  id: string;
+  name: string;
+  source: "builtin" | "mine";
+  format: TemplateFormat;
+  width: number;
+  height: number;
+  frame_url: string;
+  frame_overlay: boolean;
+  slots: Slot[];
+  categories: { id: string; slug: string; name: string }[];
+  active: boolean;
+  sort: number;
+  version: number;
+  created_at: string;
+  updated_at: string;
+};
