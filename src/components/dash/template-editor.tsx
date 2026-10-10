@@ -24,6 +24,7 @@ import {
   Minus,
   PenLine,
   Pencil,
+  PenTool,
   Plus,
   Redo2,
   Scaling,
@@ -35,17 +36,22 @@ import {
   StretchVertical,
   Tag,
   Trash2,
+  Triangle,
   Undo2,
+  Waves,
 } from "lucide-react";
 import { cn } from "@/components/shared/cn";
 import type { ActionState } from "@/lib/dash/action-state";
 import {
   closestFormat,
+  curvePath,
   defaultSlots,
   detectSlots,
   distribute,
+  flatHandle,
   FORMATS,
   formatFor,
+  isSmooth,
   refitPoints,
   SAFE,
   SHAPES,
@@ -53,12 +59,14 @@ import {
   simplify,
   slotFromPoints,
   slotLayer,
+  smoothHandles,
   snapMove,
   snapResize,
   sortSlots,
+  tidyCurve,
   type Guides,
 } from "@/lib/dash/template";
-import type { FrameTemplate, Slot, SlotLayer, SlotShape, TemplateCategory, TemplateFormat } from "@/lib/dash/types";
+import type { FrameTemplate, Handle, Slot, SlotLayer, SlotShape, TemplateCategory, TemplateFormat } from "@/lib/dash/types";
 import { Button, Dialog, Switch } from "./client";
 import {
   ACCEPT,
@@ -85,7 +93,7 @@ import {
 } from "./template-editor-parts";
 import { TemplatePreview } from "./template-preview";
 
-type SideTab = "elemen" | "latar" | "info" | "pintasan";
+type SideTab = "elemen" | "latar" | "info";
 type Notice = { tone: "ok" | "warn" | "err"; text: string };
 type Pt = [number, number];
 /** Seret di kanvas: geser (banyak slot), ubah ukuran, putar, kotak pilih, atau titik bentuk bebas. */
@@ -93,9 +101,11 @@ type Drag =
   | { kind: "move"; idx: number[]; starts: Slot[]; x: number; y: number; pushed: boolean; before: Slot[] }
   | { kind: "resize"; i: number; start: Slot; corner: [number, number]; x: number; y: number; pushed: boolean; before: Slot[] }
   | { kind: "rotate"; i: number; start: Slot; pushed: boolean; before: Slot[] }
-  | { kind: "vertex"; i: number; k: number; start: Slot; x: number; y: number; pushed: boolean; before: Slot[] }
+  /** Titik bentuk bebas: anchor = geser titik (+kendalinya), in/out = tarik kendali (brk = patahkan), pull = tarik lengkung baru dari titik (Alt). */
+  | { kind: "vertex"; i: number; k: number; part: "anchor" | "in" | "out" | "pull"; brk: boolean; start: Slot; x: number; y: number; pushed: boolean; before: Slot[] }
   | { kind: "marquee"; x0: number; y0: number; add: boolean };
-type Draw = { kind: "pen" | "lasso"; pts: Pt[]; hover?: Pt; down?: boolean };
+/** Menggambar: pen = klik (titik sudut) / klik-seret (titik lengkung) seperti Photoshop; lasso = seret bebas. */
+type Draw = { kind: "pen" | "lasso"; pts: Pt[]; hs: Handle[]; hover?: Pt; down?: boolean; closing?: boolean };
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 const MOD = isMac ? "⌘" : "Ctrl";
@@ -112,7 +122,11 @@ const SHORTCUTS: [string, string][] = [
   ["Seret di area kosong", "Pilih beberapa foto sekaligus"],
   ["Panah (Shift = jauh)", "Geser foto"],
   [`${MOD} [ / ${MOD} ]`, "Urutan foto lebih awal / lebih akhir"],
+  ["Pen: klik / klik + seret", "Titik sudut / titik lengkung"],
+  ["Pen: klik titik pertama", "Tutup bentuk (Enter juga bisa)"],
   ["Klik dua kali bentuk bebas", "Edit titik bentuk"],
+  ["Edit titik: seret kendali", "Ubah lengkung (Alt = patahkan sudut)"],
+  ["Edit titik: Alt + seret titik", "Tarik lengkung baru · Alt + klik = jadikan sudut"],
   ["Enter", "Selesai menggambar / edit titik"],
   ["Esc", "Batal menggambar / lepas pilihan"],
   ["Shift saat tarik sudut", "Ubah ukuran proporsional"],
@@ -224,8 +238,8 @@ export function TemplateEditor({
   }, [frame?.src]);
 
   const format = frame ? formatFor(frame.width, frame.height) : null;
-  const maxH = areaH > 0 ? Math.max(240, areaH - 8) : typeof window === "undefined" ? 640 : Math.max(380, window.innerHeight * 0.7);
-  const fitW = frame ? Math.max(120, Math.min((areaW || 600) - 48, (maxH * frame.width) / frame.height)) : 0;
+  const maxH = areaH > 0 ? Math.max(240, areaH - 8) : typeof window === "undefined" ? 640 : Math.max(380, window.innerHeight * 0.62);
+  const fitW = frame ? Math.max(120, Math.min((areaW || 600) - 8, (maxH * frame.width) / frame.height)) : 0;
   const stageW = fitW * zoom;
   const stageH = frame ? (stageW * frame.height) / frame.width : 0;
   const one = sel.length === 1 ? sel[0] : null;
@@ -239,6 +253,9 @@ export function TemplateEditor({
   }
   function update(i: number, patch: Partial<Slot>) {
     change(slots.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  }
+  function replace(i: number, next: Slot) {
+    change(slots.map((s, j) => (j === i ? next : s)));
   }
   function undo() {
     const prev = hist.past[hist.past.length - 1];
@@ -497,9 +514,13 @@ export function TemplateEditor({
 
   // --- bentuk bebas ---
 
-  function finishDraw(pts: Pt[]) {
+  function finishDraw(pts: Pt[], hs?: Handle[]) {
     setDraw(null);
-    const s = slotFromPoints(pts, "above");
+    // Klik dua kali untuk selesai menambah titik kembar → buang.
+    const keep = pts.map((p, k) => k === 0 || Math.hypot((p[0] - pts[k - 1][0]) * stageW, (p[1] - pts[k - 1][1]) * stageH) > 2);
+    pts = pts.filter((_, k) => keep[k]);
+    hs = hs?.filter((_, k) => keep[k]);
+    const s = slotFromPoints(pts, "above", hs);
     if (!s) return setNotice({ tone: "warn", text: "Bentuk terlalu kecil atau kurang dari 3 titik. Coba gambar lagi." });
     if (slots.length >= MAX_SLOTS) return setNotice({ tone: "warn", text: `Maksimal ${MAX_SLOTS} foto.` });
     change([...slots, s]);
@@ -511,7 +532,7 @@ export function TemplateEditor({
     setMode("edit");
     setSel([]);
     setEditPts(null);
-    setDraw(draw?.kind === kind ? null : { kind, pts: [] });
+    setDraw(draw?.kind === kind ? null : { kind, pts: [], hs: [] });
   }
 
   // --- interaksi kanvas ---
@@ -546,10 +567,14 @@ export function TemplateEditor({
     stageRef.current?.setPointerCapture(e.pointerId);
   }
 
-  function beginVertex(e: React.PointerEvent, i: number, k: number) {
+  function beginVertex(e: React.PointerEvent, i: number, k: number, part: "anchor" | "in" | "out") {
     e.stopPropagation();
     e.preventDefault();
-    drag.current = { kind: "vertex", i, k, start: slots[i], x: e.clientX, y: e.clientY, pushed: false, before: slots };
+    const s = slots[i];
+    // Kendali selalu lengkap selama diedit (titik sudut = kendali menempel ke titiknya).
+    const start = { ...s, handles: s.handles?.length === s.points?.length ? s.handles : (s.points ?? []).map(flatHandle) };
+    const pull = part === "anchor" && e.altKey;
+    drag.current = { kind: "vertex", i, k, part: pull ? "pull" : part, brk: e.altKey, start, x: e.clientX, y: e.clientY, pushed: false, before: slots };
     stageRef.current?.setPointerCapture(e.pointerId);
   }
 
@@ -561,12 +586,17 @@ export function TemplateEditor({
       if (draw.kind === "lasso") {
         stageRef.current?.setPointerCapture(e.pointerId);
         lasso.current = [p];
-        setDraw({ kind: "lasso", pts: [p], down: true });
+        setDraw({ kind: "lasso", pts: [p], hs: [], down: true });
         return;
       }
+      // Pen: tekan = titik baru; seret sebelum lepas = tarik lengkungnya. Tekan titik pertama = tutup bentuk.
+      stageRef.current?.setPointerCapture(e.pointerId);
       const first = draw.pts[0];
-      if (first && draw.pts.length >= 3 && Math.hypot((p[0] - first[0]) * stageW, (p[1] - first[1]) * stageH) < 10) return finishDraw(draw.pts);
-      setDraw({ ...draw, pts: [...draw.pts, p] });
+      if (first && draw.pts.length >= 2 && Math.hypot((p[0] - first[0]) * stageW, (p[1] - first[1]) * stageH) < 10) {
+        setDraw({ ...draw, hover: undefined, down: true, closing: true });
+        return;
+      }
+      setDraw({ ...draw, pts: [...draw.pts, p], hs: [...draw.hs, flatHandle(p)], hover: undefined, down: true });
       return;
     }
     if (editPts !== null) setEditPts(null);
@@ -592,9 +622,21 @@ export function TemplateEditor({
         const last = pts[pts.length - 1];
         if (Math.hypot((p[0] - last[0]) * stageW, (p[1] - last[1]) * stageH) >= 3) {
           pts.push(p);
-          setDraw({ kind: "lasso", pts: [...pts], down: true });
+          setDraw({ kind: "lasso", pts: [...pts], hs: [], down: true });
         }
-      } else setDraw((d) => (d ? { ...d, hover: p } : d));
+        return;
+      }
+      setDraw((d) => {
+        if (!d) return d;
+        if (!d.down) return { ...d, hover: p };
+        // Sedang ditekan: kendali keluar = kursor, kendali masuk = cerminannya (titik lengkung halus).
+        const k = d.closing ? 0 : d.pts.length - 1;
+        const [ax, ay] = d.pts[k];
+        if (Math.hypot((p[0] - ax) * stageW, (p[1] - ay) * stageH) < 3) return d;
+        const hs = d.hs.slice();
+        hs[k] = [2 * ax - p[0], 2 * ay - p[1], p[0], p[1]];
+        return { ...d, hs };
+      });
       return;
     }
     const d = drag.current;
@@ -643,7 +685,36 @@ export function TemplateEditor({
     // Selisih pointer di sumbu foto (sebelum rotasi).
     const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;
     if (d.kind === "vertex") {
-      set({ points: (s.points ?? []).map((p, k) => (k === d.k ? ([r4(p[0] + lx / w0), r4(p[1] + ly / h0)] as Pt) : p)) });
+      if (!d.pushed && Math.abs(dx) < 2 && Math.abs(dy) < 2) return; // klik biasa (Alt + klik = jadikan sudut)
+      const ux = lx / w0, uy = ly / h0;
+      const pts = s.points ?? [];
+      const hs = (s.handles ?? []).slice();
+      const [ax, ay] = pts[d.k];
+      const h = hs[d.k];
+      if (d.part === "anchor") {
+        set({
+          points: pts.map((p, k) => (k === d.k ? ([r4(ax + ux), r4(ay + uy)] as Pt) : p)),
+          handles: hs.map((c, k) => (k === d.k ? ([r4(c[0] + ux), r4(c[1] + uy), r4(c[2] + ux), r4(c[3] + uy)] as Handle) : c)),
+        });
+        return;
+      }
+      if (d.part === "pull") {
+        hs[d.k] = [r4(ax - ux), r4(ay - uy), r4(ax + ux), r4(ay + uy)];
+        set({ handles: hs });
+        return;
+      }
+      // Tarik satu kendali; tanpa Alt, kendali seberang ikut berputar segaris (panjangnya tetap) agar lengkung mulus.
+      const out = d.part === "out";
+      const nx = (out ? h[2] : h[0]) + ux, ny = (out ? h[3] : h[1]) + uy;
+      const ox = out ? h[0] : h[2], oy = out ? h[1] : h[3];
+      let next: Handle = out ? [ox, oy, r4(nx), r4(ny)] : [r4(nx), r4(ny), ox, oy];
+      const oLen = Math.hypot((ox - ax) * w0, (oy - ay) * h0), nLen = Math.hypot((nx - ax) * w0, (ny - ay) * h0);
+      if (!d.brk && oLen > 0.5 && nLen > 0.5) {
+        const mx = r4(ax - (((nx - ax) * w0) / nLen) * (oLen / w0)), my = r4(ay - (((ny - ay) * h0) / nLen) * (oLen / h0));
+        next = out ? [mx, my, r4(nx), r4(ny)] : [r4(nx), r4(ny), mx, my];
+      }
+      hs[d.k] = next;
+      set({ handles: hs });
       return;
     }
     const [sx, sy] = d.corner;
@@ -668,14 +739,22 @@ export function TemplateEditor({
   }
 
   function stageUp() {
+    if (draw?.kind === "pen" && draw.down) {
+      if (draw.closing) finishDraw(draw.pts, draw.hs);
+      else setDraw({ ...draw, down: false });
+      return;
+    }
     if (draw?.kind === "lasso" && lasso.current) {
       const raw = lasso.current;
       lasso.current = null;
-      // Sederhanakan coretan (dalam piksel layar) agar titiknya ringkas (≤ 200).
-      let tol = 1.5;
+      // Sederhanakan coretan (dalam piksel layar) agar titiknya ringkas (≤ 200), lalu haluskan jadi kurva rapi.
+      let tol = 3;
       let px = simplify(raw.map(([x, y]) => [x * stageW, y * stageH] as Pt), tol);
       while (px.length > 200) px = simplify(px, (tol *= 1.6));
-      finishDraw(px.map(([x, y]) => [x / stageW, y / stageH] as Pt));
+      // Titik terakhir ≈ titik awal (coretan tertutup) → buang agar tidak ada sudut kembar.
+      if (px.length > 3 && Math.hypot(px[0][0] - px[px.length - 1][0], px[0][1] - px[px.length - 1][1]) < 8) px = px.slice(0, -1);
+      const pts = px.map(([x, y]) => [x / stageW, y / stageH] as Pt);
+      finishDraw(pts, pts.length >= 3 ? smoothHandles(pts) : undefined);
       return;
     }
     const d = drag.current;
@@ -691,8 +770,17 @@ export function TemplateEditor({
       return;
     }
     if (d.kind === "vertex" && frame) {
+      if (!d.pushed) {
+        // Alt + klik titik (tanpa seret) = jadikan titik sudut.
+        if (d.part === "pull" && isSmooth(d.start.points![d.k], d.start.handles![d.k])) {
+          const hs = d.start.handles!.slice();
+          hs[d.k] = flatHandle(d.start.points![d.k]);
+          change(slots.map((s, j) => (j === d.i ? tidyCurve(refitPoints({ ...s, handles: hs }, frame.width, frame.height)) : s)));
+        }
+        return;
+      }
       // Titik boleh keluar kotak saat diseret; setelah dilepas, kotak foto disesuaikan.
-      setSlots((cur) => cur.map((s, j) => (j === d.i ? refitPoints(s, frame.width, frame.height) : s)));
+      setSlots((cur) => cur.map((s, j) => (j === d.i ? tidyCurve(refitPoints(s, frame.width, frame.height)) : s)));
     }
   }
 
@@ -726,10 +814,10 @@ export function TemplateEditor({
     if (mode !== "edit") return;
     if (draw) {
       if (e.key === "Escape") setDraw(null);
-      else if (e.key === "Enter") finishDraw(draw.pts);
+      else if (e.key === "Enter") finishDraw(draw.pts, draw.hs);
       else if (e.key === "Backspace" || e.key === "Delete") {
         e.preventDefault();
-        setDraw({ ...draw, pts: draw.pts.slice(0, -1) });
+        setDraw({ ...draw, pts: draw.pts.slice(0, -1), hs: draw.hs.slice(0, -1) });
       }
       return;
     }
@@ -878,6 +966,9 @@ export function TemplateEditor({
           </IconBtn>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <IconBtn label="Pintasan keyboard (?)" onClick={() => setKeys(true)}>
+            <Keyboard className="size-[18px]" strokeWidth={2} />
+          </IconBtn>
           <Button small onClick={() => setMode(mode === "edit" ? "preview" : "edit")} disabled={!frame || !!adjust} title="Pratinjau (P)">
             {mode === "edit" ? <Eye className="size-4" strokeWidth={2} /> : <Pencil className="size-4" strokeWidth={2} />}
             {mode === "edit" ? "Pratinjau" : "Kembali atur"}
@@ -952,7 +1043,6 @@ export function TemplateEditor({
                 ["elemen", "Elemen", Shapes],
                 ["latar", "Latar", ImageUp],
                 ["info", "Info", Tag],
-                ["pintasan", "Pintasan", Keyboard],
               ] as [SideTab, string, typeof Shapes][]
             ).map(([k, label, Icon]) => {
               const on = adjust ? k === "latar" : side === k;
@@ -1000,7 +1090,7 @@ export function TemplateEditor({
                   <div className="grid grid-cols-2 gap-1.5">
                     {(
                       [
-                        ["pen", "Klik titik demi titik", PenLine],
+                        ["pen", "Pen (lengkung)", PenTool],
                         ["lasso", "Seret bebas", Spline],
                       ] as const
                     ).map(([k, label, Icon]) => (
@@ -1021,8 +1111,9 @@ export function TemplateEditor({
                     ))}
                   </div>
                   <p className="text-xs text-subtle">
-                    Gambar bentuk foto apa pun langsung di kanvas (awan, siluet, bintang miring…). Titik demi titik: klik titik pertama atau tekan Enter untuk menutup.
-                    Seret bebas: tahan & seret seperti spidol. Setelah jadi, klik dua kali untuk mengedit titiknya.
+                    Gambar bentuk foto apa pun (awan, siluet, huruf…). Pen seperti di Photoshop: klik = titik sudut, klik + seret = lengkung
+                    halus; klik titik pertama untuk menutup. Seret bebas: tahan & seret seperti spidol. Klik dua kali bentuknya untuk mengedit
+                    titik & lengkung.
                   </p>
                 </section>
                 <section className="flex flex-col gap-2">
@@ -1151,17 +1242,12 @@ export function TemplateEditor({
                   <Switch checked={active} onChange={setActive} label="Aktif" />
                 </label>
               </div>
-            ) : (
-              <div className="flex flex-col gap-2 text-sm">
-                <h3 className="font-semibold">Pintasan keyboard</h3>
-                <ShortcutList />
-              </div>
-            )}
+            ) : null}
           </div>
         </aside>
 
         {/* Kanvas */}
-        <section className="order-1 min-w-0 overflow-hidden rounded-xl border border-edge bg-surface shadow-card lg:order-none lg:flex lg:h-full lg:flex-col">
+        <section className="relative order-1 min-w-0 overflow-hidden rounded-xl border border-edge bg-surface shadow-card lg:order-none lg:flex lg:h-full lg:flex-col">
           {/* Toolbar kontekstual */}
           <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-1 border-b border-edge px-3 py-1.5 text-xs">
             {adjust ? (
@@ -1172,13 +1258,15 @@ export function TemplateEditor({
               <span className="text-subtle">Pratinjau dengan foto contoh · tekan P untuk kembali mengatur.</span>
             ) : draw ? (
               <>
-                <span className="font-medium text-primary">{draw.kind === "pen" ? "Menggambar titik demi titik" : "Seret bebas"}</span>
+                <span className="font-medium text-primary">{draw.kind === "pen" ? "Pen" : "Seret bebas"}</span>
                 <span className="text-subtle">
-                  {draw.kind === "pen" ? `· ${draw.pts.length} titik — klik titik pertama / Enter untuk selesai, Backspace hapus titik terakhir` : "· tahan & seret di kanvas"}
+                  {draw.kind === "pen"
+                    ? `· ${draw.pts.length} titik — klik = sudut, klik + seret = lengkung · klik titik pertama / Enter untuk menutup · Backspace hapus titik terakhir`
+                    : "· tahan & seret di kanvas, hasilnya dihaluskan otomatis"}
                 </span>
                 <span className="ml-auto flex gap-1">
                   {draw.kind === "pen" && (
-                    <Button small tone="blue" onClick={() => finishDraw(draw.pts)} disabled={draw.pts.length < 3}>
+                    <Button small tone="blue" onClick={() => finishDraw(draw.pts, draw.hs)} disabled={draw.pts.length < 2}>
                       Selesai
                     </Button>
                   )}
@@ -1225,9 +1313,21 @@ export function TemplateEditor({
                   )}
                 </div>
                 {slot.shape === "custom" && (
-                  <Button small onClick={() => setEditPts(editPts === one ? null : one)} title="Edit titik (atau klik dua kali bentuknya)">
-                    <PenLine className="size-4" strokeWidth={2} /> {editPts === one ? "Selesai edit titik" : "Edit titik"}
-                  </Button>
+                  <>
+                    <Button small onClick={() => setEditPts(editPts === one ? null : one)} title="Edit titik (atau klik dua kali bentuknya)">
+                      <PenLine className="size-4" strokeWidth={2} /> {editPts === one ? "Selesai edit titik" : "Edit titik"}
+                    </Button>
+                    <IconBtn label="Haluskan semua titik (jadi lengkung)" onClick={() => frame && replace(one, refitPoints({ ...slot, handles: smoothHandles(slot.points ?? []) }, frame.width, frame.height))}>
+                      <Waves className="size-4" strokeWidth={2} />
+                    </IconBtn>
+                    <IconBtn
+                      label="Jadikan semua titik sudut tajam"
+                      disabled={!slot.handles}
+                      onClick={() => frame && replace(one, tidyCurve(refitPoints({ ...slot, handles: (slot.points ?? []).map(flatHandle) }, frame.width, frame.height)))}
+                    >
+                      <Triangle className="size-4" strokeWidth={2} />
+                    </IconBtn>
+                  </>
                 )}
                 {slot.shape === "rounded" && (
                   <label className="inline-flex items-center gap-1.5 px-1 text-subtle" title="Lengkung sudut">
@@ -1359,10 +1459,13 @@ export function TemplateEditor({
             )}
           </div>
 
-          <div ref={areaRef} className="flex max-h-[78dvh] min-h-[420px] overflow-auto bg-canvas/60 p-6 lg:max-h-none lg:min-h-0 lg:flex-1">
+          <div
+            ref={areaRef}
+            className={cn("flex max-h-[78dvh] min-h-[420px] bg-canvas/60 p-10 lg:max-h-none lg:min-h-0 lg:flex-1", zoom > 1 ? "overflow-auto" : "overflow-hidden")}
+          >
             {adjust ? (
               <div className="m-auto">
-                <AdjustStage adjust={adjust} boxW={areaW - 48} maxH={maxH} onChange={setAdjust} />
+                <AdjustStage adjust={adjust} boxW={areaW - 8} maxH={maxH} onChange={setAdjust} />
               </div>
             ) : !frame ? (
               <button
@@ -1389,7 +1492,7 @@ export function TemplateEditor({
                 onPointerUp={stageUp}
                 onPointerCancel={stageUp}
                 onDoubleClick={() => {
-                  if (draw?.kind === "pen") return finishDraw(draw.pts);
+                  if (draw?.kind === "pen") return finishDraw(draw.pts, draw.hs);
                   // Pointer ditangkap kanvas saat slot ditekan → klik dua kali sampai di sini: edit titik bentuk bebas terpilih.
                   if (one !== null && slots[one]?.shape === "custom") setEditPts(one);
                 }}
@@ -1446,15 +1549,46 @@ export function TemplateEditor({
                         {i + 1}
                         {slotLayer(s, overlay) === "above" && <span className="text-[9px] font-medium">atas</span>}
                       </span>
-                      {pointEdit &&
-                        (s.points ?? []).map(([px, py], k) => (
-                          <span
-                            key={k}
-                            onPointerDown={(e) => beginVertex(e, i, k)}
-                            className="absolute size-3 -translate-x-1/2 -translate-y-1/2 cursor-move rounded-full border-2 bg-white"
-                            style={{ left: `${px * 100}%`, top: `${py * 100}%`, borderColor: c }}
-                          />
-                        ))}
+                      {pointEdit && (
+                        <>
+                          {/* Garis kendali lengkung (seperti Photoshop): titik = kotak, kendali = bulatan. */}
+                          <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden>
+                            {(s.points ?? []).map((p, k) => {
+                              const h = s.handles?.[k];
+                              if (!isSmooth(p, h)) return null;
+                              return <path key={k} d={`M${h![0]},${h![1]} L${p[0]},${p[1]} L${h![2]},${h![3]}`} fill="none" stroke={c} strokeWidth={1} vectorEffect="non-scaling-stroke" />;
+                            })}
+                          </svg>
+                          {(s.points ?? []).map((p, k) => {
+                            const h = s.handles?.[k];
+                            const knobs: ["in" | "out", number, number][] = isSmooth(p, h)
+                              ? [
+                                  ["in", h![0], h![1]],
+                                  ["out", h![2], h![3]],
+                                ]
+                              : [];
+                            return (
+                              <span key={k} className="contents">
+                                {knobs.map(([part, hx, hy]) => (
+                                  <span
+                                    key={part}
+                                    onPointerDown={(e) => beginVertex(e, i, k, part)}
+                                    title="Seret untuk mengubah lengkung · Alt = patahkan"
+                                    className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full"
+                                    style={{ left: `${hx * 100}%`, top: `${hy * 100}%`, background: c }}
+                                  />
+                                ))}
+                                <span
+                                  onPointerDown={(e) => beginVertex(e, i, k, "anchor")}
+                                  title="Seret = geser titik · Alt + seret = tarik lengkung · Alt + klik = sudut tajam"
+                                  className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 cursor-move border-[1.5px] bg-white"
+                                  style={{ left: `${p[0] * 100}%`, top: `${p[1] * 100}%`, borderColor: c }}
+                                />
+                              </span>
+                            );
+                          })}
+                        </>
+                      )}
                       {on && one === i && !pointEdit && (
                         <>
                           {(
@@ -1504,23 +1638,54 @@ export function TemplateEditor({
                   />
                 )}
                 {draw && draw.pts.length > 0 && (
-                  <svg className="pointer-events-none absolute inset-0 z-40 size-full overflow-visible" aria-hidden>
-                    <polyline
-                      points={[...draw.pts, ...(draw.kind === "pen" && draw.hover ? [draw.hover] : [])].map(([x, y]) => `${x * stageW},${y * stageH}`).join(" ")}
-                      fill="var(--color-primary)"
-                      fillOpacity={0.12}
-                      stroke="var(--color-primary)"
-                      strokeWidth={2}
-                    />
-                    {draw.kind === "pen" &&
-                      draw.pts.map(([x, y], k) => <circle key={k} cx={x * stageW} cy={y * stageH} r={k === 0 ? 6 : 3.5} fill="white" stroke="var(--color-primary)" strokeWidth={2} />)}
-                  </svg>
+                  <div aria-hidden className="pointer-events-none absolute inset-0 z-40">
+                    <svg className="absolute inset-0 size-full overflow-visible" viewBox="0 0 1 1" preserveAspectRatio="none">
+                      {draw.kind === "lasso" ? (
+                        <polyline points={draw.pts.map(([x, y]) => `${x},${y}`).join(" ")} fill="var(--color-primary)" fillOpacity={0.12} stroke="var(--color-primary)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+                      ) : (
+                        (() => {
+                          const n = draw.pts.length, last = draw.hs[n - 1];
+                          // Ruas pratinjau ke kursor (atau ke titik pertama saat menutup).
+                          const to = draw.closing ? draw.pts[0] : !draw.down ? draw.hover : undefined;
+                          const tail = to ? ` C${last[2]},${last[3]} ${draw.closing ? `${draw.hs[0][0]},${draw.hs[0][1]}` : `${to[0]},${to[1]}`} ${to[0]},${to[1]}` : "";
+                          const k = draw.closing ? 0 : n - 1;
+                          const h = draw.hs[k], a = draw.pts[k];
+                          return (
+                            <>
+                              <path d={curvePath(draw.pts, draw.hs, false) + tail} fill="var(--color-primary)" fillOpacity={0.1} stroke="var(--color-primary)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+                              {isSmooth(a, h) && <path d={`M${h[0]},${h[1]} L${a[0]},${a[1]} L${h[2]},${h[3]}`} fill="none" stroke="var(--color-primary)" strokeWidth={1} vectorEffect="non-scaling-stroke" />}
+                            </>
+                          );
+                        })()
+                      )}
+                    </svg>
+                    {draw.kind === "pen" && (
+                      <>
+                        {draw.pts.map(([x, y], k) => (
+                          <span
+                            key={k}
+                            className={cn("absolute -translate-x-1/2 -translate-y-1/2 border-2 border-primary bg-white", k === 0 ? "size-3.5 rounded-full" : "size-2.5")}
+                            style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
+                          />
+                        ))}
+                        {(() => {
+                          const k = draw.closing ? 0 : draw.pts.length - 1;
+                          const h = draw.hs[k];
+                          if (!isSmooth(draw.pts[k], h)) return null;
+                          return [
+                            [h[0], h[1]],
+                            [h[2], h[3]],
+                          ].map(([x, y], j) => <span key={j} className="absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" style={{ left: `${x * 100}%`, top: `${y * 100}%` }} />);
+                        })()}
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             )}
           </div>
           {frame && !adjust && mode === "edit" && slot && one !== null && (
-            <details className="shrink-0 border-t border-edge px-3 py-2 text-xs lg:max-h-[40%] lg:overflow-y-auto">
+            <details className="shrink-0 border-t border-edge bg-surface px-3 py-2 text-xs lg:absolute lg:inset-x-0 lg:bottom-0 lg:z-10 lg:max-h-[40%] lg:overflow-y-auto">
               <summary className="cursor-pointer text-subtle hover:text-fg">Posisi & ukuran tepat (%)</summary>
               <div className="mt-2 grid max-w-md grid-cols-4 gap-2">
                 <Num label="X" value={slot.x * 100} onChange={(v) => update(one, { x: r4(v / 100) })} />

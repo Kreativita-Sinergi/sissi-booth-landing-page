@@ -193,7 +193,11 @@ export type SlotLayer = "below" | "above";
 export type Slot = { x: number; y: number; w: number; h: number; rotation: number; shape: SlotShape; radius?: number; layer?: SlotLayer;
   /** Hanya "custom": poligon bentuk bebas, titik relatif terhadap kotak slot (0–1). */
   points?: [number, number][];
+  /** Opsional, "custom": kendali kurva Bézier per titik [masukX, masukY, keluarX, keluarY] (ruang sama dengan points). */
+  handles?: Handle[];
 };
+
+export type Handle = [number, number, number, number];
 
 export type TemplateCategory = { id: string; slug: string; name: string; sort: number; templates: number };
 

@@ -16,6 +16,11 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-10** · Claude Opus 5.5 · Editor template: **layar penuh di desktop** (halaman & kanvas tidak bergulir pada zoom
+  ≤ 100%, bingkai pas tinggi layar; panel "Posisi & ukuran" melayang), **tombol Pintasan** di bar atas (dialog) menggantikan
+  tab sidebar, **pen tool ala Photoshop** (klik = sudut, klik + seret = lengkung Bézier, klik titik pertama = tutup; edit:
+  seret kendali, Alt = patahkan, Alt + seret titik = tarik lengkung, Alt + klik = sudut), seret bebas otomatis dihaluskan,
+  tombol Haluskan / Sudut tajam. Slot `custom` kini bisa punya `handles`. Diuji e2e (gambar, edit, simpan + buka ulang, HP).
 - **2026-10-10** · Claude Opus 5.5 · **Editor template gaya Canva**: bar atas (nama langsung diketik, urungkan/ulangi, zoom
   50–300% + Ctrl/⌘+roda, pratinjau, simpan dengan daftar "lengkapi dulu"), sidebar ikon **Elemen** (tambah foto 5 bentuk,
   **bentuk sendiri**: klik titik demi titik / seret bebas, urutan foto), **Latar**, **Info**, **Pintasan**; toolbar kontekstual

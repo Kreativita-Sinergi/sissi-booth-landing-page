@@ -75,9 +75,10 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
   `inCard={false}` bila di luar kartu. Keluar = dialog konfirmasi.
 - **Template bingkai** (W2, api.md §8): `/dashboard/template` (pemilik: buatan sendiri + bawaan Sissi, sakelar tampil) &
   `/admin/template` (bawaan + kategori). Editor **gaya Canva** `components/dash/template-editor.tsx` (+ bagian pendukung
-  `template-editor-parts.tsx`): bar atas (nama, urungkan/ulangi, zoom, pratinjau, simpan), sidebar Elemen/Latar/Info/Pintasan,
-  toolbar kontekstual, pilih banyak, pintasan keyboard (daftar `SHORTCUTS`), bentuk bebas (`custom` + `points`: klik titik /
-  seret bebas, edit titik); simpan multipart lewat `lib/dash/template-actions.ts`;
+  `template-editor-parts.tsx`): **layar penuh di desktop** (tanpa gulir halaman), bar atas (nama, urungkan/ulangi, zoom,
+  pintasan, pratinjau, simpan), sidebar Elemen/Latar/Info, toolbar kontekstual, pilih banyak, pintasan keyboard (daftar
+  `SHORTCUTS`), bentuk bebas (`custom` + `points` + `handles` Bézier: pen ala Photoshop / seret bebas, edit titik & kendali);
+  simpan multipart lewat `lib/dash/template-actions.ts`;
   logika slot & deteksi di `lib/dash/template.ts`; pratinjau `template-preview.tsx` (server-safe). Body Server Action
   5 MB (`next.config.ts`); di Vercel batasnya ±4,5 MB → editor menolak PNG > 4 MB.
 - Komponen: `src/components/dash/` — `ui.tsx` (server-safe: Card, Stat, Table, BarChart SVG, Bars, Badge…),

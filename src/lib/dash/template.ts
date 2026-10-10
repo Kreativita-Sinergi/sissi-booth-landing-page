@@ -1,4 +1,4 @@
-import type { Slot, SlotLayer, SlotShape, TemplateFormat } from "./types";
+import type { Handle, Slot, SlotLayer, SlotShape, TemplateFormat } from "./types";
 
 /** Logika template bingkai yang dipakai editor & pratinjau (aman di server maupun browser). */
 
@@ -64,7 +64,7 @@ const STAR = starPath();
 export function shapePath(slot: Slot, aspect: number): string {
   switch (slot.shape) {
     case "custom":
-      if (slot.points && slot.points.length >= 3) return `M${slot.points.map(([x, y]) => `${round(x)},${round(y)}`).join(" L")} Z`;
+      if (slot.points && slot.points.length >= 2) return curvePath(slot.points, slot.handles);
       return "M0,0 H1 V1 H0 Z";
     case "circle":
       return "M0.5,0 A0.5,0.5 0 1,1 0.5,1 A0.5,0.5 0 1,1 0.5,0 Z";
@@ -316,17 +316,92 @@ function simplifyOpen(pts: [number, number][], tol: number): [number, number][] 
   return pts.filter((_, i) => keep[i]);
 }
 
+// --- Kurva (pen tool) ---
+
+type P = [number, number];
+
+/** Kendali datar (garis lurus) untuk titik p. */
+export const flatHandle = ([x, y]: P): Handle => [x, y, x, y];
+
+/** Apakah titik k punya lengkung (kendali tidak menempel ke titiknya). */
+export function isSmooth(p: P, h?: Handle): boolean {
+  return !!h && (Math.abs(h[0] - p[0]) + Math.abs(h[1] - p[1]) + Math.abs(h[2] - p[0]) + Math.abs(h[3] - p[1]) > 1e-4);
+}
+
+/** Path SVG tertutup dari titik + kendali Bézier (tanpa kendali = poligon). */
+export function curvePath(pts: P[], hs?: Handle[], close = true): string {
+  const f = (x: number, y: number) => `${round(x)},${round(y)}`;
+  if (!hs || hs.length !== pts.length) return `M${pts.map(([x, y]) => f(x, y)).join(" L")}${close ? " Z" : ""}`;
+  const n = pts.length;
+  let d = `M${f(...pts[0])}`;
+  for (let k = 0; k < (close ? n : n - 1); k++) {
+    const j = (k + 1) % n;
+    d += ` C${f(hs[k][2], hs[k][3])} ${f(hs[j][0], hs[j][1])} ${f(...pts[j])}`;
+  }
+  return d + (close ? " Z" : "");
+}
+
+/** Buang `handles` bila tak ada satu pun titik berlengkung (data ringkas, tetap poligon). */
+export function tidyCurve(s: Slot): Slot {
+  if (!s.handles) return s;
+  if (s.points && s.handles.length === s.points.length && s.handles.some((h, k) => isSmooth(s.points![k], h))) return s;
+  const rest = { ...s };
+  delete rest.handles;
+  return rest;
+}
+
+/** Titik-titik sepanjang kurva tertutup (untuk batas kotak). */
+export function curveOutline(pts: P[], hs?: Handle[], steps = 16): P[] {
+  if (!hs || hs.length !== pts.length) return pts;
+  const out: P[] = [];
+  const n = pts.length;
+  for (let k = 0; k < n; k++) {
+    const j = (k + 1) % n;
+    const [x0, y0] = pts[k], [x3, y3] = pts[j];
+    const x1 = hs[k][2], y1 = hs[k][3], x2 = hs[j][0], y2 = hs[j][1];
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps, u = 1 - t;
+      const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, e = t * t * t;
+      out.push([a * x0 + b * x1 + c * x2 + e * x3, a * y0 + b * y1 + c * y2 + e * y3]);
+    }
+  }
+  return out;
+}
+
+/** Kendali halus otomatis (Catmull-Rom) untuk semua titik — dipakai tombol "Haluskan" & hasil seret bebas. */
+export function smoothHandles(pts: P[], tension = 1 / 6): Handle[] {
+  const n = pts.length;
+  return pts.map(([x, y], k) => {
+    const [px, py] = pts[(k - 1 + n) % n], [nx, ny] = pts[(k + 1) % n];
+    const tx = (nx - px) * tension, ty = (ny - py) * tension;
+    return [round(x - tx), round(y - ty), round(x + tx), round(y + ty)];
+  });
+}
+
 /**
- * Slot bentuk bebas dari titik-titik di kanvas (relatif terhadap bingkai 0–1): kotak slot = batas titik,
- * titik disimpan relatif terhadap kotak itu. null bila kurang dari 3 titik atau terlalu kecil.
+ * Slot bentuk bebas dari titik-titik di kanvas (relatif terhadap bingkai 0–1): kotak slot = batas bentuk (termasuk
+ * lengkung), titik & kendali disimpan relatif terhadap kotak itu. null bila titik kurang atau terlalu kecil.
  */
-export function slotFromPoints(pts: [number, number][], layer: SlotLayer): Slot | null {
-  if (pts.length < 3) return null;
-  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+export function slotFromPoints(pts: P[], layer: SlotLayer, hs?: Handle[]): Slot | null {
+  const curved = !!hs && hs.length === pts.length && hs.some((h, k) => isSmooth(pts[k], h));
+  if (pts.length < (curved ? 2 : 3)) return null;
+  const line = curveOutline(pts, curved ? hs : undefined);
+  const xs = line.map((p) => p[0]), ys = line.map((p) => p[1]);
   const x = Math.min(...xs), y = Math.min(...ys);
   const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
   if (w < 0.02 || h < 0.02) return null;
-  return { x: round(x), y: round(y), w: round(w), h: round(h), rotation: 0, shape: "custom", layer, points: pts.map(([px, py]) => [round((px - x) / w), round((py - y) / h)]) };
+  const nx = (v: number) => round((v - x) / w), ny = (v: number) => round((v - y) / h);
+  return {
+    x: round(x),
+    y: round(y),
+    w: round(w),
+    h: round(h),
+    rotation: 0,
+    shape: "custom",
+    layer,
+    points: pts.map(([px, py]) => [nx(px), ny(py)]),
+    ...(curved ? { handles: hs!.map((c) => [nx(c[0]), ny(c[1]), nx(c[2]), ny(c[3])] as Handle) } : {}),
+  };
 }
 
 /**
@@ -334,11 +409,13 @@ export function slotFromPoints(pts: [number, number][], layer: SlotLayer): Slot 
  * menggeser tampilan — memperhitungkan rotasi slot. `W`/`H` = ukuran bingkai (piksel apa saja, rasio benar).
  */
 export function refitPoints(s: Slot, W: number, H: number): Slot {
-  if (!s.points || s.points.length < 3) return s;
+  if (!s.points || s.points.length < 2) return s;
   const w = s.w * W, h = s.h * H;
-  const local = s.points.map(([px, py]) => [px * w, py * h]);
-  const minX = Math.min(...local.map((p) => p[0])), maxX = Math.max(...local.map((p) => p[0]));
-  const minY = Math.min(...local.map((p) => p[1])), maxY = Math.max(...local.map((p) => p[1]));
+  const local = s.points.map(([px, py]) => [px * w, py * h] as P);
+  const hsLocal = s.handles?.length === s.points.length ? s.handles.map((c) => [c[0] * w, c[1] * h, c[2] * w, c[3] * h] as Handle) : undefined;
+  const line = curveOutline(local, hsLocal);
+  const minX = Math.min(...line.map((p) => p[0])), maxX = Math.max(...line.map((p) => p[0]));
+  const minY = Math.min(...line.map((p) => p[1])), maxY = Math.max(...line.map((p) => p[1]));
   const nw = Math.max(1, maxX - minX), nh = Math.max(1, maxY - minY);
   // Pergeseran titik tengah di sumbu slot → diputar ke sumbu bingkai.
   const dx = (minX + maxX) / 2 - w / 2, dy = (minY + maxY) / 2 - h / 2;
@@ -352,5 +429,6 @@ export function refitPoints(s: Slot, W: number, H: number): Slot {
     w: round(nw / W),
     h: round(nh / H),
     points: local.map(([px, py]) => [round((px - minX) / nw), round((py - minY) / nh)] as [number, number]),
+    ...(hsLocal ? { handles: hsLocal.map((c) => [round((c[0] - minX) / nw), round((c[1] - minY) / nh), round((c[2] - minX) / nw), round((c[3] - minY) / nh)] as Handle) } : {}),
   };
 }
