@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { api, type Role } from "./api";
 import type { ActionState } from "./action-state";
 import { failed, str } from "./errors";
+import type { TemplateAsset } from "./types";
 
 /**
  * Aksi server template bingkai (docs/api.md §8): pemilik (`/owner/templates`) & admin Sissi untuk
@@ -51,6 +52,29 @@ async function remove(role: Role, f: FormData): Promise<ActionState> {
   }
   revalidatePath(BASE[role].page, "layout");
   return { ok: true, message: "Template dihapus." };
+}
+
+/** Hasil unggah gambar lapisan (dipanggil langsung dari editor, bukan lewat form). */
+export type UploadAssetResult = { ok: true; asset: TemplateAsset } | { ok: false; message: string };
+
+async function uploadAsset(role: Role, f: FormData): Promise<UploadAssetResult> {
+  const file = f.get("file");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Pilih gambar dulu." };
+  const body = new FormData();
+  body.set("file", file, file.name || "gambar.png");
+  try {
+    const r = await api<TemplateAsset>(role, role === "owner" ? "/owner/template-assets" : "/admin/template-assets", { method: "POST", body });
+    return { ok: true, asset: r.data };
+  } catch (e) {
+    return { ok: false, message: failed(e).message ?? "Gambar gagal diunggah." };
+  }
+}
+
+export async function uploadOwnerAsset(f: FormData) {
+  return uploadAsset("owner", f);
+}
+export async function uploadAdminAsset(f: FormData) {
+  return uploadAsset("admin", f);
 }
 
 export async function saveOwnerTemplate(_: ActionState, f: FormData) {

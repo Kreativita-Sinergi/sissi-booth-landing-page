@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { TemplateEditor } from "@/components/dash/template-editor";
 import { ErrorBox, Loading } from "@/components/dash/ui";
 import { api, ApiError } from "@/lib/dash/api";
-import { saveAdminTemplate } from "@/lib/dash/template-actions";
+import { saveAdminTemplate, uploadAdminAsset } from "@/lib/dash/template-actions";
 import type { FrameTemplate, TemplateCategory } from "@/lib/dash/types";
 
 async function Content({ params }: { params: Promise<{ id: string }> }) {
@@ -21,7 +21,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     if (e instanceof ApiError) return <ErrorBox message={e.message} />;
     throw e;
   }
-  return <TemplateEditor key={`${template.id}-${template.version}`} template={template} categories={categories} action={saveAdminTemplate} backHref="/admin/template" builtin />;
+  return <TemplateEditor key={`${template.id}-${template.version}`} template={template} categories={categories} action={saveAdminTemplate} uploadAsset={uploadAdminAsset} backHref="/admin/template" builtin />;
 }
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {

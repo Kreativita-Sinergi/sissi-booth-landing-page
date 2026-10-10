@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { TemplateEditor } from "@/components/dash/template-editor";
 import { ErrorBox, Loading } from "@/components/dash/ui";
 import { api, ApiError } from "@/lib/dash/api";
-import { saveAdminTemplate } from "@/lib/dash/template-actions";
+import { saveAdminTemplate, uploadAdminAsset } from "@/lib/dash/template-actions";
 import type { TemplateCategory } from "@/lib/dash/types";
 
 async function Content() {
@@ -13,7 +13,7 @@ async function Content() {
     if (e instanceof ApiError) return <ErrorBox message={e.message} />;
     throw e;
   }
-  return <TemplateEditor categories={categories} action={saveAdminTemplate} backHref="/admin/template" builtin />;
+  return <TemplateEditor categories={categories} action={saveAdminTemplate} uploadAsset={uploadAdminAsset} backHref="/admin/template" builtin />;
 }
 
 export default function Page() {

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { TemplateEditor } from "@/components/dash/template-editor";
 import { ErrorBox, Loading } from "@/components/dash/ui";
 import { api, ApiError } from "@/lib/dash/api";
-import { saveOwnerTemplate } from "@/lib/dash/template-actions";
+import { saveOwnerTemplate, uploadOwnerAsset } from "@/lib/dash/template-actions";
 import type { TemplateCategory } from "@/lib/dash/types";
 
 async function Content() {
@@ -13,7 +13,7 @@ async function Content() {
     if (e instanceof ApiError) return <ErrorBox message={e.message} />;
     throw e;
   }
-  return <TemplateEditor categories={categories} action={saveOwnerTemplate} backHref="/dashboard/template" />;
+  return <TemplateEditor categories={categories} action={saveOwnerTemplate} uploadAsset={uploadOwnerAsset} backHref="/dashboard/template" />;
 }
 
 export default function Page() {

@@ -1,11 +1,12 @@
 /* eslint-disable @next/next/no-img-element -- gambar bingkai dari server file (domain dinamis, ukuran asli). */
 import { cn } from "@/components/shared/cn";
 import { SAMPLE_TONES, shapePath, slotLayer } from "@/lib/dash/template";
-import type { Slot } from "@/lib/dash/types";
+import type { Slot, TemplateImage } from "@/lib/dash/types";
 
 /**
  * Pratinjau template (server-safe): foto contoh berwarna di tiap slot (dipotong sesuai bentuk & diputar).
- * Urutan lapisan sama dengan booth: slot "below" → bingkai → slot "above" (bingkai latar = semua foto di atas).
+ * Urutan lapisan sama dengan booth: slot "below" → bingkai → slot "above" (bingkai latar = semua foto di atas) →
+ * gambar lapisan (hiasan, direntangkan ke kotaknya lalu diputar).
  * `uid` harus unik per halaman (id clipPath SVG).
  */
 export function TemplatePreview({
@@ -15,6 +16,7 @@ export function TemplatePreview({
   height,
   overlay,
   slots,
+  images = [],
   numbers = true,
   className,
 }: {
@@ -24,6 +26,7 @@ export function TemplatePreview({
   height: number;
   overlay: boolean;
   slots: Slot[];
+  images?: Pick<TemplateImage, "url" | "x" | "y" | "w" | "h" | "rotation">[];
   numbers?: boolean;
   className?: string;
 }) {
@@ -62,6 +65,16 @@ export function TemplatePreview({
           </div>
         );
       })}
+      {images.map((im, i) => (
+        <img
+          key={`im${i}`}
+          src={im.url}
+          alt=""
+          draggable={false}
+          className="pointer-events-none absolute z-30 max-w-none select-none"
+          style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%`, height: `${im.h * 100}%`, transform: `rotate(${im.rotation}deg)` }}
+        />
+      ))}
     </div>
   );
 }

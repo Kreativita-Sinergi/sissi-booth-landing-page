@@ -16,6 +16,11 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-10** · Claude Opus 5.5 · Editor template: **gambar hiasan** (lapisan gambar di atas foto & bingkai: unggah
+  terpisah lewat `uploadOwnerAsset/uploadAdminAsset` → `POST …/template-assets`, geser/ukuran proporsional/putar/magnet/
+  urungkan, majukan/mundurkan, pratinjau & kartu daftar ikut menampilkan), elemen editor = foto lalu gambar (`El`);
+  **panduan langkah demi langkah** (`template-guide.tsx`, otomatis sekali — localStorage `sb-template-guide-v1` — + tombol
+  Panduan); unggah gambar latar bisa diurungkan; kartu unggah awal ringkas + unduh panduan ukuran; daftar format rapi.
 - **2026-10-10** · Claude Opus 5.5 · Editor template: **layar penuh di desktop** (halaman & kanvas tidak bergulir pada zoom
   ≤ 100%, bingkai pas tinggi layar; panel "Posisi & ukuran" melayang), **tombol Pintasan** di bar atas (dialog) menggantikan
   tab sidebar, **pen tool ala Photoshop** (klik = sudut, klik + seret = lengkung Bézier, klik titik pertama = tutup; edit:

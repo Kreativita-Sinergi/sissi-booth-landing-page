@@ -181,10 +181,12 @@ export function FormatPicker({
                 <span className={cn("block rounded-[2px] border-2", on ? "border-primary bg-surface" : "border-edge-strong")} style={{ height: w > h ? 16 : 26, width: ((w > h ? 16 : 26) * w) / h }} />
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className={cn("text-sm font-medium", on && "text-primary")}>{FORMATS[f].label}</span>
-                <span className="text-xs text-subtle">{FORMATS[f].size}</span>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span className={cn("whitespace-nowrap text-sm font-medium", on && "text-primary")}>{FORMATS[f].label}</span>
+                  {f === suggested && <span className="whitespace-nowrap rounded-full bg-success-soft px-1.5 text-[10px] font-medium leading-4 text-success">Paling pas</span>}
+                </span>
+                <span className="whitespace-nowrap text-xs tabular-nums text-subtle">{FORMATS[f].size}</span>
               </span>
-              {f === suggested && <span className="shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success">Paling pas</span>}
             </button>
           );
         })}

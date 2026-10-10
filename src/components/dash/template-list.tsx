@@ -42,7 +42,7 @@ export function TemplateGrid({
         return (
           <article key={t.id} className={cn("flex min-w-0 flex-col overflow-hidden rounded-xl border border-edge bg-surface shadow-card", !t.active && "opacity-75")}>
             <Link href={edit ? `${editBase}/${t.id}` : "#"} aria-disabled={!edit} tabIndex={edit ? undefined : -1} className={cn("flex h-60 items-center justify-center border-b border-edge bg-canvas p-4", !edit && "pointer-events-none")}>
-              <TemplatePreview uid={t.id} src={t.frame_url} width={t.width} height={t.height} overlay={t.frame_overlay} slots={t.slots} numbers={false} className="h-full max-w-full rounded-sm shadow-card" />
+              <TemplatePreview uid={t.id} src={t.frame_url} width={t.width} height={t.height} overlay={t.frame_overlay} slots={t.slots} images={t.images} numbers={false} className="h-full max-w-full rounded-sm shadow-card" />
             </Link>
             <div className="flex flex-1 flex-col gap-2 p-4">
               <div className="flex items-start justify-between gap-2">

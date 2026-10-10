@@ -10,13 +10,17 @@ import {
   AlignEndVertical,
   AlignStartHorizontal,
   AlignStartVertical,
+  ArrowDownToLine,
   ArrowLeft,
+  ArrowUpToLine,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Copy,
   Crop,
   Download,
   Eye,
+  ImagePlus,
   ImageUp,
   Info,
   Keyboard,
@@ -43,6 +47,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/components/shared/cn";
 import type { ActionState } from "@/lib/dash/action-state";
+import type { UploadAssetResult } from "@/lib/dash/template-actions";
 import {
   closestFormat,
   curvePath,
@@ -94,20 +99,25 @@ import {
   type Frame,
   type Source,
 } from "./template-editor-parts";
+import { TemplateGuide } from "./template-guide";
 import { TemplatePreview } from "./template-preview";
 
 type SideTab = "elemen" | "latar" | "info";
 type Notice = { tone: "ok" | "warn" | "err"; text: string };
-/** Satu langkah riwayat urungkan: posisi foto + gambar latar + posisi bingkai. */
-type Snap = { slots: Slot[]; frame: Frame | null; overlay: boolean };
+/** Gambar lapisan di editor; `ratio` = lebar/tinggi asli (piksel) untuk ubah ukuran proporsional. */
+type Img = { asset_id: string; url: string; ratio: number };
+/** Elemen kanvas: slot foto, atau gambar lapisan (`img` terisi, selalu kotak). Urutan daftar: semua foto dulu, lalu gambar. */
+type El = Slot & { img?: Img };
+/** Satu langkah riwayat urungkan: elemen + gambar latar + posisi bingkai. */
+type Snap = { items: El[]; frame: Frame | null; overlay: boolean };
 type Pt = [number, number];
-/** Seret di kanvas: geser (banyak slot), ubah ukuran, putar, kotak pilih, atau titik bentuk bebas. */
+/** Seret di kanvas: geser (banyak elemen), ubah ukuran, putar, kotak pilih, atau titik bentuk bebas. */
 type Drag =
-  | { kind: "move"; idx: number[]; starts: Slot[]; x: number; y: number; pushed: boolean; before: Slot[] }
-  | { kind: "resize"; i: number; start: Slot; corner: [number, number]; x: number; y: number; pushed: boolean; before: Slot[] }
-  | { kind: "rotate"; i: number; start: Slot; pushed: boolean; before: Slot[] }
+  | { kind: "move"; idx: number[]; starts: El[]; x: number; y: number; pushed: boolean; before: El[] }
+  | { kind: "resize"; i: number; start: El; corner: [number, number]; x: number; y: number; pushed: boolean; before: El[] }
+  | { kind: "rotate"; i: number; start: El; pushed: boolean; before: El[] }
   /** Titik bentuk bebas: anchor = geser titik (+kendalinya), in/out = tarik kendali (brk = patahkan), pull = tarik lengkung baru dari titik (Alt). */
-  | { kind: "vertex"; i: number; k: number; part: "anchor" | "in" | "out" | "pull"; brk: boolean; start: Slot; x: number; y: number; pushed: boolean; before: Slot[] }
+  | { kind: "vertex"; i: number; k: number; part: "anchor" | "in" | "out" | "pull"; brk: boolean; start: El; x: number; y: number; pushed: boolean; before: El[] }
   | { kind: "marquee"; x0: number; y0: number; add: boolean };
 /** Menggambar: pen = klik (titik sudut) / klik-seret (titik lengkung) seperti Photoshop; lasso = seret bebas. */
 type Draw = { kind: "pen" | "lasso"; pts: Pt[]; hs: Handle[]; hover?: Pt; down?: boolean; closing?: boolean };
@@ -168,12 +178,15 @@ export function TemplateEditor({
   template,
   categories,
   action,
+  uploadAsset,
   backHref,
   builtin,
 }: {
   template?: FrameTemplate;
   categories: TemplateCategory[];
   action: (s: ActionState, f: FormData) => Promise<ActionState>;
+  /** Unggah satu gambar lapisan (aksi server) → asset. */
+  uploadAsset: (f: FormData) => Promise<UploadAssetResult>;
   backHref: string;
   /** Admin: template bawaan Sissi (teks bantuan berbeda). */
   builtin?: boolean;
@@ -181,7 +194,18 @@ export function TemplateEditor({
   const [state, run, saving] = useActionState(action, {} as ActionState);
   const [frame, setFrame] = useState<Frame | null>(template ? { src: template.frame_url, width: template.width, height: template.height } : null);
   const [overlay, setOverlay] = useState(template?.frame_overlay ?? true);
-  const [slots, setSlots] = useState<Slot[]>(template?.slots ?? []);
+  const [items, setItems] = useState<El[]>(() => [
+    ...(template?.slots ?? []),
+    ...(template?.images ?? []).map((im) => ({
+      x: im.x,
+      y: im.y,
+      w: im.w,
+      h: im.h,
+      rotation: im.rotation,
+      shape: "rect" as const,
+      img: { asset_id: im.asset_id, url: im.url, ratio: (im.w * template!.width) / (im.h * template!.height) },
+    })),
+  ]);
   const [hist, setHist] = useState<{ past: Snap[]; future: Snap[] }>({ past: [], future: [] });
   const [sel, setSel] = useState<number[]>([]);
   const [name, setName] = useState(template?.name ?? "");
@@ -195,18 +219,20 @@ export function TemplateEditor({
   const [showSafe, setShowSafe] = useState(true);
   const [tips, setTips] = useState(false);
   const [keys, setKeys] = useState(false);
+  const [guide, setGuide] = useState(false);
   const [source, setSource] = useState<Source | null>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [adjust, setAdjust] = useState<Adjust | null>(null);
   const [zoom, setZoom] = useState(1);
   const [draw, setDraw] = useState<Draw | null>(null);
   const [editPts, setEditPts] = useState<number | null>(null);
-  const [clip, setClip] = useState<Slot[]>([]);
+  const [clip, setClip] = useState<El[]>([]);
   const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [showTodo, setShowTodo] = useState(false);
   const [shapeMenu, setShapeMenu] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
+  const imgFileRef = useRef<HTMLInputElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
@@ -251,38 +277,47 @@ export function TemplateEditor({
   const stageW = fitW * zoom;
   const stageH = frame ? (stageW * frame.height) / frame.width : 0;
   const one = sel.length === 1 ? sel[0] : null;
-  const slot = one !== null ? slots[one] : undefined;
+  const item = one !== null ? items[one] : undefined;
+  const nPhotos = items.filter((e) => !e.img).length;
+  const photos = items.slice(0, nPhotos);
+  const imgs = items.slice(nPhotos);
 
   // --- riwayat (urungkan/ulangi) ---
 
-  const snap = (): Snap => ({ slots, frame, overlay });
+  const snap = (): Snap => ({ items, frame, overlay });
   function restore(s: Snap) {
-    setSlots(s.slots);
+    setItems(s.items);
     setFrame(s.frame);
     setOverlay(s.overlay);
   }
   /** Ubah isi editor sebagai satu langkah urungkan. */
   function commit(patch: Partial<Snap>) {
     setHist({ past: [...hist.past.slice(-99), snap()], future: [] });
-    if (patch.slots) setSlots(patch.slots);
+    if (patch.items) setItems(patch.items);
     if (patch.frame !== undefined) setFrame(patch.frame);
     if (patch.overlay !== undefined) setOverlay(patch.overlay);
   }
-  function change(next: Slot[]) {
-    commit({ slots: next });
+  function change(next: El[]) {
+    commit({ items: next });
   }
-  function update(i: number, patch: Partial<Slot>) {
-    change(slots.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  /** Tambah elemen baru (foto ke kelompok foto, gambar ke paling depan) → daftar baru + indeks pilihannya. */
+  function inserted(add: El[]): { next: El[]; sel: number[] } {
+    const ph = add.filter((e) => !e.img), im = add.filter((e) => e.img);
+    const next = [...photos, ...ph, ...imgs, ...im];
+    return { next, sel: [...ph.map((_, k) => nPhotos + k), ...im.map((_, k) => nPhotos + ph.length + imgs.length + k)] };
   }
-  function replace(i: number, next: Slot) {
-    change(slots.map((s, j) => (j === i ? next : s)));
+  function update(i: number, patch: Partial<El>) {
+    change(items.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  }
+  function replace(i: number, next: El) {
+    change(items.map((s, j) => (j === i ? next : s)));
   }
   function undo() {
     const prev = hist.past[hist.past.length - 1];
     if (!prev) return;
     setHist({ past: hist.past.slice(0, -1), future: [snap(), ...hist.future] });
     restore(prev);
-    setSel((cur) => cur.filter((i) => i < prev.slots.length));
+    setSel((cur) => cur.filter((i) => i < prev.items.length));
     setEditPts(null);
   }
   function redo() {
@@ -290,7 +325,7 @@ export function TemplateEditor({
     if (!next) return;
     setHist({ past: [...hist.past, snap()], future: hist.future.slice(1) });
     restore(next);
-    setSel((cur) => cur.filter((i) => i < next.slots.length));
+    setSel((cur) => cur.filter((i) => i < next.items.length));
   }
 
   // --- gambar latar / bingkai ---
@@ -308,12 +343,12 @@ export function TemplateEditor({
       return;
     }
     if (found.slots.length > 0) {
-      commit({ frame: f, overlay: true, slots: found.slots.slice(0, MAX_SLOTS) });
+      commit({ frame: f, overlay: true, items: [...found.slots.slice(0, MAX_SLOTS), ...imgs] });
       setSel([0]);
       setSide("elemen");
       setNotice({ tone: "ok", text: `${found.slots.length} lubang foto terdeteksi dan sudah jadi slot. Klik slot untuk mengubahnya.` });
-    } else if (replace || slots.length === 0) {
-      commit({ frame: f, overlay: found.transparent, slots: fmt ? defaultSlots(fmt) : [] });
+    } else if (replace || nPhotos === 0) {
+      commit({ frame: f, overlay: found.transparent, items: [...(fmt ? defaultSlots(fmt) : []), ...imgs] });
       setSel([]);
       setSide("elemen");
       setNotice({
@@ -364,7 +399,7 @@ export function TemplateEditor({
     setSource(src);
     const f = { src: URL.createObjectURL(file), width: w, height: h, file };
     setZoom(1);
-    applyDetection(img, f, !template || slots.length === 0);
+    applyDetection(img, f, !template || nPhotos === 0);
   }
 
   function startAdjust(src: Source, fmt: TemplateFormat) {
@@ -425,7 +460,7 @@ export function TemplateEditor({
     const f = { src: url, width: W, height: H, file: new File([blob], "frame.png", { type: "image/png" }) };
     setAdjust(null);
     setZoom(1);
-    applyDetection(out, f, slots.length === 0);
+    applyDetection(out, f, nPhotos === 0);
   }
 
   async function redetect() {
@@ -440,23 +475,54 @@ export function TemplateEditor({
     }
   }
 
-  // --- slot ---
+  // --- elemen (foto & gambar) ---
 
   /** Slot baru di tengah, kira-kira persegi di layar; di atas bingkai agar langsung terlihat. */
   function addShape(shape: SlotShape) {
-    if (!frame || slots.length >= MAX_SLOTS) return;
+    if (!frame || nPhotos >= MAX_SLOTS) return;
     const w = format === "strip_2x6" ? 0.6 : 0.36;
     const h = r4(Math.min(0.8, (w * frame.width) / frame.height));
     const s: Slot = { x: r4(0.5 - w / 2), y: r4(0.5 - h / 2), w, h, rotation: 0, shape, layer: "above", radius: shape === "rounded" ? 0.15 : undefined };
-    change([...slots, s]);
-    setSel([slots.length]);
+    change([...photos, s, ...imgs]);
+    setSel([nPhotos]);
     setDraw(null);
     setEditPts(null);
     setMode("edit");
   }
 
+  /** Gambar lapisan baru (hiasan): diunggah dulu ke server, lalu ditaruh di tengah paling depan dengan rasio aslinya. */
+  async function addImage(file: File) {
+    if (!frame) return setNotice({ tone: "warn", text: "Unggah gambar latar dulu, baru tambahkan gambar hiasan." });
+    if (!["image/png", "image/jpeg"].includes(file.type)) {
+      return setNotice({ tone: "err", text: "Gambar hiasan harus PNG (disarankan, agar bisa transparan) atau JPG." });
+    }
+    if (file.size > MAX_FILE) return setNotice({ tone: "err", text: `Ukuran file ${mb(file.size)} MB melebihi batas 4 MB. Kecilkan dulu (mis. TinyPNG).` });
+    setBusy(true);
+    setNotice({ tone: "ok", text: "Mengunggah gambar…" });
+    const fd = new FormData();
+    fd.set("file", file);
+    const res = await uploadAsset(fd);
+    setBusy(false);
+    if (!res.ok) return setNotice({ tone: "err", text: res.message });
+    const { asset } = res;
+    const ratio = asset.width / asset.height;
+    // Lebar awal ±40% halaman, tinggi mengikuti rasio; batasi agar muat.
+    let w = 0.4, h = (w * frame.width) / ratio / frame.height;
+    if (h > 0.6) {
+      w = (w * 0.6) / h;
+      h = 0.6;
+    }
+    const el: El = { x: r4(0.5 - w / 2), y: r4(0.5 - h / 2), w: r4(w), h: r4(h), rotation: 0, shape: "rect", img: { asset_id: asset.id, url: asset.url, ratio } };
+    change([...items, el]);
+    setSel([items.length]);
+    setDraw(null);
+    setEditPts(null);
+    setMode("edit");
+    setNotice({ tone: "ok", text: "Gambar ditambahkan di paling depan. Geser, ubah ukuran (sudut = proporsional), atau putar." });
+  }
+
   function setShape(i: number, shape: SlotShape) {
-    const cur = slots[i];
+    const cur = items[i];
     update(i, {
       shape,
       radius: shape === "rounded" ? (cur.radius ?? 0.12) : undefined,
@@ -466,36 +532,38 @@ export function TemplateEditor({
   }
 
   function setLayer(idx: number[], layer: SlotLayer) {
-    change(slots.map((s, j) => (idx.includes(j) ? { ...s, layer, shape: layer === "above" && s.shape === "frame" ? "rect" : s.shape } : s)));
+    change(items.map((s, j) => (idx.includes(j) && !s.img ? { ...s, layer, shape: layer === "above" && s.shape === "frame" ? "rect" : s.shape } : s)));
   }
 
   function duplicate(idx: number[]) {
-    if (!idx.length || slots.length + idx.length > MAX_SLOTS) return;
-    const copies = idx.map((i) => ({ ...slots[i], x: r4(slots[i].x + 0.03), y: r4(slots[i].y + 0.03) }));
-    change([...slots, ...copies]);
-    setSel(copies.map((_, k) => slots.length + k));
+    if (!idx.length || nPhotos + idx.filter((i) => !items[i].img).length > MAX_SLOTS) return;
+    const r = inserted(idx.map((i) => ({ ...items[i], x: r4(items[i].x + 0.03), y: r4(items[i].y + 0.03) })));
+    change(r.next);
+    setSel(r.sel);
   }
 
   function remove(idx: number[]) {
     if (!idx.length) return;
-    change(slots.filter((_, j) => !idx.includes(j)));
+    change(items.filter((_, j) => !idx.includes(j)));
     setSel([]);
     setEditPts(null);
   }
 
   function paste() {
-    if (!clip.length || slots.length + clip.length > MAX_SLOTS) return;
+    if (!clip.length || nPhotos + clip.filter((e) => !e.img).length > MAX_SLOTS) return;
     const copies = clip.map((s) => ({ ...s, x: r4(s.x + 0.03), y: r4(s.y + 0.03) }));
-    change([...slots, ...copies]);
-    setSel(copies.map((_, k) => slots.length + k));
+    const r = inserted(copies);
+    change(r.next);
+    setSel(r.sel);
     setClip(copies);
   }
 
-  /** Urutan foto (= urutan jepret & tumpukan antar foto): pindahkan lebih awal/akhir. */
+  /** Urutan foto (= urutan jepret & tumpukan antar foto) / tumpukan gambar: pindah dalam kelompoknya sendiri. */
   function reorder(i: number, dir: -1 | 1) {
     const j = i + dir;
-    if (j < 0 || j >= slots.length) return;
-    const next = [...slots];
+    const [lo, hi] = i < nPhotos ? [0, nPhotos] : [nPhotos, items.length];
+    if (j < lo || j >= hi) return;
+    const next = [...items];
     [next[i], next[j]] = [next[j], next[i]];
     change(next);
     setSel([j]);
@@ -503,13 +571,13 @@ export function TemplateEditor({
 
   /** Rata: beberapa foto → patokan kotak gabungan pilihan; satu foto → patokan halaman. */
   function align(kind: "l" | "c" | "r" | "t" | "m" | "b") {
-    const ss = sel.map((i) => slots[i]);
+    const ss = sel.map((i) => items[i]);
     const [lx, rx, ty, by] =
       sel.length === 1
         ? [0, 1, 0, 1]
         : [Math.min(...ss.map((s) => s.x)), Math.max(...ss.map((s) => s.x + s.w)), Math.min(...ss.map((s) => s.y)), Math.max(...ss.map((s) => s.y + s.h))];
     change(
-      slots.map((s, j) => {
+      items.map((s, j) => {
         if (!sel.includes(j)) return s;
         if (kind === "l") return { ...s, x: r4(lx) };
         if (kind === "c") return { ...s, x: r4((lx + rx) / 2 - s.w / 2) };
@@ -522,13 +590,13 @@ export function TemplateEditor({
   }
 
   function spread(axis: "x" | "y") {
-    const picked = distribute(sel.map((i) => slots[i]), axis);
-    change(slots.map((s, j) => (sel.includes(j) ? picked[sel.indexOf(j)] : s)));
+    const picked = distribute(sel.map((i) => items[i]), axis);
+    change(items.map((s, j) => (sel.includes(j) ? picked[sel.indexOf(j)] : s)));
   }
 
   function sameSize() {
-    const ref = slots[sel[sel.length - 1]];
-    change(slots.map((s, j) => (sel.includes(j) ? { ...s, w: ref.w, h: ref.h } : s)));
+    const ref = items[sel[sel.length - 1]];
+    change(items.map((s, j) => (sel.includes(j) ? { ...s, w: ref.w, h: ref.h } : s)));
   }
 
   // --- bentuk bebas ---
@@ -541,9 +609,9 @@ export function TemplateEditor({
     hs = hs?.filter((_, k) => keep[k]);
     const s = slotFromPoints(pts, "above", hs);
     if (!s) return setNotice({ tone: "warn", text: "Bentuk terlalu kecil atau kurang dari 3 titik. Coba gambar lagi." });
-    if (slots.length >= MAX_SLOTS) return setNotice({ tone: "warn", text: `Maksimal ${MAX_SLOTS} foto.` });
-    change([...slots, s]);
-    setSel([slots.length]);
+    if (nPhotos >= MAX_SLOTS) return setNotice({ tone: "warn", text: `Maksimal ${MAX_SLOTS} foto.` });
+    change([...photos, s, ...imgs]);
+    setSel([nPhotos]);
     setNotice({ tone: "ok", text: "Bentuk bebas jadi slot foto. Klik dua kali bentuknya untuk mengedit titik." });
   }
 
@@ -571,7 +639,7 @@ export function TemplateEditor({
     const idx = sel.includes(i) ? sel : [i];
     if (!sel.includes(i)) setSel([i]);
     if (editPts !== null && editPts !== i) setEditPts(null);
-    drag.current = { kind: "move", idx, starts: idx.map((j) => slots[j]), x: e.clientX, y: e.clientY, pushed: false, before: slots };
+    drag.current = { kind: "move", idx, starts: idx.map((j) => items[j]), x: e.clientX, y: e.clientY, pushed: false, before: items };
     stageRef.current?.setPointerCapture(e.pointerId);
     stageRef.current?.focus({ preventScroll: true });
   }
@@ -581,19 +649,19 @@ export function TemplateEditor({
     e.preventDefault();
     drag.current =
       kind === "rotate"
-        ? { kind, i, start: slots[i], pushed: false, before: slots }
-        : { kind, i, start: slots[i], corner, x: e.clientX, y: e.clientY, pushed: false, before: slots };
+        ? { kind, i, start: items[i], pushed: false, before: items }
+        : { kind, i, start: items[i], corner, x: e.clientX, y: e.clientY, pushed: false, before: items };
     stageRef.current?.setPointerCapture(e.pointerId);
   }
 
   function beginVertex(e: React.PointerEvent, i: number, k: number, part: "anchor" | "in" | "out") {
     e.stopPropagation();
     e.preventDefault();
-    const s = slots[i];
+    const s = items[i];
     // Kendali selalu lengkap selama diedit (titik sudut = kendali menempel ke titiknya).
     const start = { ...s, handles: s.handles?.length === s.points?.length ? s.handles : (s.points ?? []).map(flatHandle) };
     const pull = part === "anchor" && e.altKey;
-    drag.current = { kind: "vertex", i, k, part: pull ? "pull" : part, brk: e.altKey, start, x: e.clientX, y: e.clientY, pushed: false, before: slots };
+    drag.current = { kind: "vertex", i, k, part: pull ? "pull" : part, brk: e.altKey, start, x: e.clientX, y: e.clientY, pushed: false, before: items };
     stageRef.current?.setPointerCapture(e.pointerId);
   }
 
@@ -626,10 +694,10 @@ export function TemplateEditor({
   }
 
   /** Simpan riwayat sekali di awal seretan (satu seretan = satu langkah urungkan). */
-  function pushOnce(d: { pushed: boolean; before: Slot[] }) {
+  function pushOnce(d: { pushed: boolean; before: El[] }) {
     if (d.pushed) return;
     d.pushed = true;
-    setHist({ past: [...hist.past.slice(-99), { ...snap(), slots: d.before }], future: [] });
+    setHist({ past: [...hist.past.slice(-99), { ...snap(), items: d.before }], future: [] });
   }
 
   function stageMove(e: React.PointerEvent) {
@@ -674,11 +742,11 @@ export function TemplateEditor({
       const gx = Math.min(...d.starts.map((s) => s.x)), gy = Math.min(...d.starts.map((s) => s.y));
       const g: Slot = { x: gx, y: gy, w: Math.max(...d.starts.map((s) => s.x + s.w)) - gx, h: Math.max(...d.starts.map((s) => s.y + s.h)) - gy, rotation: 0, shape: "rect" };
       const moved = { ...g, x: g.x + dx, y: g.y + dy };
-      const snapped = e.altKey ? { x: moved.x, y: moved.y, guides: { v: [], h: [] } } : snapMove(moved, slots.filter((_, j) => !d.idx.includes(j)), thrX, thrY);
+      const snapped = e.altKey ? { x: moved.x, y: moved.y, guides: { v: [], h: [] } } : snapMove(moved, items.filter((_, j) => !d.idx.includes(j)), thrX, thrY);
       setGuides(snapped.guides);
       const ox = snapped.x - g.x, oy = snapped.y - g.y;
-      setSlots(
-        slots.map((s, j) => {
+      setItems(
+        items.map((s, j) => {
           const k = d.idx.indexOf(j);
           return k < 0 ? s : { ...s, x: r4(clamp(d.starts[k].x + ox, -0.5, 1.5 - s.w)), y: r4(clamp(d.starts[k].y + oy, -0.5, 1.5 - s.h)) };
         }),
@@ -690,7 +758,7 @@ export function TemplateEditor({
     const t = (s.rotation * Math.PI) / 180, cos = Math.cos(t), sin = Math.sin(t);
     const w0 = s.w * stageW, h0 = s.h * stageH;
     const cx0 = s.x * stageW + w0 / 2, cy0 = s.y * stageH + h0 / 2;
-    const set = (patch: Partial<Slot>) => setSlots(slots.map((o, j) => (j === d.i ? { ...o, ...patch } : o)));
+    const set = (patch: Partial<Slot>) => setItems(items.map((o, j) => (j === d.i ? { ...o, ...patch } : o)));
     if (d.kind === "rotate") {
       const r = stageRef.current!.getBoundingClientRect();
       let deg = (Math.atan2(e.clientY - (r.top + cy0), e.clientX - (r.left + cx0)) * 180) / Math.PI + 90;
@@ -738,7 +806,9 @@ export function TemplateEditor({
     }
     const [sx, sy] = d.corner;
     let w = Math.max(12, w0 + sx * lx), h = Math.max(12, h0 + sy * ly);
-    if (e.shiftKey && sx !== 0 && sy !== 0) {
+    // Sudut: foto proporsional dengan Shift; gambar proporsional bawaan (Shift = bebas).
+    const keep = s.img ? !e.shiftKey : e.shiftKey;
+    if (keep && sx !== 0 && sy !== 0) {
       const k = Math.max(w / w0, h / h0);
       w = w0 * k;
       h = h0 * k;
@@ -746,8 +816,8 @@ export function TemplateEditor({
     const ox = (sx * (w - w0)) / 2, oy = (sy * (h - h0)) / 2;
     const cx = cx0 + ox * cos - oy * sin, cy = cy0 + ox * sin + oy * cos;
     const resized = { ...s, x: (cx - w / 2) / stageW, y: (cy - h / 2) / stageH, w: w / stageW, h: h / stageH };
-    if (s.rotation === 0 && !e.shiftKey && !e.altKey) {
-      const snapped = snapResize(resized, [sx, sy], slots.filter((_, j) => j !== d.i), thrX, thrY);
+    if (s.rotation === 0 && !keep && !e.altKey) {
+      const snapped = snapResize(resized, [sx, sy], items.filter((_, j) => j !== d.i), thrX, thrY);
       setGuides(snapped.guides);
       const o = snapped.slot;
       set({ x: r4(o.x), y: r4(o.y), w: r4(Math.max(0.02, o.w)), h: r4(Math.max(0.02, o.h)) });
@@ -784,7 +854,7 @@ export function TemplateEditor({
       const m = marquee;
       setMarquee(null);
       if (!m || (m.w * stageW < 4 && m.h * stageH < 4)) return;
-      const hit = slots.flatMap((s, j) => (s.x < m.x + m.w && s.x + s.w > m.x && s.y < m.y + m.h && s.y + s.h > m.y ? [j] : []));
+      const hit = items.flatMap((s, j) => (s.x < m.x + m.w && s.x + s.w > m.x && s.y < m.y + m.h && s.y + s.h > m.y ? [j] : []));
       setSel(d.add ? [...new Set([...sel, ...hit])] : hit);
       return;
     }
@@ -794,13 +864,47 @@ export function TemplateEditor({
         if (d.part === "pull" && isSmooth(d.start.points![d.k], d.start.handles![d.k])) {
           const hs = d.start.handles!.slice();
           hs[d.k] = flatHandle(d.start.points![d.k]);
-          change(slots.map((s, j) => (j === d.i ? tidyCurve(refitPoints({ ...s, handles: hs }, frame.width, frame.height)) : s)));
+          change(items.map((s, j) => (j === d.i ? tidyCurve(refitPoints({ ...s, handles: hs }, frame.width, frame.height)) : s)));
         }
         return;
       }
       // Titik boleh keluar kotak saat diseret; setelah dilepas, kotak foto disesuaikan.
-      setSlots((cur) => cur.map((s, j) => (j === d.i ? tidyCurve(refitPoints(s, frame.width, frame.height)) : s)));
+      setItems((cur) => cur.map((s, j) => (j === d.i ? tidyCurve(refitPoints(s, frame.width, frame.height)) : s)));
     }
+  }
+
+  // --- simpan ---
+
+  const todo: { text: string; tab?: SideTab }[] = [];
+  if (!frame) todo.push({ text: "Unggah gambar latar / bingkai.", tab: "latar" });
+  else if (!format) todo.push({ text: "Ukuran gambar tidak cocok dengan format cetak — atur posisi gambar.", tab: "latar" });
+  if (!name.trim()) todo.push({ text: "Isi nama template (kolom di atas)." });
+  if (nPhotos === 0) todo.push({ text: "Tambahkan minimal satu foto.", tab: "elemen" });
+
+  function submit() {
+    if (todo.length || !frame || !format) {
+      setShowTodo(true);
+      return;
+    }
+    const f = new FormData();
+    if (template) f.set("id", template.id);
+    f.set(
+      "meta",
+      JSON.stringify({
+        name: name.trim(),
+        format,
+        frame_overlay: overlay,
+        slots: photos.map((s) => {
+          const shape = !overlay && s.shape === "frame" ? "rect" : s.shape;
+          return { ...s, shape, layer: slotLayer({ ...s, shape }, overlay), x: r4(s.x), y: r4(s.y), w: r4(s.w), h: r4(s.h) };
+        }),
+        images: imgs.map((e) => ({ asset_id: e.img!.asset_id, x: r4(e.x), y: r4(e.y), w: r4(e.w), h: r4(e.h), rotation: e.rotation })),
+        category_ids: [...cats],
+        active,
+      }),
+    );
+    if (frame.file) f.set("frame", frame.file);
+    startTransition(() => run(f));
   }
 
   // --- pintasan keyboard ---
@@ -808,7 +912,7 @@ export function TemplateEditor({
   function onKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
     if (t && (t.closest("input, textarea, [contenteditable=true]") || t.closest("[role=dialog]"))) return;
-    if (ask || tips || keys) return;
+    if (ask || tips || keys || guide) return;
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
     if (mod && k === "s") {
@@ -854,7 +958,7 @@ export function TemplateEditor({
     }
     if (mod && k === "a") {
       e.preventDefault();
-      return setSel(slots.map((_, i) => i));
+      return setSel(items.map((_, i) => i));
     }
     if (mod && k === "v") {
       e.preventDefault();
@@ -863,7 +967,7 @@ export function TemplateEditor({
     if (!sel.length) return;
     if (mod && k === "c") {
       e.preventDefault();
-      return setClip(sel.map((i) => slots[i]));
+      return setClip(sel.map((i) => items[i]));
     }
     if (mod && k === "d") {
       e.preventDefault();
@@ -882,7 +986,7 @@ export function TemplateEditor({
     if (moves[e.key]) {
       e.preventDefault();
       const [dx, dy] = moves[e.key];
-      change(slots.map((s, j) => (sel.includes(j) ? { ...s, x: r4(s.x + dx), y: r4(s.y + dy) } : s)));
+      change(items.map((s, j) => (sel.includes(j) ? { ...s, x: r4(s.x + dx), y: r4(s.y + dy) } : s)));
     }
   }
   const keyRef = useRef(onKey);
@@ -908,37 +1012,47 @@ export function TemplateEditor({
     return () => el.removeEventListener("wheel", wheel);
   }, []);
 
-  // --- simpan ---
 
-  const todo: { text: string; tab?: SideTab }[] = [];
-  if (!frame) todo.push({ text: "Unggah gambar latar / bingkai.", tab: "latar" });
-  else if (!format) todo.push({ text: "Ukuran gambar tidak cocok dengan format cetak — atur posisi gambar.", tab: "latar" });
-  if (!name.trim()) todo.push({ text: "Isi nama template (kolom di atas)." });
-  if (slots.length === 0) todo.push({ text: "Tambahkan minimal satu foto.", tab: "elemen" });
-
-  function submit() {
-    if (todo.length || !frame || !format) {
-      setShowTodo(true);
-      return;
-    }
-    const f = new FormData();
-    if (template) f.set("id", template.id);
-    f.set(
-      "meta",
-      JSON.stringify({
-        name: name.trim(),
-        format,
-        frame_overlay: overlay,
-        slots: slots.map((s) => {
-          const shape = !overlay && s.shape === "frame" ? "rect" : s.shape;
-          return { ...s, shape, layer: slotLayer({ ...s, shape }, overlay), x: r4(s.x), y: r4(s.y), w: r4(s.w), h: r4(s.h) };
-        }),
-        category_ids: [...cats],
-        active,
-      }),
+  /** Pegangan ubah ukuran (8) & putar untuk elemen terpilih — dipakai foto & gambar. */
+  function selHandles(i: number, c: string) {
+    return (
+    <>
+      {(
+        [
+          [-1, -1],
+          [0, -1],
+          [1, -1],
+          [1, 0],
+          [1, 1],
+          [0, 1],
+          [-1, 1],
+          [-1, 0],
+        ] as [number, number][]
+      ).map(([cx, cy]) => (
+        <span
+          key={`${cx}${cy}`}
+          onPointerDown={(e) => beginHandle(e, i, "resize", [cx, cy])}
+          className={cn("absolute border-2 bg-white", cx !== 0 && cy !== 0 ? "size-3 rounded-sm" : cx === 0 ? "h-2 w-4 rounded-full" : "h-4 w-2 rounded-full")}
+          style={{
+            borderColor: c,
+            left: cx < 0 ? -7 : cx === 0 ? "50%" : undefined,
+            right: cx > 0 ? -7 : undefined,
+            top: cy < 0 ? -7 : cy === 0 ? "50%" : undefined,
+            bottom: cy > 0 ? -7 : undefined,
+            translate: cx === 0 ? "-50% 0" : cy === 0 ? "0 -50%" : undefined,
+            cursor: cx === 0 ? "ns-resize" : cy === 0 ? "ew-resize" : cx === cy ? "nwse-resize" : "nesw-resize",
+          }}
+        />
+      ))}
+      <span className="pointer-events-none absolute -top-6 left-1/2 h-5 w-px -translate-x-1/2" style={{ background: c }} />
+      <span
+        onPointerDown={(e) => beginHandle(e, i, "rotate")}
+        title="Putar (Alt = tanpa tempel 15°)"
+        className="absolute -top-8 left-1/2 size-3.5 -translate-x-1/2 cursor-grab rounded-full border-2 bg-white"
+        style={{ borderColor: c }}
+      />
+    </>
     );
-    if (frame.file) f.set("frame", frame.file);
-    startTransition(() => run(f));
   }
 
   const serverFields = Object.entries(state.fields ?? {});
@@ -985,6 +1099,9 @@ export function TemplateEditor({
           </IconBtn>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <Button small onClick={() => setGuide(true)} title="Cara membuat template">
+            <BookOpen className="size-4" strokeWidth={2} /> <span className="hidden sm:inline">Panduan</span>
+          </Button>
           <IconBtn label="Pintasan keyboard (?)" onClick={() => setKeys(true)}>
             <Keyboard className="size-[18px]" strokeWidth={2} />
           </IconBtn>
@@ -1052,6 +1169,17 @@ export function TemplateEditor({
           if (f) void pickFile(f);
         }}
       />
+      <input
+        ref={imgFileRef}
+        type="file"
+        accept="image/png,image/jpeg"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void addImage(f);
+        }}
+      />
 
       <div className="grid items-start gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch">
         {/* Sidebar */}
@@ -1094,7 +1222,7 @@ export function TemplateEditor({
                       <button
                         key={s.key}
                         type="button"
-                        disabled={!frame || slots.length >= MAX_SLOTS}
+                        disabled={!frame || nPhotos >= MAX_SLOTS}
                         onClick={() => addShape(s.key)}
                         className="flex flex-col items-center gap-1 rounded-lg bg-canvas py-2.5 text-xs text-subtle ring-1 ring-inset ring-edge hover:text-primary hover:ring-primary/40 disabled:opacity-40"
                       >
@@ -1116,7 +1244,7 @@ export function TemplateEditor({
                       <button
                         key={k}
                         type="button"
-                        disabled={!frame || slots.length >= MAX_SLOTS}
+                        disabled={!frame || nPhotos >= MAX_SLOTS}
                         aria-pressed={draw?.kind === k}
                         onClick={() => startDraw(k)}
                         className={cn(
@@ -1136,19 +1264,51 @@ export function TemplateEditor({
                   </p>
                 </section>
                 <section className="flex flex-col gap-2">
+                  <h3 className="font-semibold">
+                    Gambar hiasan <span className="font-normal text-subtle">({imgs.length}/20)</span>
+                  </h3>
+                  <Button onClick={() => imgFileRef.current?.click()} disabled={!frame || busy || imgs.length >= 20}>
+                    {busy ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" strokeWidth={2} />} Tambah gambar
+                  </Button>
+                  <p className="text-xs text-subtle">
+                    Bunga, logo, stiker, tulisan… ditaruh <b className="font-medium text-fg">di atas foto & bingkai</b>. Pakai PNG transparan agar
+                    hanya hiasannya yang terlihat. Maks. 4 MB per gambar.
+                  </p>
+                  {imgs.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {imgs.map((e, k) => {
+                        const i = nPhotos + k;
+                        const on = sel.includes(i);
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={(ev) => setSel(ev.shiftKey ? (on ? sel.filter((j) => j !== i) : [...sel, i]) : [i])}
+                            aria-pressed={on}
+                            title={`Gambar ${k + 1}`}
+                            className={cn("checker size-10 overflow-hidden rounded-md ring-1 ring-inset", on ? "ring-2 ring-success" : "ring-edge-strong hover:ring-fg/30")}
+                          >
+                            <img src={e.img!.url} alt="" className="size-full object-contain" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+                <section className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold">
-                      Urutan foto <span className="font-normal text-subtle">({slots.length}/{MAX_SLOTS})</span>
+                      Urutan foto <span className="font-normal text-subtle">({nPhotos}/{MAX_SLOTS})</span>
                     </h3>
-                    <IconBtn label="Urutkan otomatis (atas → bawah, kiri → kanan)" onClick={() => change(sortSlots(slots))} disabled={slots.length < 2}>
+                    <IconBtn label="Urutkan otomatis (atas → bawah, kiri → kanan)" onClick={() => change([...sortSlots(photos), ...imgs])} disabled={nPhotos < 2}>
                       <SortAsc className="size-4" strokeWidth={2} />
                     </IconBtn>
                   </div>
-                  {slots.length === 0 ? (
+                  {nPhotos === 0 ? (
                     <p className="text-xs text-subtle">Belum ada foto.</p>
                   ) : (
                     <div className="flex flex-wrap gap-1.5">
-                      {slots.map((o, i) => {
+                      {photos.map((o, i) => {
                         const above = slotLayer(o, overlay) === "above";
                         const on = sel.includes(i);
                         return (
@@ -1294,7 +1454,50 @@ export function TemplateEditor({
                   </Button>
                 </span>
               </>
-            ) : slot && one !== null ? (
+            ) : item?.img && one !== null ? (
+              <>
+                <span className="mr-1 font-semibold">Gambar {one - nPhotos + 1}</span>
+                <label className="inline-flex items-center gap-1 px-1 text-subtle" title="Kemiringan (derajat)">
+                  Miring
+                  <input
+                    type="number"
+                    min={-180}
+                    max={180}
+                    value={Math.round(item.rotation)}
+                    onChange={(e) => update(one, { rotation: clamp(Number(e.target.value) || 0, -180, 180) })}
+                    className="h-7 w-14 rounded-md border border-edge-strong px-1.5 text-xs tabular-nums text-fg outline-none focus:border-primary"
+                  />
+                  °
+                </label>
+                <Button
+                  small
+                  title="Kembalikan ke rasio asli gambar (lebar tetap)"
+                  onClick={() => frame && update(one, { h: r4((item.w * frame.width) / item.img!.ratio / frame.height) })}
+                >
+                  Rasio asli
+                </Button>
+                <span className="mx-0.5 h-5 w-px bg-edge" />
+                <IconBtn label="Tengah mendatar di halaman" onClick={() => align("c")}>
+                  <AlignCenterVertical className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Tengah tegak di halaman" onClick={() => align("m")}>
+                  <AlignCenterHorizontal className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label={`Mundurkan (${MOD} [)`} onClick={() => reorder(one, -1)} disabled={one === nPhotos}>
+                  <ArrowDownToLine className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label={`Majukan (${MOD} ])`} onClick={() => reorder(one, 1)} disabled={one === items.length - 1}>
+                  <ArrowUpToLine className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <span className="mx-0.5 h-5 w-px bg-edge" />
+                <IconBtn label={`Duplikat (${MOD} D)`} onClick={() => duplicate([one])} disabled={imgs.length >= 20}>
+                  <Copy className="size-4" strokeWidth={2} />
+                </IconBtn>
+                <IconBtn label="Hapus (Delete)" onClick={() => remove([one])}>
+                  <Trash2 className="size-4 text-danger" strokeWidth={2} />
+                </IconBtn>
+              </>
+            ) : item && one !== null ? (
               <>
                 <span className="mr-1 font-semibold">Foto {one + 1}</span>
                 <div className="relative">
@@ -1304,13 +1507,13 @@ export function TemplateEditor({
                     className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 ring-1 ring-inset ring-edge-strong hover:bg-canvas"
                     aria-expanded={shapeMenu}
                   >
-                    <ShapeIcon shape={slot.shape} points={slot.points} />
-                    {slot.shape === "custom" ? "Bentuk bebas" : (SHAPES.find((s) => s.key === slot.shape)?.label ?? slot.shape)}
+                    <ShapeIcon shape={item.shape} points={item.points} />
+                    {item.shape === "custom" ? "Bentuk bebas" : (SHAPES.find((s) => s.key === item.shape)?.label ?? item.shape)}
                   </button>
                   {shapeMenu && (
                     <div className="absolute left-0 top-full z-40 mt-1 grid w-60 grid-cols-3 gap-1 rounded-xl border border-edge bg-surface p-2 shadow-pop">
                       {SHAPES.map((sh) => {
-                        const off = sh.key === "frame" && (!overlay || slotLayer(slot, overlay) === "above");
+                        const off = sh.key === "frame" && (!overlay || slotLayer(item, overlay) === "above");
                         return (
                           <button
                             key={sh.key}
@@ -1321,7 +1524,7 @@ export function TemplateEditor({
                               setShape(one, sh.key);
                               setShapeMenu(false);
                             }}
-                            className={cn("flex flex-col items-center gap-1 rounded-lg p-1.5 text-[11px] disabled:opacity-30", slot.shape === sh.key ? "bg-primary-soft text-primary" : "hover:bg-canvas")}
+                            className={cn("flex flex-col items-center gap-1 rounded-lg p-1.5 text-[11px] disabled:opacity-30", item.shape === sh.key ? "bg-primary-soft text-primary" : "hover:bg-canvas")}
                           >
                             <ShapeIcon shape={sh.key} className="size-5" />
                             {sh.label}
@@ -1331,24 +1534,24 @@ export function TemplateEditor({
                     </div>
                   )}
                 </div>
-                {slot.shape === "custom" && (
+                {item.shape === "custom" && (
                   <>
                     <Button small onClick={() => setEditPts(editPts === one ? null : one)} title="Edit titik (atau klik dua kali bentuknya)">
                       <PenLine className="size-4" strokeWidth={2} /> {editPts === one ? "Selesai edit titik" : "Edit titik"}
                     </Button>
-                    <IconBtn label="Haluskan semua titik (jadi lengkung)" onClick={() => frame && replace(one, refitPoints({ ...slot, handles: smoothHandles(slot.points ?? []) }, frame.width, frame.height))}>
+                    <IconBtn label="Haluskan semua titik (jadi lengkung)" onClick={() => frame && replace(one, refitPoints({ ...item, handles: smoothHandles(item.points ?? []) }, frame.width, frame.height))}>
                       <Waves className="size-4" strokeWidth={2} />
                     </IconBtn>
                     <IconBtn
                       label="Jadikan semua titik sudut tajam"
-                      disabled={!slot.handles}
-                      onClick={() => frame && replace(one, tidyCurve(refitPoints({ ...slot, handles: (slot.points ?? []).map(flatHandle) }, frame.width, frame.height)))}
+                      disabled={!item.handles}
+                      onClick={() => frame && replace(one, tidyCurve(refitPoints({ ...item, handles: (item.points ?? []).map(flatHandle) }, frame.width, frame.height)))}
                     >
                       <Triangle className="size-4" strokeWidth={2} />
                     </IconBtn>
                   </>
                 )}
-                {slot.shape === "rounded" && (
+                {item.shape === "rounded" && (
                   <label className="inline-flex items-center gap-1.5 px-1 text-subtle" title="Lengkung sudut">
                     Lengkung
                     <input
@@ -1356,7 +1559,7 @@ export function TemplateEditor({
                       min={0}
                       max={0.5}
                       step={0.01}
-                      value={slot.radius ?? 0.12}
+                      value={item.radius ?? 0.12}
                       onChange={(e) => update(one, { radius: Number(e.target.value) })}
                       className="w-20 accent-primary"
                       aria-label="Lengkung sudut"
@@ -1374,11 +1577,11 @@ export function TemplateEditor({
                       <button
                         key={k}
                         type="button"
-                        aria-pressed={slotLayer(slot, overlay) === k}
+                        aria-pressed={slotLayer(item, overlay) === k}
                         onClick={() => setLayer([one], k)}
                         className={cn(
                           "h-7 rounded-md px-2 font-medium",
-                          slotLayer(slot, overlay) === k ? (k === "above" ? "bg-info-soft text-info" : "bg-primary-soft text-primary") : "text-subtle hover:text-fg",
+                          slotLayer(item, overlay) === k ? (k === "above" ? "bg-info-soft text-info" : "bg-primary-soft text-primary") : "text-subtle hover:text-fg",
                         )}
                       >
                         {label}
@@ -1392,7 +1595,7 @@ export function TemplateEditor({
                     type="number"
                     min={-180}
                     max={180}
-                    value={Math.round(slot.rotation)}
+                    value={Math.round(item.rotation)}
                     onChange={(e) => update(one, { rotation: clamp(Number(e.target.value) || 0, -180, 180) })}
                     className="h-7 w-14 rounded-md border border-edge-strong px-1.5 text-xs tabular-nums text-fg outline-none focus:border-primary"
                   />
@@ -1408,11 +1611,11 @@ export function TemplateEditor({
                 <IconBtn label={`Urutan foto lebih awal (${MOD} [)`} onClick={() => reorder(one, -1)} disabled={one === 0}>
                   <ChevronLeft className="size-4" strokeWidth={2} />
                 </IconBtn>
-                <IconBtn label={`Urutan foto lebih akhir (${MOD} ])`} onClick={() => reorder(one, 1)} disabled={one === slots.length - 1}>
+                <IconBtn label={`Urutan foto lebih akhir (${MOD} ])`} onClick={() => reorder(one, 1)} disabled={one === items.length - 1}>
                   <ChevronRight className="size-4" strokeWidth={2} />
                 </IconBtn>
                 <span className="mx-0.5 h-5 w-px bg-edge" />
-                <IconBtn label={`Duplikat (${MOD} D)`} onClick={() => duplicate([one])} disabled={slots.length >= MAX_SLOTS}>
+                <IconBtn label={`Duplikat (${MOD} D)`} onClick={() => duplicate([one])} disabled={nPhotos >= MAX_SLOTS}>
                   <Copy className="size-4" strokeWidth={2} />
                 </IconBtn>
                 <IconBtn label="Hapus (Delete)" onClick={() => remove([one])}>
@@ -1421,7 +1624,7 @@ export function TemplateEditor({
               </>
             ) : sel.length > 1 ? (
               <>
-                <span className="mr-1 font-semibold">{sel.length} foto dipilih</span>
+                <span className="mr-1 font-semibold">{sel.length} dipilih</span>
                 <IconBtn label="Rata kiri" onClick={() => align("l")}>
                   <AlignStartVertical className="size-4" strokeWidth={2} />
                 </IconBtn>
@@ -1462,7 +1665,7 @@ export function TemplateEditor({
                   </>
                 )}
                 <span className="mx-0.5 h-5 w-px bg-edge" />
-                <IconBtn label={`Duplikat (${MOD} D)`} onClick={() => duplicate(sel)} disabled={slots.length + sel.length > MAX_SLOTS}>
+                <IconBtn label={`Duplikat (${MOD} D)`} onClick={() => duplicate(sel)} disabled={nPhotos + sel.filter((i) => i < nPhotos).length > MAX_SLOTS}>
                   <Copy className="size-4" strokeWidth={2} />
                 </IconBtn>
                 <IconBtn label="Hapus (Delete)" onClick={() => remove(sel)}>
@@ -1527,7 +1730,7 @@ export function TemplateEditor({
               </div>
             ) : mode === "preview" ? (
               <div className="m-auto shrink-0" style={{ width: stageW }}>
-                <TemplatePreview uid="editor" src={frame.src} width={frame.width} height={frame.height} overlay={overlay} slots={slots} className="rounded-md shadow-card" />
+                <TemplatePreview uid="editor" src={frame.src} width={frame.width} height={frame.height} overlay={overlay} slots={photos} images={imgs.map((e) => ({ ...e, url: e.img!.url }))} className="rounded-md shadow-card" />
               </div>
             ) : (
               <div
@@ -1540,8 +1743,8 @@ export function TemplateEditor({
                 onPointerCancel={stageUp}
                 onDoubleClick={() => {
                   if (draw?.kind === "pen") return finishDraw(draw.pts, draw.hs);
-                  // Pointer ditangkap kanvas saat slot ditekan → klik dua kali sampai di sini: edit titik bentuk bebas terpilih.
-                  if (one !== null && slots[one]?.shape === "custom") setEditPts(one);
+                  // Pointer ditangkap kanvas saat item ditekan → klik dua kali sampai di sini: edit titik bentuk bebas terpilih.
+                  if (one !== null && items[one]?.shape === "custom") setEditPts(one);
                 }}
                 className={cn("checker relative m-auto shrink-0 touch-none select-none shadow-card outline-none", draw && "cursor-crosshair")}
                 style={{ width: stageW, height: stageH }}
@@ -1562,8 +1765,24 @@ export function TemplateEditor({
                 {guides.h.map((y) => (
                   <div key={`h${y}`} aria-hidden className="pointer-events-none absolute inset-x-0 z-30 h-px bg-danger" style={{ top: `${y * 100}%` }} />
                 ))}
-                {slots.map((s, i) => {
+                {items.map((s, i) => {
                   const on = sel.includes(i);
+                  if (s.img) {
+                    // Gambar lapisan: tampil apa adanya (paling depan), garis tipis saat terpilih.
+                    const c = "var(--color-success)";
+                    return (
+                      <div
+                        key={i}
+                        onPointerDown={(e) => beginSlot(e, i)}
+                        className={cn("group absolute", draw ? "pointer-events-none" : "cursor-move", on ? "z-30" : "z-[25]")}
+                        style={{ left: s.x * stageW, top: s.y * stageH, width: s.w * stageW, height: s.h * stageH, transform: `rotate(${s.rotation}deg)` }}
+                      >
+                        <img src={s.img.url} alt="" draggable={false} className="pointer-events-none absolute inset-0 size-full max-w-none select-none" />
+                        <span aria-hidden className={cn("pointer-events-none absolute inset-0 border", on ? "border-[1.5px]" : "border-dashed opacity-0 group-hover:opacity-100")} style={{ borderColor: c }} />
+                        {on && one === i && selHandles(i, c)}
+                      </div>
+                    );
+                  }
                   const c = color(s);
                   const hole = s.shape === "frame";
                   const pointEdit = editPts === i && s.shape === "custom";
@@ -1636,44 +1855,7 @@ export function TemplateEditor({
                           })}
                         </>
                       )}
-                      {on && one === i && !pointEdit && (
-                        <>
-                          {(
-                            [
-                              [-1, -1],
-                              [0, -1],
-                              [1, -1],
-                              [1, 0],
-                              [1, 1],
-                              [0, 1],
-                              [-1, 1],
-                              [-1, 0],
-                            ] as [number, number][]
-                          ).map(([cx, cy]) => (
-                            <span
-                              key={`${cx}${cy}`}
-                              onPointerDown={(e) => beginHandle(e, i, "resize", [cx, cy])}
-                              className={cn("absolute border-2 bg-white", cx !== 0 && cy !== 0 ? "size-3 rounded-sm" : cx === 0 ? "h-2 w-4 rounded-full" : "h-4 w-2 rounded-full")}
-                              style={{
-                                borderColor: c,
-                                left: cx < 0 ? -7 : cx === 0 ? "50%" : undefined,
-                                right: cx > 0 ? -7 : undefined,
-                                top: cy < 0 ? -7 : cy === 0 ? "50%" : undefined,
-                                bottom: cy > 0 ? -7 : undefined,
-                                translate: cx === 0 ? "-50% 0" : cy === 0 ? "0 -50%" : undefined,
-                                cursor: cx === 0 ? "ns-resize" : cy === 0 ? "ew-resize" : cx === cy ? "nwse-resize" : "nesw-resize",
-                              }}
-                            />
-                          ))}
-                          <span className="pointer-events-none absolute -top-6 left-1/2 h-5 w-px -translate-x-1/2" style={{ background: c }} />
-                          <span
-                            onPointerDown={(e) => beginHandle(e, i, "rotate")}
-                            title="Putar (Alt = tanpa tempel 15°)"
-                            className="absolute -top-8 left-1/2 size-3.5 -translate-x-1/2 cursor-grab rounded-full border-2 bg-white"
-                            style={{ borderColor: c }}
-                          />
-                        </>
-                      )}
+                      {on && one === i && !pointEdit && selHandles(i, c)}
                     </div>
                   );
                 })}
@@ -1731,14 +1913,14 @@ export function TemplateEditor({
               </div>
             )}
           </div>
-          {frame && !adjust && mode === "edit" && slot && one !== null && (
+          {frame && !adjust && mode === "edit" && item && one !== null && (
             <details className="shrink-0 border-t border-edge bg-surface px-3 py-2 text-xs lg:absolute lg:inset-x-0 lg:bottom-0 lg:z-10 lg:max-h-[40%] lg:overflow-y-auto">
               <summary className="cursor-pointer text-subtle hover:text-fg">Posisi & ukuran tepat (%)</summary>
               <div className="mt-2 grid max-w-md grid-cols-4 gap-2">
-                <Num label="X" value={slot.x * 100} onChange={(v) => update(one, { x: r4(v / 100) })} />
-                <Num label="Y" value={slot.y * 100} onChange={(v) => update(one, { y: r4(v / 100) })} />
-                <Num label="Lebar" value={slot.w * 100} min={2} onChange={(v) => update(one, { w: r4(clamp(v, 2, 150) / 100) })} />
-                <Num label="Tinggi" value={slot.h * 100} min={2} onChange={(v) => update(one, { h: r4(clamp(v, 2, 150) / 100) })} />
+                <Num label="X" value={item.x * 100} onChange={(v) => update(one, { x: r4(v / 100) })} />
+                <Num label="Y" value={item.y * 100} onChange={(v) => update(one, { y: r4(v / 100) })} />
+                <Num label="Lebar" value={item.w * 100} min={2} onChange={(v) => update(one, { w: r4(clamp(v, 2, 150) / 100) })} />
+                <Num label="Tinggi" value={item.h * 100} min={2} onChange={(v) => update(one, { h: r4(clamp(v, 2, 150) / 100) })} />
               </div>
             </details>
           )}
@@ -1749,6 +1931,7 @@ export function TemplateEditor({
         <FrameTips />
       </Dialog>
 
+      <TemplateGuide open={guide} onOpenChange={setGuide} />
       <Dialog open={keys} onClose={() => setKeys(false)} title="Pintasan keyboard" wide>
         <ShortcutList />
       </Dialog>

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { TemplateEditor } from "@/components/dash/template-editor";
 import { ErrorBox, Loading } from "@/components/dash/ui";
 import { api, ApiError } from "@/lib/dash/api";
-import { saveOwnerTemplate } from "@/lib/dash/template-actions";
+import { saveOwnerTemplate, uploadOwnerAsset } from "@/lib/dash/template-actions";
 import type { FrameTemplate, TemplateCategory } from "@/lib/dash/types";
 
 async function Content({ params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +23,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   }
   // Template bawaan Sissi hanya bisa ditampilkan/disembunyikan, tidak diubah.
   if (template.source !== "mine") notFound();
-  return <TemplateEditor key={`${template.id}-${template.version}`} template={template} categories={categories} action={saveOwnerTemplate} backHref="/dashboard/template" />;
+  return <TemplateEditor key={`${template.id}-${template.version}`} template={template} categories={categories} action={saveOwnerTemplate} uploadAsset={uploadOwnerAsset} backHref="/dashboard/template" />;
 }
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {

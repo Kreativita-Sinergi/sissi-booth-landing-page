@@ -201,6 +201,12 @@ export type Handle = [number, number, number, number];
 
 export type TemplateCategory = { id: string; slug: string; name: string; sort: number; templates: number };
 
+/** Gambar lapisan di template: posisi relatif bingkai (0–1, sebelum rotasi); `url` hanya dari server. */
+export type TemplateImage = { asset_id: string; x: number; y: number; w: number; h: number; rotation: number; url: string };
+
+/** File gambar lapisan yang sudah diunggah (`POST …/template-assets`). */
+export type TemplateAsset = { id: string; url: string; mime: string; width: number; height: number; size: number; created_at: string };
+
 export type FrameTemplate = {
   id: string;
   name: string;
@@ -211,6 +217,8 @@ export type FrameTemplate = {
   frame_url: string;
   frame_overlay: boolean;
   slots: Slot[];
+  /** Gambar lapisan (hiasan) — digambar paling atas, urutan = belakang → depan. Data lama: kosong. */
+  images?: TemplateImage[];
   categories: { id: string; slug: string; name: string }[];
   active: boolean;
   sort: number;
