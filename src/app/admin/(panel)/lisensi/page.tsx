@@ -36,7 +36,7 @@ async function Content({ searchParams }: { searchParams: SP }) {
         </div>
         <Table head={["Pemilik", "Kunci", "Paket", "Status", "Mulai", "Berakhir", "Booth"]} empty={res.data.licenses.length === 0}>
           {res.data.licenses.map((l) => (
-            <tr key={l.id} className="hover:bg-canvas">
+            <tr key={l.id}>
               <td>
                 <Link href={`/admin/pelanggan/${l.owner_id}`} className="font-semibold hover:underline">{l.owner_name}</Link>
                 <p className="text-xs text-subtle">{l.owner_email}</p>

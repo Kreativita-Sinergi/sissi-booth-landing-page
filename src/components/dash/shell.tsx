@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/components/shared/cn";
 import { dashRoot } from "@/lib/dash/font";
+import { Button, Dialog, DialogFooter, SubmitButton } from "./client";
+import { SissiLogo } from "./logo";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 
@@ -94,6 +96,7 @@ export function Shell({
 }) {
   const nav = NAV[variant];
   const [open, setOpen] = useState(false);
+  const [confirmOut, setConfirmOut] = useState(false);
   const home = nav[0].href;
   const links = (
     // usePathname butuh Suspense (cacheComponents); cadangannya menu tanpa penanda aktif.
@@ -104,22 +107,19 @@ export function Shell({
 
   const sidebar = (
     <nav className="flex h-full flex-col gap-0.5 p-4">
-      <Link href={home} className="mb-6 flex items-center gap-2.5 px-2 pt-1">
-        <span aria-hidden className="inline-flex size-8 items-center justify-center rounded-lg bg-fg text-sm font-semibold text-white">S</span>
-        <span className="flex min-w-0 flex-col leading-tight">
-          <span className="text-sm font-semibold">{title}</span>
-          <span className="text-xs text-subtle">{badge}</span>
+      <Link href={home} aria-label={`${title} — ${badge}`} className="mb-6 flex flex-col gap-1.5 px-2 pt-1">
+        <SissiLogo />
+        <span className="text-xs font-medium text-subtle">
+          {title} · {badge}
         </span>
       </Link>
       {links}
       <div className="mt-auto flex flex-col gap-2 border-t border-edge pt-4">
         <div className="min-w-0 px-2 text-xs">{user}</div>
-        <form action={logout}>
-          <button type="submit" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-subtle hover:bg-canvas hover:text-fg">
-            <LogOut aria-hidden className="size-[18px]" strokeWidth={2} />
-            Keluar
-          </button>
-        </form>
+        <button type="button" onClick={() => { setOpen(false); setConfirmOut(true); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-subtle hover:bg-canvas hover:text-fg">
+          <LogOut aria-hidden className="size-[18px]" strokeWidth={2} />
+          Keluar
+        </button>
       </div>
     </nav>
   );
@@ -128,9 +128,9 @@ export function Shell({
     <div className={cn(dashRoot, "min-h-dvh bg-canvas")}>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 overflow-y-auto border-r border-edge bg-surface lg:block">{sidebar}</aside>
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-edge bg-surface px-4 py-3 lg:hidden">
-        <Link href={home} className="flex items-center gap-2 text-sm font-semibold">
-          <span aria-hidden className="inline-flex size-7 items-center justify-center rounded-md bg-fg text-xs text-white">S</span>
-          {title}
+        <Link href={home} aria-label={title} className="flex items-center gap-2">
+          <SissiLogo size="sm" />
+          <span className="text-xs font-medium text-subtle">{badge}</span>
         </Link>
         <button type="button" aria-label="Buka menu" onClick={() => setOpen(true)} className="rounded-lg border border-edge-strong bg-surface p-1.5 hover:bg-canvas">
           <Menu className="size-5" strokeWidth={2} />
@@ -146,6 +146,17 @@ export function Shell({
           </aside>
         </div>
       )}
+      <Dialog open={confirmOut} onClose={() => setConfirmOut(false)} title="Keluar dari dashboard?">
+        <form action={logout}>
+          <p className="text-sm text-subtle">Kamu perlu masuk lagi dengan email & kata sandi untuk membuka dashboard.</p>
+          <DialogFooter>
+            <Button type="button" onClick={() => setConfirmOut(false)}>
+              Batal
+            </Button>
+            <SubmitButton tone="pink">Keluar</SubmitButton>
+          </DialogFooter>
+        </form>
+      </Dialog>
       <main className="px-4 py-6 md:px-8 md:py-8 lg:ml-64">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>

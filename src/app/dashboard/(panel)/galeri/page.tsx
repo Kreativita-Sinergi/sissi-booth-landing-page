@@ -71,7 +71,7 @@ async function Content({ searchParams }: { searchParams: SP }) {
           ))}
         </div>
       )}
-      <Pagination page={res.meta.page} perPage={res.meta.per_page} total={res.meta.total} base="/dashboard/galeri" params={sp} />
+      <Pagination page={res.meta.page} perPage={res.meta.per_page} total={res.meta.total} base="/dashboard/galeri" params={sp} inCard={false} />
     </>
   );
 }

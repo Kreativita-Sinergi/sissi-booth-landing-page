@@ -16,6 +16,11 @@ _Tidak ada._
 
 ## Selesai
 
+- **2026-10-10** · Claude Opus 5.5 · Revisi dashboard (masukan pemilik): logo Sissi dari POS (sidebar, header HP,
+  halaman masuk); tabel menempel ke tepi kartu (kepala abu, sorot baris, tombol tidak mepet); pagination bernomor
+  `‹ 1 2 3 4 5 … 12 13 ›` + "Menampilkan 1–30 dari 376" (HP: "6 / 13"); dialog dengan judul/X & tombol bawah tetap
+  (`DialogFooter`); konfirmasi sebelum keluar. Lint + tsc + build hijau, `check:dev` bersih, dicek visual.
+
 - **2026-10-10** · Claude Opus 5.5 · **Dashboard `/admin` & `/dashboard` jadi netral** (update besar v2, tahap W1 —
   `../docs/rencana.md` §7): token netral di `globals.css`, fon Inter khusus dashboard (`src/lib/dash/font.ts`), komponen
   `ui/client/pickers/shell/login/search` + semua halaman panel ditulis ulang gayanya (API komponen tidak berubah). Tombol

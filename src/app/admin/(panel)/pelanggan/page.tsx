@@ -38,7 +38,7 @@ async function Content({ searchParams }: { searchParams: SP }) {
         </div>
         <Table head={["Pemilik", "Status", "Aktif s/d", "Booth", "Total bayar", "Sesi 30 hari", "Terakhir online"]} empty={res.data.customers.length === 0}>
           {res.data.customers.map((c) => (
-            <tr key={c.id} className="hover:bg-canvas">
+            <tr key={c.id}>
               <td>
                 <Link href={`/admin/pelanggan/${c.id}`} className="font-semibold hover:underline">{c.name}</Link>
                 <p className="text-xs text-subtle">{c.email}{c.phone && ` · ${c.phone}`}</p>

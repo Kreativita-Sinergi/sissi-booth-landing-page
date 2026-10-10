@@ -3,7 +3,7 @@
 import { Plus } from "lucide-react";
 import { changeOwnerPassword, createEvent, updateEvent, updateProfile } from "@/lib/dash/owner-actions";
 import type { BoothEvent, OwnerProfile } from "@/lib/dash/types";
-import { ActionForm, Button, DateField, DialogAction, Field, SelectField, SubmitButton, TextArea } from "./client";
+import { ActionForm, Button, DateField, DialogAction, DialogFooter, Field, SelectField, SubmitButton, TextArea } from "./client";
 import { todayYmd } from "./pickers";
 
 function EventFields({ e, booths, fields }: { e?: BoothEvent; booths: { id: string; name: string }[]; fields?: Record<string, string> }) {
@@ -42,10 +42,10 @@ export function NewEventButton({ booths }: { booths: { id: string; name: string 
           {(s) => (
             <>
               <EventFields booths={booths} fields={s.fields} />
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <DialogFooter>
                 <Button type="button" onClick={close}>Batal</Button>
                 <SubmitButton>Simpan</SubmitButton>
-              </div>
+              </DialogFooter>
             </>
           )}
         </ActionForm>
@@ -63,10 +63,10 @@ export function EditEventButton({ event, booths }: { event: BoothEvent; booths: 
             <>
               <input type="hidden" name="id" value={event.id} />
               <EventFields e={event} booths={booths} fields={s.fields} />
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <DialogFooter>
                 <Button type="button" onClick={close}>Batal</Button>
                 <SubmitButton>Simpan</SubmitButton>
-              </div>
+              </DialogFooter>
             </>
           )}
         </ActionForm>

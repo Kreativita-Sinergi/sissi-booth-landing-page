@@ -68,20 +68,37 @@ export function Dialog({ open, onClose, title, children, wide }: { open: boolean
         aria-modal="true"
         aria-labelledby={id}
         className={cn(
-          "max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-surface p-5 shadow-pop sm:rounded-xl sm:p-6",
+          "flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-surface shadow-pop sm:rounded-xl",
           wide ? "sm:max-w-2xl" : "sm:max-w-md",
         )}
       >
-        <div className="mb-4 flex items-start justify-between gap-4">
+        {/* Judul & tombol tutup tetap di atas; hanya isi yang bergulir. */}
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-edge px-5 py-4 sm:px-6">
           <h2 id={id} className="text-lg font-semibold leading-tight">
             {title}
           </h2>
-          <button type="button" onClick={onClose} aria-label="Tutup" className="rounded-lg p-1 text-subtle hover:bg-canvas hover:text-fg">
+          <button type="button" onClick={onClose} aria-label="Tutup" className="-mr-1 rounded-lg p-1 text-subtle hover:bg-canvas hover:text-fg">
             <X className="size-4" strokeWidth={2} />
           </button>
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 sm:px-6">
+          {children}
+          {/* Jarak bawah bila isi tidak diakhiri DialogFooter. */}
+          <div aria-hidden className="h-5 sm:h-6" />
+        </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Baris tombol di bawah dialog: menempel di dasar area gulir (selalu terlihat saat isi panjang).
+ * Margin negatif menghapus jarak bawah bawaan Dialog agar menempel ke tepi.
+ */
+export function DialogFooter({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="sticky bottom-0 z-10 -mx-5 -mb-5 mt-1 flex flex-col-reverse gap-2 border-t border-edge bg-surface px-5 py-4 sm:-mx-6 sm:-mb-6 sm:flex-row sm:justify-end sm:px-6">
+      {children}
     </div>
   );
 }
@@ -254,12 +271,12 @@ export function ConfirmAction({
               {Object.entries(hidden ?? {}).map(([k, v]) => (
                 <input key={k} type="hidden" name={k} value={v} />
               ))}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <DialogFooter>
                 <Button type="button" onClick={() => setOpen(false)}>
                   Batal
                 </Button>
                 <SubmitButton tone={tone}>{confirm}</SubmitButton>
-              </div>
+              </DialogFooter>
             </>
           )}
         </ActionForm>

@@ -68,6 +68,10 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · TypeScript · lucide-re
   token netral di `@theme`: `canvas`, `surface`, `edge(-strong)`, `fg`, `subtle`, `primary(-hover/-soft/-muted)`,
   `success/warning/danger/info(-soft/-solid)`, `shadow-card`, `shadow-pop`. Prop `tone` komponen tetap (blue = utama,
   pink = berbahaya, lainnya sekunder). Landing & galeri `/s/` tetap Sticker Bomb.
+- Logo dashboard = **logo Sissi dari POS** (`components/dash/logo.tsx` + `public/brand/sissi-*.svg`, disalin dari
+  `../../pos/sissi-app/assets/images/`, warna `--color-sissi`). Dialog: judul & X tetap, isi bergulir; tombol bawah
+  pakai `DialogFooter` (menempel di dasar). `Table` menempel ke tepi `Card`; `Pagination` bernomor (‹ 1 2 … 6 7 ›),
+  `inCard={false}` bila di luar kartu. Keluar = dialog konfirmasi.
 - Komponen: `src/components/dash/` — `ui.tsx` (server-safe: Card, Stat, Table, BarChart SVG, Bars, Badge…),
   `client.tsx` (dialog kustom, ActionForm, Field, ConfirmAction, PeriodPicker, FilterSelect), `pickers.tsx`
   (**dropdown & kalender kustom — dilarang `<select>`/`<input type=date>` bawaan**), `shell.tsx` (sidebar),

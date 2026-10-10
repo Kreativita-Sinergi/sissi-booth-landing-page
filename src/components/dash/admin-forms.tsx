@@ -17,7 +17,7 @@ import {
 import type { ActionState } from "@/lib/dash/action-state";
 import { date, waLink } from "@/lib/dash/format";
 import type { License, OwnerProfile } from "@/lib/dash/types";
-import { ActionForm, Button, CopyButton, DateField, Dialog, DialogAction, Field, SelectField, SubmitButton, TextArea } from "./client";
+import { ActionForm, Button, CopyButton, DateField, Dialog, DialogAction, DialogFooter, Field, SelectField, SubmitButton, TextArea } from "./client";
 import { todayYmd } from "./pickers";
 
 const PLANS = [
@@ -26,9 +26,7 @@ const PLANS = [
   { value: "yearly", label: "Tahunan" },
 ];
 
-function Actions({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">{children}</div>;
-}
+const Actions = DialogFooter;
 
 export function NewOwnerButton() {
   return (

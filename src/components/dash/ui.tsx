@@ -148,21 +148,27 @@ export function Badge({ status, label }: { status: string; label?: string }) {
   );
 }
 
-/** Tabel data responsif: gulir horizontal di layar sempit, bukan meluber. */
+/**
+ * Tabel data: menempel ke tepi kartu (kepala abu-abu, baris bergaris tipis, sorot saat diarahkan).
+ * Gulir horizontal di layar sempit, bukan meluber. Dipakai di dalam `Card` (padding 20px).
+ */
 export function Table({ head, children, empty }: { head: React.ReactNode[]; children: React.ReactNode; empty?: boolean }) {
   return (
-    <div className="-mx-5 overflow-x-auto px-5">
+    <div className="-mx-5 overflow-x-auto border-t border-edge first:-mt-5 first:rounded-t-xl first:border-t-0 last:-mb-5">
       <table className="w-full min-w-[640px] border-separate border-spacing-0 text-left text-sm">
         <thead>
           <tr>
             {head.map((h, i) => (
-              <th key={i} className="whitespace-nowrap border-b border-edge px-3 py-2.5 text-xs font-medium text-subtle first:pl-0 last:pr-0">
+              <th
+                key={i}
+                className="whitespace-nowrap border-b border-edge bg-canvas px-4 py-2.5 text-xs font-medium text-subtle first:pl-5 last:pr-5"
+              >
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="[&_td]:border-b [&_td]:border-edge [&_td]:px-3 [&_td]:py-3 [&_td:first-child]:pl-0 [&_td:last-child]:pr-0 [&_tr:last-child_td]:border-0">
+        <tbody className="[&_td]:border-b [&_td]:border-edge [&_td]:px-4 [&_td]:py-3 [&_td]:align-middle [&_td:first-child]:pl-5 [&_td:last-child]:pr-5 [&_tr:hover_td]:bg-canvas/60 [&_tr:last-child_td]:border-0">
           {children}
         </tbody>
       </table>
@@ -230,19 +236,40 @@ export function LinkButton({
   );
 }
 
-/** Navigasi halaman (?page=) mempertahankan parameter lain. */
+/** Nomor halaman yang ditampilkan: 1 … (sekitar halaman aktif) … terakhir. "gap" = elipsis. */
+function pageItems(page: number, pages: number): (number | "gap")[] {
+  if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+  const keep = new Set([1, 2, pages - 1, pages, page - 1, page, page + 1]);
+  // Di dekat ujung, tampilkan cukup banyak agar jumlah tombol tetap stabil.
+  if (page <= 4) [3, 4, 5].forEach((n) => keep.add(n));
+  if (page >= pages - 3) [pages - 4, pages - 3, pages - 2].forEach((n) => keep.add(n));
+  const nums = [...keep].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  const out: (number | "gap")[] = [];
+  nums.forEach((n, i) => {
+    if (i > 0 && n - nums[i - 1] > 1) out.push(n - nums[i - 1] === 2 ? n - 1 : "gap");
+    out.push(n);
+  });
+  return out;
+}
+
+/**
+ * Navigasi halaman (?page=) mempertahankan parameter lain: ‹ 1 2 … 6 7 ›.
+ * Di dalam `Card` (bawaan) menempel ke tepi bawah kartu; `inCard={false}` untuk daftar kartu/galeri.
+ */
 export function Pagination({
   page,
   perPage,
   total,
   base,
   params,
+  inCard = true,
 }: {
   page: number;
   perPage: number;
   total: number;
   base: string;
   params: Record<string, string | undefined>;
+  inCard?: boolean;
 }) {
   const pages = Math.max(1, Math.ceil(total / perPage));
   if (pages <= 1) return null;
@@ -252,27 +279,54 @@ export function Pagination({
     sp.set("page", String(p));
     return `${base}?${sp}`;
   };
-  const btn = "inline-flex size-8 items-center justify-center rounded-lg border border-edge-strong bg-surface shadow-card hover:bg-canvas";
-  return (
-    <nav className="mt-4 flex items-center justify-between gap-3 text-sm" aria-label="Halaman">
-      <span className="text-subtle">
-        {total} data · halaman {page}/{pages}
+  const first = (page - 1) * perPage + 1;
+  const last = Math.min(total, page * perPage);
+  const cell = "inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm tabular-nums";
+  const arrow = (to: number, label: string, icon: React.ReactNode, ok: boolean) =>
+    ok ? (
+      <Link href={href(to)} aria-label={label} className={cn(cell, "border border-edge-strong bg-surface shadow-card hover:bg-canvas")}>
+        {icon}
+      </Link>
+    ) : (
+      <span aria-hidden className={cn(cell, "border border-edge text-edge-strong")}>
+        {icon}
       </span>
-      <div className="flex gap-2">
-        {page > 1 ? (
-          <Link className={btn} href={href(page - 1)} aria-label="Sebelumnya">
-            <ChevronLeft className="size-4" strokeWidth={2} />
-          </Link>
-        ) : (
-          <span className={cn(btn, "opacity-30 shadow-none")}><ChevronLeft className="size-4" strokeWidth={2} /></span>
-        )}
-        {page < pages ? (
-          <Link className={btn} href={href(page + 1)} aria-label="Berikutnya">
-            <ChevronRight className="size-4" strokeWidth={2} />
-          </Link>
-        ) : (
-          <span className={cn(btn, "opacity-30 shadow-none")}><ChevronRight className="size-4" strokeWidth={2} /></span>
-        )}
+    );
+  return (
+    <nav
+      aria-label="Halaman"
+      className={cn(
+        "flex flex-col items-center gap-3 text-sm sm:flex-row sm:justify-between",
+        inCard ? "-mx-5 -mb-5 mt-0 border-t border-edge px-5 py-3" : "mt-6",
+      )}
+    >
+      <span className="text-subtle">
+        Menampilkan <b className="font-medium text-fg">{first}–{last}</b> dari <b className="font-medium text-fg">{total}</b>
+      </span>
+      <div className="flex items-center gap-1">
+        {arrow(page - 1, "Halaman sebelumnya", <ChevronLeft className="size-4" strokeWidth={2} />, page > 1)}
+        {/* HP: cukup "6 / 13" agar tidak meluber; layar lebar: nomor halaman. */}
+        <span className="px-2 text-subtle sm:hidden">
+          {page} / {pages}
+        </span>
+        <span className="hidden items-center gap-1 sm:flex">
+          {pageItems(page, pages).map((it, i) =>
+            it === "gap" ? (
+              <span key={`g${i}`} aria-hidden className={cn(cell, "text-subtle")}>
+                …
+              </span>
+            ) : it === page ? (
+              <span key={it} aria-current="page" className={cn(cell, "bg-primary font-medium text-white")}>
+                {it}
+              </span>
+            ) : (
+              <Link key={it} href={href(it)} aria-label={`Halaman ${it}`} className={cn(cell, "text-fg hover:bg-canvas")}>
+                {it}
+              </Link>
+            ),
+          )}
+        </span>
+        {arrow(page + 1, "Halaman berikutnya", <ChevronRight className="size-4" strokeWidth={2} />, page < pages)}
       </div>
     </nav>
   );

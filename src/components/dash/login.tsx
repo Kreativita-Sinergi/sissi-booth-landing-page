@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Loader2 } from "lucide-react";
 import type { ActionState } from "@/lib/dash/action-state";
 import { dashRoot } from "@/lib/dash/font";
+import { SissiLogo } from "./logo";
 
 /** Formulir masuk (admin Sissi / pemilik booth) — gaya dashboard netral. */
 export function LoginForm({
@@ -23,10 +24,10 @@ export function LoginForm({
   return (
     <main className={`${dashRoot} flex min-h-dvh items-center justify-center bg-canvas px-4 py-10`}>
       <div className="w-full max-w-sm">
-        <p className="mb-6 flex items-center justify-center gap-2.5 text-base font-semibold">
-          <span aria-hidden className="inline-flex size-9 items-center justify-center rounded-lg bg-fg text-white">S</span>
-          Sissi Booth
-        </p>
+        <div className="mb-6 flex flex-col items-center gap-2">
+          <SissiLogo size="lg" />
+          <span className="text-sm font-medium text-subtle">Sissi Booth</span>
+        </div>
         <form action={run} className="flex flex-col gap-4 rounded-xl border border-edge bg-surface p-6 shadow-card md:p-8">
           <div>
             <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
