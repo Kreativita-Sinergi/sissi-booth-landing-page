@@ -194,11 +194,17 @@ export function TemplateEditor({
   // Titik coretan "seret bebas" dikumpulkan di ref: gerakan mouse cepat tidak boleh tertimpa render yang tertunda.
   const lasso = useRef<Pt[] | null>(null);
   const [areaW, setAreaW] = useState(0);
+  // Tinggi area kanvas hanya dipakai di desktop, saat editor mengisi layar penuh (tingginya tetap).
+  const [areaH, setAreaH] = useState(0);
 
   useEffect(() => {
     const el = areaRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setAreaW(e.contentRect.width));
+    const wide = window.matchMedia("(min-width: 1024px)");
+    const ro = new ResizeObserver(([e]) => {
+      setAreaW(e.contentRect.width);
+      setAreaH(wide.matches ? e.contentRect.height : 0);
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -218,7 +224,7 @@ export function TemplateEditor({
   }, [frame?.src]);
 
   const format = frame ? formatFor(frame.width, frame.height) : null;
-  const maxH = typeof window === "undefined" ? 640 : Math.max(380, window.innerHeight * 0.7);
+  const maxH = areaH > 0 ? Math.max(240, areaH - 8) : typeof window === "undefined" ? 640 : Math.max(380, window.innerHeight * 0.7);
   const fitW = frame ? Math.max(120, Math.min((areaW || 600) - 48, (maxH * frame.width) / frame.height)) : 0;
   const stageW = fitW * zoom;
   const stageH = frame ? (stageW * frame.height) / frame.width : 0;
@@ -832,7 +838,8 @@ export function TemplateEditor({
   const color = (s: Slot) => (slotLayer(s, overlay) === "above" ? "var(--color-info)" : "var(--color-primary)");
 
   return (
-    <div className="flex flex-col gap-3">
+    // Desktop: ruang kerja layar penuh seperti Canva — halaman tidak bergulir, hanya panel & kanvas di dalamnya.
+    <div className="flex flex-col gap-3 lg:fixed lg:inset-0 lg:z-40 lg:bg-canvas lg:p-3">
       {/* Bar atas */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-edge bg-surface px-3 py-2 shadow-card">
         <Link href={backHref} className="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-sm text-subtle hover:bg-canvas hover:text-fg" title="Kembali ke daftar template">
@@ -936,9 +943,9 @@ export function TemplateEditor({
         }}
       />
 
-      <div className="grid items-start gap-3 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="grid items-start gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch">
         {/* Sidebar */}
-        <aside className="order-2 flex min-w-0 overflow-hidden rounded-xl border border-edge bg-surface shadow-card lg:sticky lg:top-4 lg:order-none lg:max-h-[calc(100dvh-2rem)]">
+        <aside className="order-2 flex min-w-0 overflow-hidden rounded-xl border border-edge bg-surface shadow-card lg:order-none lg:h-full">
           <nav className="flex w-16 shrink-0 flex-col gap-1 border-r border-edge bg-canvas/50 p-1.5" aria-label="Panel editor">
             {(
               [
@@ -1154,9 +1161,9 @@ export function TemplateEditor({
         </aside>
 
         {/* Kanvas */}
-        <section className="order-1 min-w-0 overflow-hidden rounded-xl border border-edge bg-surface shadow-card lg:order-none">
+        <section className="order-1 min-w-0 overflow-hidden rounded-xl border border-edge bg-surface shadow-card lg:order-none lg:flex lg:h-full lg:flex-col">
           {/* Toolbar kontekstual */}
-          <div className="flex min-h-12 flex-wrap items-center gap-1 border-b border-edge px-3 py-1.5 text-xs">
+          <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-1 border-b border-edge px-3 py-1.5 text-xs">
             {adjust ? (
               <span className="text-subtle">Atur gambar · {FORMATS[adjust.format].label} · seret gambar untuk menggeser, roda mouse untuk zoom.</span>
             ) : !frame ? (
@@ -1352,7 +1359,7 @@ export function TemplateEditor({
             )}
           </div>
 
-          <div ref={areaRef} className="flex max-h-[78dvh] min-h-[420px] overflow-auto bg-canvas/60 p-6">
+          <div ref={areaRef} className="flex max-h-[78dvh] min-h-[420px] overflow-auto bg-canvas/60 p-6 lg:max-h-none lg:min-h-0 lg:flex-1">
             {adjust ? (
               <div className="m-auto">
                 <AdjustStage adjust={adjust} boxW={areaW - 48} maxH={maxH} onChange={setAdjust} />
@@ -1513,7 +1520,7 @@ export function TemplateEditor({
             )}
           </div>
           {frame && !adjust && mode === "edit" && slot && one !== null && (
-            <details className="border-t border-edge px-3 py-2 text-xs">
+            <details className="shrink-0 border-t border-edge px-3 py-2 text-xs lg:max-h-[40%] lg:overflow-y-auto">
               <summary className="cursor-pointer text-subtle hover:text-fg">Posisi & ukuran tepat (%)</summary>
               <div className="mt-2 grid max-w-md grid-cols-4 gap-2">
                 <Num label="X" value={slot.x * 100} onChange={(v) => update(one, { x: r4(v / 100) })} />
