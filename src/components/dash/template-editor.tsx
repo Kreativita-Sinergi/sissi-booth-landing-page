@@ -1468,16 +1468,28 @@ export function TemplateEditor({
                 <AdjustStage adjust={adjust} boxW={areaW - 8} maxH={maxH} onChange={setAdjust} />
               </div>
             ) : !frame ? (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="m-auto flex aspect-[2/3] w-full max-w-sm flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-edge-strong bg-surface p-6 text-center text-sm text-subtle hover:border-primary hover:bg-primary-soft/40"
+              // Kartu unggah ringkas (bukan berbentuk kertas, agar tidak disangka bingkai); bisa seret-lepas file.
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files?.[0];
+                  if (f) void pickFile(f);
+                }}
+                className="m-auto flex w-full max-w-md flex-col items-center gap-3 rounded-xl border-2 border-dashed border-edge-strong bg-surface px-6 py-8 text-center text-sm text-subtle"
               >
-                <ImageUp className="size-10 text-primary" strokeWidth={1.5} />
-                <span className="font-medium text-fg">Unggah gambar latar / bingkai</span>
-                <span>PNG dengan bagian foto transparan → posisi foto terdeteksi otomatis.</span>
-                <span className="text-xs">Gambar biasa (JPG) juga bisa: foto kamu atur atau gambar bentuknya sendiri.</span>
-              </button>
+                <span className="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+                  <ImageUp className="size-6" strokeWidth={1.75} />
+                </span>
+                <span className="text-base font-semibold text-fg">Mulai dari gambar desainmu</span>
+                <span>Seret file ke sini, atau</span>
+                <Button tone="blue" onClick={() => fileRef.current?.click()} disabled={busy}>
+                  {busy ? <Loader2 className="size-4 animate-spin" /> : <ImageUp className="size-4" strokeWidth={2} />} Pilih gambar
+                </Button>
+                <span className="text-xs">
+                  PNG dengan bagian foto transparan → posisi foto terdeteksi otomatis. JPG juga bisa: posisi foto kamu atur sendiri. Maks. 4 MB.
+                </span>
+              </div>
             ) : mode === "preview" ? (
               <div className="m-auto shrink-0" style={{ width: stageW }}>
                 <TemplatePreview uid="editor" src={frame.src} width={frame.width} height={frame.height} overlay={overlay} slots={slots} className="rounded-md shadow-card" />
